@@ -40,6 +40,7 @@ export function GamePage() {
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
   const [sessionKey, setSessionKey] = useState(0);
+  const [focusRequest, setFocusRequest] = useState(0);
   const handleTick = useCallback((elapsedMs: number) => {
     setGameState((previousState) =>
       previousState.elapsedMs === elapsedMs
@@ -207,6 +208,7 @@ export function GamePage() {
       <Box sx={{ height: '100vh' }}>
         <Globe
           country={currentCountry}
+          focusRequest={focusRequest}
           height={size.height}
           rotation={rotation}
           width={size.width}
@@ -250,6 +252,16 @@ export function GamePage() {
               <Typography variant="body2">
                 Incorrect: {gameState.incorrect}
               </Typography>
+              {gameState.status !== 'gameOver' ? (
+                <Button
+                  size="small"
+                  sx={{ alignSelf: { md: 'flex-end', xs: 'stretch' } }}
+                  variant="outlined"
+                  onClick={() => setFocusRequest((value) => value + 1)}
+                >
+                  Refocus country
+                </Button>
+              ) : null}
               <Link component={RouterLink} to="/about" underline="hover">
                 About
               </Link>
@@ -262,10 +274,11 @@ export function GamePage() {
             alignItems: 'center',
             display: 'grid',
             inset: 0,
-            placeItems: 'center',
+            justifyItems: 'center',
             pointerEvents: 'none',
             position: 'absolute',
             px: 2,
+            py: { md: 4, xs: 2 },
           }}
         >
           <Paper
@@ -276,6 +289,8 @@ export function GamePage() {
               pointerEvents: 'auto',
               textAlign: 'center',
               width: '100%',
+              alignSelf: 'end',
+              mb: { md: 4, xs: 2 },
             }}
           >
             <Stack spacing={2}>
@@ -300,7 +315,7 @@ export function GamePage() {
                   <Typography variant="h4">
                     {currentCountry.properties.nameEn}
                   </Typography>
-                  <Button variant="contained" onClick={handleNextRound}>
+                  <Button autoFocus variant="contained" onClick={handleNextRound}>
                     Next
                   </Button>
                 </>

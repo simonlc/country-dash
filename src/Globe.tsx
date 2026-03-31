@@ -7,7 +7,13 @@ import {
   geoPath,
   type GeoPermissibleObjects,
 } from 'd3';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as solar from 'solar-calculator';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 
@@ -16,6 +22,7 @@ interface GlobeProps {
   width: number;
   height: number;
   rotation: [number, number];
+  focusRequest: number;
   world: FeatureCollectionLike;
   world110m: FeatureCollectionLike;
 }
@@ -83,17 +90,35 @@ function clampScale(value: number) {
   return Math.min(20, Math.max(0.35, value));
 }
 
+function normalizeLongitude(value: number) {
+  return ((((value + 180) % 360) + 360) % 360) - 180;
+}
+
+function interpolateAngle(from: number, to: number, progress: number) {
+  const delta = normalizeLongitude(to - from);
+  return normalizeLongitude(from + delta * progress);
+}
+
 export function Globe({
   country,
   width,
   height,
   rotation,
+  focusRequest,
   world,
   world110m,
 }: GlobeProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const renderRef = useRef<(() => void) | null>(null);
+  const isDraggingRef = useRef(false);
+  const currentRotationRef = useRef<[number, number, number]>([
+    rotation[0],
+    rotation[1],
+    0,
+  ]);
   const [zoomScale, setZoomScale] = useState(1);
 
   const projection = useMemo(() => {
@@ -101,9 +126,8 @@ export function Globe({
     return geoOrthographic()
       .scale(initialScale * zoomScale)
       .center([0, 0])
-      .rotate([rotation[0], rotation[1]])
       .translate([width / 2, height / 2]);
-  }, [height, rotation, width, zoomScale]);
+  }, [height, width, zoomScale]);
 
   const targetFeature = useMemo(
     () => world.features.find((feature) => feature.id === country.id) ?? country,
@@ -147,7 +171,7 @@ export function Globe({
       const selectedCircle = geoCircle()
         .center(geoCentroid(country))
         .radius(1);
-      const dataset = world110m.features.length > 0 ? world110m : world;
+      const dataset = world;
 
       context.clearRect(0, 0, width, height);
       context.fillStyle = colors.hazeOuter;
@@ -223,23 +247,24 @@ export function Globe({
       context.restore();
     };
 
+    renderRef.current = render;
     render();
 
     let dragging = false;
     let startX = 0;
     let startY = 0;
-    let startRotation: [number, number, number] = [
-      projection.rotate()[0],
-      projection.rotate()[1],
-      projection.rotate()[2],
-    ];
+    let startRotation = currentRotationRef.current;
 
     const handlePointerDown = (event: PointerEvent) => {
       dragging = true;
+      isDraggingRef.current = true;
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       startX = event.clientX;
       startY = event.clientY;
-      const current = projection.rotate();
-      startRotation = [current[0], current[1], current[2]];
+      startRotation = currentRotationRef.current;
       canvas.setPointerCapture(event.pointerId);
     };
 
@@ -249,17 +274,19 @@ export function Globe({
       }
 
       const sensitivity = 75 / projection.scale();
-      projection.rotate([
+      currentRotationRef.current = [
         startRotation[0] + (event.clientX - startX) * sensitivity,
         startRotation[1] - (event.clientY - startY) * sensitivity,
         startRotation[2],
-      ]);
+      ];
+      projection.rotate(currentRotationRef.current);
       render();
     };
 
     const stopDragging = (event: PointerEvent) => {
       if (dragging) {
         dragging = false;
+        isDraggingRef.current = false;
         canvas.releasePointerCapture(event.pointerId);
       }
     };
@@ -280,6 +307,7 @@ export function Globe({
     canvas.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
+      renderRef.current = null;
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerup', stopDragging);
@@ -287,6 +315,56 @@ export function Globe({
       canvas.removeEventListener('wheel', handleWheel);
     };
   }, [country, countrySize, height, projection, width, world, world110m, zoomScale, targetFeature]);
+
+  useEffect(() => {
+    currentRotationRef.current = [rotation[0], rotation[1], 0];
+    projection.rotate(currentRotationRef.current);
+    renderRef.current?.();
+  }, [projection]);
+
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      return;
+    }
+
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const startRotation = currentRotationRef.current;
+    const targetRotation: [number, number, number] = [rotation[0], rotation[1], 0];
+    const durationMs = 650;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min((now - startTime) / durationMs, 1);
+      const easedProgress = 1 - (1 - progress) ** 3;
+
+      currentRotationRef.current = [
+        interpolateAngle(startRotation[0], targetRotation[0], easedProgress),
+        startRotation[1] + (targetRotation[1] - startRotation[1]) * easedProgress,
+        0,
+      ];
+      projection.rotate(currentRotationRef.current);
+      renderRef.current?.();
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(step);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [focusRequest, projection, rotation]);
 
   return <div ref={rootRef} style={styles.root} />;
 }
