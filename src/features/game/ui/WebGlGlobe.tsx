@@ -1,6 +1,7 @@
 import {
   createNightCircle,
   geoToSpherePosition,
+  getRotatedSunDirection,
   useGlobeInteraction,
   type GlobeViewProps,
 } from './globeShared';
@@ -36,9 +37,12 @@ interface WebGlResources {
   positionBuffer: WebGLBuffer;
   program: WebGLProgram;
   shadowTexture: WebGLTexture;
+  shadowTextureSize: number;
   texture: WebGLTexture;
   uniforms: {
+    penumbra: WebGLUniformLocation;
     scale: WebGLUniformLocation;
+    sunDirection: WebGLUniformLocation;
     shadowTexture: WebGLUniformLocation;
     texture: WebGLUniformLocation;
   };
@@ -51,10 +55,12 @@ const vertexShaderSource = `
   uniform vec2 u_scale;
 
   varying vec2 v_uv;
+  varying vec3 v_normal;
 
   void main() {
     gl_Position = vec4(a_position.x * u_scale.x, a_position.y * u_scale.y, a_position.z * 0.5, 1.0);
     v_uv = a_uv;
+    v_normal = a_position;
   }
 `;
 
@@ -63,13 +69,19 @@ const fragmentShaderSource = `
 
   uniform sampler2D u_texture;
   uniform sampler2D u_shadowTexture;
+  uniform float u_penumbra;
+  uniform vec3 u_sunDirection;
 
   varying vec2 v_uv;
+  varying vec3 v_normal;
 
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
     vec4 shadow = texture2D(u_shadowTexture, v_uv);
-    vec3 shaded = mix(baseColor.rgb, shadow.rgb, shadow.a);
+    float light = dot(normalize(v_normal), normalize(u_sunDirection));
+    float softShadow = smoothstep(u_penumbra, -u_penumbra, light) * shadow.a;
+    float alpha = max(shadow.a, softShadow);
+    vec3 shaded = mix(baseColor.rgb, shadow.rgb, clamp(alpha, 0.0, 1.0));
     gl_FragColor = vec4(shaded, baseColor.a);
   }
 `;
@@ -215,7 +227,7 @@ function drawFeatureCollection(
   }
 }
 
-function withMirroredTextureContext(
+function withTextureContext(
   canvas: HTMLCanvasElement,
   draw: (context: CanvasRenderingContext2D) => void,
 ) {
@@ -224,11 +236,7 @@ function withMirroredTextureContext(
     throw new Error('Failed to create globe texture context.');
   }
 
-  context.save();
-  context.translate(canvas.width, 0);
-  context.scale(-1, 1);
   draw(context);
-  context.restore();
 }
 
 function buildTextureCanvas(
@@ -241,7 +249,7 @@ function buildTextureCanvas(
   textureCanvas.width = textureSize;
   textureCanvas.height = textureSize / 2;
 
-  withMirroredTextureContext(textureCanvas, (context) => {
+  withTextureContext(textureCanvas, (context) => {
     const projection = geoEquirectangular()
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
@@ -297,25 +305,18 @@ function buildShadowTextureCanvas(
   textureCanvas.height = textureSize / 2;
   const shadow = parseCssColor(palette.nightShade);
 
-  withMirroredTextureContext(textureCanvas, (context) => {
+  withTextureContext(textureCanvas, (context) => {
     const projection = geoEquirectangular()
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
-    const fill = `rgba(${shadow.rgb[0]}, ${shadow.rgb[1]}, ${shadow.rgb[2]}, ${shadow.alpha})`;
+    const nightCircle = createNightCircle();
+    const umbraFill = `rgba(${shadow.rgb[0]}, ${shadow.rgb[1]}, ${shadow.rgb[2]}, ${shadow.alpha})`;
 
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
-
-    context.filter = 'blur(2px)';
     context.beginPath();
-    path(createNightCircle());
-    context.fillStyle = fill;
-    context.fill();
-
-    context.filter = 'none';
-    context.beginPath();
-    path(createNightCircle());
-    context.fillStyle = fill;
+    path(nightCircle);
+    context.fillStyle = umbraFill;
     context.fill();
   });
 
@@ -394,9 +395,12 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     positionBuffer,
     program,
     shadowTexture,
+    shadowTextureSize: 0,
     texture,
     uniforms: {
+      penumbra: getUniformLocation(gl, program, 'u_penumbra'),
       scale: getUniformLocation(gl, program, 'u_scale'),
+      sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
       shadowTexture: getUniformLocation(gl, program, 'u_shadowTexture'),
       texture: getUniformLocation(gl, program, 'u_texture'),
     },
@@ -424,6 +428,7 @@ function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
+  const sunDirection = getRotatedSunDirection(currentRotation);
   const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
 
   for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
@@ -445,6 +450,8 @@ function drawGlobe(
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.shadowTexture, 1);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
+  gl.uniform1f(uniforms.penumbra, 100 / 6371);
+  gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -522,6 +529,7 @@ export function WebGlGlobe({
       palette,
       textureSize >= 4096 ? 4096 : 2048,
     );
+    resources.shadowTextureSize = shadowCanvas.width;
 
     gl.activeTexture(gl.TEXTURE0);
     configureTexture(gl, resources.texture);

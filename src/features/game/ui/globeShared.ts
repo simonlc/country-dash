@@ -62,7 +62,7 @@ export function geoToSpherePosition(longitude: number, latitude: number) {
   return {
     x: Math.sin(lon) * cosLat,
     y: Math.sin(lat),
-    z: Math.cos(lon) * cosLat,
+    z: -Math.cos(lon) * cosLat,
   };
 }
 
