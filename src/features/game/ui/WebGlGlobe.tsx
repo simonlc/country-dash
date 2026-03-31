@@ -33,18 +33,32 @@ interface SphereMesh {
 interface WebGlResources {
   gl: WebGLRenderingContext;
   indexCount: number;
+  lastRotation: [number, number] | null;
   mesh: SphereMesh;
   positionBuffer: WebGLBuffer;
   program: WebGLProgram;
   shadowTexture: WebGLTexture;
-  shadowTextureSize: number;
   texture: WebGLTexture;
   uniforms: {
+    atmosphereOpacity: WebGLUniformLocation;
+    atmosphereTint: WebGLUniformLocation;
+    auroraStrength: WebGLUniformLocation;
+    gridColor: WebGLUniformLocation;
+    gridStrength: WebGLUniformLocation;
+    noiseStrength: WebGLUniformLocation;
     penumbra: WebGLUniformLocation;
+    rimLightColor: WebGLUniformLocation;
+    rimLightStrength: WebGLUniformLocation;
     scale: WebGLUniformLocation;
+    scanlineDensity: WebGLUniformLocation;
+    scanlineStrength: WebGLUniformLocation;
+    specularColor: WebGLUniformLocation;
+    specularPower: WebGLUniformLocation;
+    specularStrength: WebGLUniformLocation;
     sunDirection: WebGLUniformLocation;
     shadowTexture: WebGLUniformLocation;
     texture: WebGLUniformLocation;
+    time: WebGLUniformLocation;
   };
 }
 
@@ -67,24 +81,79 @@ const vertexShaderSource = `
 const fragmentShaderSource = `
   precision mediump float;
 
+  uniform vec3 u_atmosphereTint;
+  uniform vec3 u_gridColor;
+  uniform vec3 u_rimLightColor;
+  uniform vec3 u_specularColor;
+  uniform float u_atmosphereOpacity;
+  uniform float u_auroraStrength;
+  uniform float u_gridStrength;
+  uniform float u_noiseStrength;
   uniform sampler2D u_texture;
   uniform sampler2D u_shadowTexture;
   uniform float u_penumbra;
+  uniform float u_rimLightStrength;
+  uniform float u_scanlineDensity;
+  uniform float u_scanlineStrength;
+  uniform float u_specularPower;
+  uniform float u_specularStrength;
   uniform vec3 u_sunDirection;
+  uniform float u_time;
 
   varying vec2 v_uv;
   varying vec3 v_normal;
 
+  float hash(vec2 point) {
+    return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
     vec4 shadow = texture2D(u_shadowTexture, v_uv);
-    float light = dot(normalize(v_normal), normalize(u_sunDirection));
+    vec3 normal = normalize(v_normal);
+    vec3 sunDirection = normalize(u_sunDirection);
+    float light = dot(normal, sunDirection);
     float softShadow = smoothstep(u_penumbra, -u_penumbra, light) * shadow.a;
     float alpha = max(shadow.a, softShadow);
     vec3 shaded = mix(baseColor.rgb, shadow.rgb, clamp(alpha, 0.0, 1.0));
-    gl_FragColor = vec4(shaded, baseColor.a);
+    float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
+    float directLight = clamp(light, 0.0, 1.0);
+
+    float facing = clamp(normal.z, 0.0, 1.0);
+    float rim = pow(1.0 - facing, 2.2) * u_rimLightStrength * (0.35 + daylight * 0.65);
+    float specular = pow(
+      max(dot(reflect(-sunDirection, normal), vec3(0.0, 0.0, 1.0)), 0.0),
+      u_specularPower
+    ) * u_specularStrength * directLight;
+
+    float lonLine = 1.0 - smoothstep(0.02, 0.055, abs(fract(v_uv.x * 24.0 + u_time * 0.015) - 0.5));
+    float latLine = 1.0 - smoothstep(0.02, 0.06, abs(fract(v_uv.y * 12.0) - 0.5));
+    float grid = max(lonLine, latLine) * u_gridStrength * facing * directLight;
+
+    float scanlineWave = sin(v_uv.y * u_scanlineDensity + u_time * 5.0 + v_uv.x * 12.0);
+    float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight;
+
+    float auroraWave = sin(v_uv.y * 18.0 - u_time * 0.9 + normal.x * 3.5);
+    float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
+
+    float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength;
+    float atmosphere = u_atmosphereOpacity * (0.08 + directLight * 0.42 + rim * 0.3);
+
+    vec3 color = shaded;
+    color += u_atmosphereTint * atmosphere;
+    color += u_gridColor * (grid + scanline * 0.18);
+    color += u_rimLightColor * (rim + aurora);
+    color += u_specularColor * specular;
+    color += grain;
+
+    gl_FragColor = vec4(clamp(color, 0.0, 1.0), baseColor.a);
   }
 `;
+
+function cssColorToVec3(color: string): [number, number, number] {
+  const { rgb } = parseCssColor(color);
+  return [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
+}
 
 function compileShader(
   gl: WebGLRenderingContext,
@@ -391,18 +460,32 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   return {
     gl,
     indexCount: mesh.indices.length,
+    lastRotation: null,
     mesh,
     positionBuffer,
     program,
     shadowTexture,
-    shadowTextureSize: 0,
     texture,
     uniforms: {
+      atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
+      atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
+      auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
+      gridColor: getUniformLocation(gl, program, 'u_gridColor'),
+      gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
+      noiseStrength: getUniformLocation(gl, program, 'u_noiseStrength'),
       penumbra: getUniformLocation(gl, program, 'u_penumbra'),
+      rimLightColor: getUniformLocation(gl, program, 'u_rimLightColor'),
+      rimLightStrength: getUniformLocation(gl, program, 'u_rimLightStrength'),
       scale: getUniformLocation(gl, program, 'u_scale'),
+      scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
+      scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
+      specularColor: getUniformLocation(gl, program, 'u_specularColor'),
+      specularPower: getUniformLocation(gl, program, 'u_specularPower'),
+      specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
       shadowTexture: getUniformLocation(gl, program, 'u_shadowTexture'),
       texture: getUniformLocation(gl, program, 'u_texture'),
+      time: getUniformLocation(gl, program, 'u_time'),
     },
   };
 }
@@ -414,14 +497,21 @@ function drawGlobe(
   height: number,
   zoomScale: number,
   currentRotation: [number, number],
+  palette: GlobePalette,
+  effectTimeSeconds: number,
 ) {
   const { gl, indexCount, mesh, positionBuffer, uniforms } = resources;
   const dpr = window.devicePixelRatio || 1;
+  const targetWidth = Math.max(Math.floor(width * dpr), 1);
+  const targetHeight = Math.max(Math.floor(height * dpr), 1);
 
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
+
   gl.viewport(0, 0, canvas.width, canvas.height);
 
   const aspect = width / Math.max(height, 1);
@@ -429,18 +519,35 @@ function drawGlobe(
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
   const sunDirection = getRotatedSunDirection(currentRotation);
-  const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
+  const [atmosphereRed, atmosphereGreen, atmosphereBlue] = cssColorToVec3(
+    palette.atmosphereTint,
+  );
+  const [gridRed, gridGreen, gridBlue] = cssColorToVec3(palette.gridColor);
+  const [rimRed, rimGreen, rimBlue] = cssColorToVec3(palette.rimLightColor);
+  const [specularRed, specularGreen, specularBlue] = cssColorToVec3(
+    palette.specularColor,
+  );
 
-  for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
-    const rotated = rotate([
-      mesh.sourceCoordinates[index]!,
-      mesh.sourceCoordinates[index + 1]!,
-    ]);
-    const position = geoToSpherePosition(rotated[0], rotated[1]);
-    const targetIndex = (index / 2) * 3;
-    mesh.positions[targetIndex] = position.x;
-    mesh.positions[targetIndex + 1] = position.y;
-    mesh.positions[targetIndex + 2] = position.z;
+  if (
+    !resources.lastRotation ||
+    resources.lastRotation[0] !== currentRotation[0] ||
+    resources.lastRotation[1] !== currentRotation[1]
+  ) {
+    const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
+
+    for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
+      const rotated = rotate([
+        mesh.sourceCoordinates[index]!,
+        mesh.sourceCoordinates[index + 1]!,
+      ]);
+      const position = geoToSpherePosition(rotated[0], rotated[1]);
+      const targetIndex = (index / 2) * 3;
+      mesh.positions[targetIndex] = position.x;
+      mesh.positions[targetIndex + 1] = position.y;
+      mesh.positions[targetIndex + 2] = position.z;
+    }
+
+    resources.lastRotation = [...currentRotation];
   }
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -449,9 +556,33 @@ function drawGlobe(
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.shadowTexture, 1);
+  gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
+  gl.uniform3f(
+    uniforms.atmosphereTint,
+    atmosphereRed,
+    atmosphereGreen,
+    atmosphereBlue,
+  );
+  gl.uniform1f(uniforms.auroraStrength, palette.auroraStrength);
+  gl.uniform3f(uniforms.gridColor, gridRed, gridGreen, gridBlue);
+  gl.uniform1f(uniforms.gridStrength, palette.gridStrength);
+  gl.uniform1f(uniforms.noiseStrength, palette.noiseStrength);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
   gl.uniform1f(uniforms.penumbra, 100 / 6371);
+  gl.uniform3f(uniforms.rimLightColor, rimRed, rimGreen, rimBlue);
+  gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
+  gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
+  gl.uniform1f(uniforms.scanlineStrength, palette.scanlineStrength);
+  gl.uniform3f(
+    uniforms.specularColor,
+    specularRed,
+    specularGreen,
+    specularBlue,
+  );
+  gl.uniform1f(uniforms.specularPower, palette.specularPower);
+  gl.uniform1f(uniforms.specularStrength, palette.specularStrength);
   gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
+  gl.uniform1f(uniforms.time, effectTimeSeconds);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -466,6 +597,12 @@ export function WebGlGlobe({
 }: WebGlGlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
+  const frameStateRef = useRef({
+    currentRotation: rotation,
+    height,
+    width,
+    zoomScale: 1,
+  });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -481,9 +618,18 @@ export function WebGlGlobe({
   const { currentRotation, interactionHandlers, zoomScale } = useGlobeInteraction({
     baseScale,
     focusRequest,
-    pointerDirection: { x: -1, y: -1 },
+    pointerDirection: { x: 1, y: 1 },
     rotation,
   });
+
+  useEffect(() => {
+    frameStateRef.current = {
+      currentRotation,
+      height,
+      width,
+      zoomScale,
+    };
+  }, [currentRotation, height, width, zoomScale]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -529,7 +675,6 @@ export function WebGlGlobe({
       palette,
       textureSize >= 4096 ? 4096 : 2048,
     );
-    resources.shadowTextureSize = shadowCanvas.width;
 
     gl.activeTexture(gl.TEXTURE0);
     configureTexture(gl, resources.texture);
@@ -567,14 +712,35 @@ export function WebGlGlobe({
   }, [palette, targetFeature, world]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const resources = resourcesRef.current;
-    if (!canvas || !resources) {
-      return;
-    }
+    let frameId = 0;
 
-    drawGlobe(resources, canvas, width, height, zoomScale, currentRotation);
-  }, [currentRotation, height, width, zoomScale]);
+    const render = (now: number) => {
+      const canvas = canvasRef.current;
+      const resources = resourcesRef.current;
+      const frameState = frameStateRef.current;
+
+      if (canvas && resources) {
+        drawGlobe(
+          resources,
+          canvas,
+          frameState.width,
+          frameState.height,
+          frameState.zoomScale,
+          frameState.currentRotation,
+          palette,
+          now * 0.001,
+        );
+      }
+
+      frameId = window.requestAnimationFrame(render);
+    };
+
+    frameId = window.requestAnimationFrame(render);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [palette]);
 
   return (
     <div
@@ -588,9 +754,22 @@ export function WebGlGlobe({
       }}
       {...interactionHandlers}
     >
+      <div
+        style={{
+          background: `radial-gradient(circle at 50% 42%, ${palette.atmosphereTint}22, transparent 64%)`,
+          inset: 0,
+          mixBlendMode: 'screen',
+          opacity: Math.min(
+            0.2,
+            palette.atmosphereOpacity * 0.65 + palette.auroraStrength * 0.35,
+          ),
+          pointerEvents: 'none',
+          position: 'absolute',
+        }}
+      />
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', height: '100%', width: '100%' }}
+        style={{ display: 'block', height: '100%', position: 'relative', width: '100%' }}
       />
       {errorMessage ? (
         <div

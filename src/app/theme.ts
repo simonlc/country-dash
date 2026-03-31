@@ -1,6 +1,12 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
-export type AppThemeId = 'daybreak' | 'midnight' | 'ember' | 'atlas';
+export type AppThemeId =
+  | 'daybreak'
+  | 'midnight'
+  | 'ember'
+  | 'atlas'
+  | 'cipher'
+  | 'glacier';
 
 export interface GlobePalette {
   oceanFill: string;
@@ -12,6 +18,19 @@ export interface GlobePalette {
   hazeInner: string;
   nightShade: string;
   smallCountryCircle: string;
+  atmosphereTint: string;
+  gridColor: string;
+  rimLightColor: string;
+  specularColor: string;
+  atmosphereOpacity: number;
+  auroraStrength: number;
+  gridStrength: number;
+  noiseStrength: number;
+  rimLightStrength: number;
+  scanlineDensity: number;
+  scanlineStrength: number;
+  specularPower: number;
+  specularStrength: number;
 }
 
 export interface ThemePreview {
@@ -78,8 +97,21 @@ export const appThemes: AppThemeDefinition[] = [
       selectedFill: '#ffbc42',
       hazeOuter: '#eaf4ff',
       hazeInner: '#9ed8ff',
-      nightShade: 'rgba(0, 0, 0, 0.18)',
+      nightShade: 'rgba(0, 0, 0, 0.28)',
       smallCountryCircle: 'rgba(217, 74, 51, 0.95)',
+      atmosphereTint: '#f5fbff',
+      gridColor: '#7bc5ff',
+      rimLightColor: '#f9fdff',
+      specularColor: '#ffffff',
+      atmosphereOpacity: 0.08,
+      auroraStrength: 0.01,
+      gridStrength: 0.01,
+      noiseStrength: 0.02,
+      rimLightStrength: 0.06,
+      scanlineDensity: 180,
+      scanlineStrength: 0.0,
+      specularPower: 20,
+      specularStrength: 0.05,
     },
     preview: {
       sky: 'linear-gradient(140deg, #edf7ff, #c7e1ff)',
@@ -119,6 +151,19 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#245784',
       nightShade: 'rgba(0, 0, 0, 0.24)',
       smallCountryCircle: 'rgba(255, 127, 89, 0.96)',
+      atmosphereTint: '#5da9ff',
+      gridColor: '#7cd1ff',
+      rimLightColor: '#8ad7ff',
+      specularColor: '#cfe9ff',
+      atmosphereOpacity: 0.16,
+      auroraStrength: 0.04,
+      gridStrength: 0.04,
+      noiseStrength: 0.05,
+      rimLightStrength: 0.16,
+      scanlineDensity: 220,
+      scanlineStrength: 0.015,
+      specularPower: 28,
+      specularStrength: 0.1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #08131f, #15314e)',
@@ -158,6 +203,19 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#d27d5a',
       nightShade: 'rgba(0, 0, 0, 0.2)',
       smallCountryCircle: 'rgba(255, 244, 160, 0.95)',
+      atmosphereTint: '#ffb07b',
+      gridColor: '#ffd1a3',
+      rimLightColor: '#ffe6d6',
+      specularColor: '#fff0d7',
+      atmosphereOpacity: 0.1,
+      auroraStrength: 0.04,
+      gridStrength: 0.02,
+      noiseStrength: 0.05,
+      rimLightStrength: 0.08,
+      scanlineDensity: 170,
+      scanlineStrength: 0.0,
+      specularPower: 18,
+      specularStrength: 0.04,
     },
     preview: {
       sky: 'linear-gradient(145deg, #2a1614, #99563d)',
@@ -197,6 +255,19 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#ded2b3',
       nightShade: 'rgba(58, 41, 14, 0.12)',
       smallCountryCircle: 'rgba(160, 66, 34, 0.94)',
+      atmosphereTint: '#f5efe1',
+      gridColor: '#b09b6e',
+      rimLightColor: '#fff8eb',
+      specularColor: '#fff6de',
+      atmosphereOpacity: 0.05,
+      auroraStrength: 0.0,
+      gridStrength: 0.0,
+      noiseStrength: 0.01,
+      rimLightStrength: 0.03,
+      scanlineDensity: 140,
+      scanlineStrength: 0.0,
+      specularPower: 14,
+      specularStrength: 0.03,
     },
     preview: {
       sky: 'linear-gradient(145deg, #f7f0e2, #dacdb0)',
@@ -204,6 +275,110 @@ export const appThemes: AppThemeDefinition[] = [
       ocean: '#d5d1ba',
       land: '#8ea472',
       accent: '#d27745',
+    },
+  },
+  {
+    id: 'cipher',
+    label: 'Cipher',
+    description: 'Elite terminal green, encrypted glow, and tactical scanlines.',
+    mode: 'dark',
+    background: {
+      app: 'radial-gradient(circle at top left, rgba(0, 255, 163, 0.16), rgba(0, 255, 163, 0) 24%), radial-gradient(circle at 78% 18%, rgba(48, 122, 255, 0.14), rgba(48, 122, 255, 0) 22%), linear-gradient(145deg, #020907 0%, #051713 44%, #09251e 100%)',
+      panel: 'rgba(5, 19, 16, 0.68)',
+      panelBorder: 'rgba(84, 255, 188, 0.22)',
+      panelShadow: '0 24px 72px rgba(0, 0, 0, 0.46)',
+      mutedPanel: 'rgba(9, 29, 24, 0.7)',
+    },
+    palette: {
+      primary: '#59ffb1',
+      secondary: '#5bc0ff',
+      backgroundDefault: '#030b09',
+      backgroundPaper: '#071813',
+      textPrimary: '#e6fff4',
+      textSecondary: '#8ebfa8',
+    },
+    globe: {
+      oceanFill: '#041512',
+      graticule: 'rgba(117, 255, 196, 0.18)',
+      countryFill: '#0d4f3e',
+      countryStroke: 'rgba(155, 255, 219, 0.34)',
+      selectedFill: '#7df7ff',
+      hazeOuter: '#020907',
+      hazeInner: '#0a3f32',
+      nightShade: 'rgba(0, 8, 6, 0.32)',
+      smallCountryCircle: 'rgba(89, 255, 177, 0.96)',
+      atmosphereTint: '#59ffb1',
+      gridColor: '#7affd3',
+      rimLightColor: '#7affd3',
+      specularColor: '#d9fff3',
+      atmosphereOpacity: 0.3,
+      auroraStrength: 0.28,
+      gridStrength: 0.34,
+      noiseStrength: 0.16,
+      rimLightStrength: 0.28,
+      scanlineDensity: 360,
+      scanlineStrength: 0.2,
+      specularPower: 42,
+      specularStrength: 0.22,
+    },
+    preview: {
+      sky: 'linear-gradient(145deg, #020907, #0b3025)',
+      glow: '#1cffb5',
+      ocean: '#041512',
+      land: '#0d4f3e',
+      accent: '#7df7ff',
+    },
+  },
+  {
+    id: 'glacier',
+    label: 'Glacier',
+    description: 'Cold glass, frosted highlights, and aero-like blue haze.',
+    mode: 'light',
+    background: {
+      app: 'radial-gradient(circle at top left, rgba(255,255,255,0.84), rgba(255,255,255,0) 25%), radial-gradient(circle at 82% 14%, rgba(127, 212, 255, 0.28), rgba(127, 212, 255, 0) 24%), linear-gradient(155deg, #eef8ff 0%, #d6ebff 44%, #bddfff 100%)',
+      panel: 'rgba(245, 251, 255, 0.56)',
+      panelBorder: 'rgba(108, 160, 207, 0.24)',
+      panelShadow: '0 28px 72px rgba(82, 129, 171, 0.18)',
+      mutedPanel: 'rgba(236, 246, 255, 0.58)',
+    },
+    palette: {
+      primary: '#2379c8',
+      secondary: '#6ed3ff',
+      backgroundDefault: '#edf7ff',
+      backgroundPaper: '#f7fbff',
+      textPrimary: '#17324a',
+      textSecondary: '#65819b',
+    },
+    globe: {
+      oceanFill: '#bfe4ff',
+      graticule: 'rgba(255, 255, 255, 0.28)',
+      countryFill: '#c8ebff',
+      countryStroke: 'rgba(56, 101, 140, 0.4)',
+      selectedFill: '#38c6ff',
+      hazeOuter: '#dff2ff',
+      hazeInner: '#7dd1ff',
+      nightShade: 'rgba(24, 64, 97, 0.14)',
+      smallCountryCircle: 'rgba(35, 121, 200, 0.82)',
+      atmosphereTint: '#f3fbff',
+      gridColor: '#d6f3ff',
+      rimLightColor: '#f7fdff',
+      specularColor: '#ffffff',
+      atmosphereOpacity: 0.14,
+      auroraStrength: 0.04,
+      gridStrength: 0.02,
+      noiseStrength: 0.03,
+      rimLightStrength: 0.16,
+      scanlineDensity: 190,
+      scanlineStrength: 0.0,
+      specularPower: 52,
+      specularStrength: 0.16,
+    },
+    preview: {
+      sky: 'linear-gradient(145deg, #eef8ff, #b9dcff)',
+      glow: '#75ccff',
+      ocean: '#bfe4ff',
+      land: '#c8ebff',
+      accent: '#38c6ff',
     },
   },
 ];
