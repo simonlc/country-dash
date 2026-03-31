@@ -32,8 +32,24 @@ import type {
   CountryProperties,
   Difficulty,
   GameState,
+  GlobeRenderer,
   WorldData,
 } from '@/features/game/types';
+
+const rendererStorageKey = 'country-guesser-renderer';
+
+function getStoredRenderer(): GlobeRenderer {
+  if (typeof window === 'undefined') {
+    return 'svg';
+  }
+
+  const storage = window.localStorage;
+  const storedValue =
+    storage && typeof storage.getItem === 'function'
+      ? storage.getItem(rendererStorageKey)
+      : null;
+  return storedValue === 'webgl' ? 'webgl' : 'svg';
+}
 
 export function GamePage() {
   const size = useWindowSize();
@@ -43,6 +59,7 @@ export function GamePage() {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
   const [sessionKey, setSessionKey] = useState(0);
   const [focusRequest, setFocusRequest] = useState(0);
+  const [renderer, setRenderer] = useState<GlobeRenderer>(getStoredRenderer);
   const handleTick = useCallback((elapsedMs: number) => {
     setGameState((previousState) =>
       previousState.elapsedMs === elapsedMs
@@ -70,6 +87,13 @@ export function GamePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const storage = window.localStorage;
+    if (storage && typeof storage.setItem === 'function') {
+      storage.setItem(rendererStorageKey, renderer);
+    }
+  }, [renderer]);
 
   const countryPool = useMemo(
     () => (worldData ? buildCountryPool(worldData.world) : []),
@@ -219,6 +243,7 @@ export function GamePage() {
           focusRequest={focusRequest}
           height={size.height}
           palette={activeTheme.globe}
+          renderer={renderer}
           rotation={rotation}
           width={size.width}
           world={worldData.world}
@@ -228,7 +253,9 @@ export function GamePage() {
         onAbout={() => {
           void NiceModal.show(AboutDialog);
         }}
+        onRendererChange={setRenderer}
         onRefocus={() => setFocusRequest((value) => value + 1)}
+        renderer={renderer}
       />
       <Container
         maxWidth="lg"

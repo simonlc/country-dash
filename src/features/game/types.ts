@@ -7,6 +7,7 @@ import type {
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'veryHard';
 export type GameStatus = 'intro' | 'playing' | 'answered' | 'gameOver';
 export type AnswerResult = 'correct' | 'incorrect';
+export type GlobeRenderer = 'svg' | 'webgl';
 
 export interface CountryProperties {
   nameEn: string;
