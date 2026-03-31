@@ -10,9 +10,22 @@ export type AppThemeId =
 
 export interface GlobePalette {
   oceanFill: string;
+  oceanDepth: string;
+  oceanHighlight: string;
+  oceanHighlightOpacity: number;
+  countryElevation: number;
   graticule: string;
   countryFill: string;
   countryStroke: string;
+  countryDebossDark: string;
+  countryDebossLight: string;
+  countryDebossWidth: number;
+  countryDebossOffset: number;
+  countryDebossStrength: number;
+  countryShadowColor: string;
+  countryShadowBlur: number;
+  countryShadowOffsetX: number;
+  countryShadowOffsetY: number;
   selectedFill: string;
   hazeOuter: string;
   hazeInner: string;
@@ -91,9 +104,22 @@ export const appThemes: AppThemeDefinition[] = [
     },
     globe: {
       oceanFill: '#dcefff',
+      oceanDepth: '#cee2f4',
+      oceanHighlight: '#8ed1ff',
+      oceanHighlightOpacity: 0.04,
+      countryElevation: 0,
       graticule: 'rgba(0, 0, 0, 0.12)',
       countryFill: '#9fc2a8',
       countryStroke: 'rgba(0, 0, 0, 0.35)',
+      countryDebossDark: 'rgba(42, 77, 100, 0.18)',
+      countryDebossLight: 'rgba(255, 255, 255, 0.24)',
+      countryDebossWidth: 2,
+      countryDebossOffset: 0.8,
+      countryDebossStrength: 0.22,
+      countryShadowColor: 'rgba(74, 116, 148, 0.12)',
+      countryShadowBlur: 3,
+      countryShadowOffsetX: 0.6,
+      countryShadowOffsetY: 0.6,
       selectedFill: '#ffbc42',
       hazeOuter: '#eaf4ff',
       hazeInner: '#9ed8ff',
@@ -103,15 +129,15 @@ export const appThemes: AppThemeDefinition[] = [
       gridColor: '#7bc5ff',
       rimLightColor: '#f9fdff',
       specularColor: '#ffffff',
-      atmosphereOpacity: 0.08,
-      auroraStrength: 0.01,
-      gridStrength: 0.01,
-      noiseStrength: 0.02,
-      rimLightStrength: 0.06,
+      atmosphereOpacity: 0.02,
+      auroraStrength: 0.0,
+      gridStrength: 0.0,
+      noiseStrength: 0.01,
+      rimLightStrength: 0.015,
       scanlineDensity: 180,
       scanlineStrength: 0.0,
       specularPower: 20,
-      specularStrength: 0.05,
+      specularStrength: 0.0,
     },
     preview: {
       sky: 'linear-gradient(140deg, #edf7ff, #c7e1ff)',
@@ -143,9 +169,22 @@ export const appThemes: AppThemeDefinition[] = [
     },
     globe: {
       oceanFill: '#16324d',
+      oceanDepth: '#0f2439',
+      oceanHighlight: '#2b7ccc',
+      oceanHighlightOpacity: 0.06,
+      countryElevation: 0,
       graticule: 'rgba(210, 230, 255, 0.16)',
       countryFill: '#477f73',
       countryStroke: 'rgba(226, 240, 255, 0.28)',
+      countryDebossDark: 'rgba(0, 0, 0, 0.24)',
+      countryDebossLight: 'rgba(202, 238, 255, 0.18)',
+      countryDebossWidth: 2,
+      countryDebossOffset: 0.8,
+      countryDebossStrength: 0.2,
+      countryShadowColor: 'rgba(0, 0, 0, 0.2)',
+      countryShadowBlur: 3,
+      countryShadowOffsetX: 0.5,
+      countryShadowOffsetY: 0.5,
       selectedFill: '#ffd166',
       hazeOuter: '#0b1a2c',
       hazeInner: '#245784',
@@ -195,9 +234,22 @@ export const appThemes: AppThemeDefinition[] = [
     },
     globe: {
       oceanFill: '#6a362f',
+      oceanDepth: '#4c2620',
+      oceanHighlight: '#b4573f',
+      oceanHighlightOpacity: 0.04,
+      countryElevation: 0,
       graticule: 'rgba(255, 227, 210, 0.14)',
       countryFill: '#b67d55',
       countryStroke: 'rgba(40, 12, 7, 0.34)',
+      countryDebossDark: 'rgba(55, 22, 14, 0.22)',
+      countryDebossLight: 'rgba(255, 228, 196, 0.16)',
+      countryDebossWidth: 2,
+      countryDebossOffset: 0.8,
+      countryDebossStrength: 0.18,
+      countryShadowColor: 'rgba(47, 19, 12, 0.16)',
+      countryShadowBlur: 3,
+      countryShadowOffsetX: 0.5,
+      countryShadowOffsetY: 0.5,
       selectedFill: '#8de1ff',
       hazeOuter: '#3b1f1d',
       hazeInner: '#d27d5a',
@@ -247,9 +299,22 @@ export const appThemes: AppThemeDefinition[] = [
     },
     globe: {
       oceanFill: '#d5d1ba',
+      oceanDepth: '#c4bda3',
+      oceanHighlight: '#efe0b5',
+      oceanHighlightOpacity: 0.03,
+      countryElevation: 0,
       graticule: 'rgba(85, 61, 29, 0.16)',
       countryFill: '#8ea472',
       countryStroke: 'rgba(59, 44, 22, 0.32)',
+      countryDebossDark: 'rgba(88, 71, 45, 0.16)',
+      countryDebossLight: 'rgba(255, 249, 235, 0.18)',
+      countryDebossWidth: 1.8,
+      countryDebossOffset: 0.7,
+      countryDebossStrength: 0.14,
+      countryShadowColor: 'rgba(110, 90, 58, 0.08)',
+      countryShadowBlur: 2,
+      countryShadowOffsetX: 0.4,
+      countryShadowOffsetY: 0.4,
       selectedFill: '#d27745',
       hazeOuter: '#f2ebdf',
       hazeInner: '#ded2b3',
@@ -259,7 +324,7 @@ export const appThemes: AppThemeDefinition[] = [
       gridColor: '#b09b6e',
       rimLightColor: '#fff8eb',
       specularColor: '#fff6de',
-      atmosphereOpacity: 0.05,
+      atmosphereOpacity: 0.025,
       auroraStrength: 0.0,
       gridStrength: 0.0,
       noiseStrength: 0.01,
@@ -299,9 +364,22 @@ export const appThemes: AppThemeDefinition[] = [
     },
     globe: {
       oceanFill: '#041512',
+      oceanDepth: '#02100d',
+      oceanHighlight: '#00c7a2',
+      oceanHighlightOpacity: 0.14,
+      countryElevation: 0,
       graticule: 'rgba(117, 255, 196, 0.18)',
       countryFill: '#0d4f3e',
       countryStroke: 'rgba(155, 255, 219, 0.34)',
+      countryDebossDark: 'rgba(0, 0, 0, 0.34)',
+      countryDebossLight: 'rgba(126, 255, 213, 0.18)',
+      countryDebossWidth: 2.2,
+      countryDebossOffset: 0.9,
+      countryDebossStrength: 0.28,
+      countryShadowColor: 'rgba(0, 0, 0, 0.28)',
+      countryShadowBlur: 4,
+      countryShadowOffsetX: 0.7,
+      countryShadowOffsetY: 0.7,
       selectedFill: '#7df7ff',
       hazeOuter: '#020907',
       hazeInner: '#0a3f32',
@@ -350,10 +428,23 @@ export const appThemes: AppThemeDefinition[] = [
       textSecondary: '#65819b',
     },
     globe: {
-      oceanFill: '#bfe4ff',
-      graticule: 'rgba(255, 255, 255, 0.28)',
-      countryFill: '#c8ebff',
-      countryStroke: 'rgba(56, 101, 140, 0.4)',
+      oceanFill: '#eef3f7',
+      oceanDepth: '#dde5ec',
+      oceanHighlight: '#42b8ff',
+      oceanHighlightOpacity: 0.26,
+      countryElevation: 0.028,
+      graticule: 'rgba(255, 255, 255, 0)',
+      countryFill: '#f8fcff',
+      countryStroke: 'rgba(246, 251, 255, 0.72)',
+      countryDebossDark: 'rgba(94, 128, 156, 0.34)',
+      countryDebossLight: 'rgba(255, 255, 255, 0.92)',
+      countryDebossWidth: 4.2,
+      countryDebossOffset: 2.1,
+      countryDebossStrength: 0,
+      countryShadowColor: 'rgba(72, 94, 116, 0.58)',
+      countryShadowBlur: 18,
+      countryShadowOffsetX: 4.4,
+      countryShadowOffsetY: 4.4,
       selectedFill: '#38c6ff',
       hazeOuter: '#dff2ff',
       hazeInner: '#7dd1ff',
@@ -363,21 +454,21 @@ export const appThemes: AppThemeDefinition[] = [
       gridColor: '#d6f3ff',
       rimLightColor: '#f7fdff',
       specularColor: '#ffffff',
-      atmosphereOpacity: 0.14,
-      auroraStrength: 0.04,
-      gridStrength: 0.02,
-      noiseStrength: 0.03,
-      rimLightStrength: 0.16,
+      atmosphereOpacity: 0.05,
+      auroraStrength: 0.0,
+      gridStrength: 0.0,
+      noiseStrength: 0.02,
+      rimLightStrength: 0.035,
       scanlineDensity: 190,
       scanlineStrength: 0.0,
       specularPower: 52,
-      specularStrength: 0.16,
+      specularStrength: 0.015,
     },
     preview: {
       sky: 'linear-gradient(145deg, #eef8ff, #b9dcff)',
-      glow: '#75ccff',
-      ocean: '#bfe4ff',
-      land: '#c8ebff',
+      glow: '#42b8ff',
+      ocean: '#eef3f7',
+      land: '#f8fcff',
       accent: '#38c6ff',
     },
   },
@@ -391,6 +482,7 @@ export function getAppThemeDefinition(themeId: AppThemeId): AppThemeDefinition {
 
 export function createAppTheme(themeId: AppThemeId): Theme {
   const definition = getAppThemeDefinition(themeId);
+  const isGlacier = definition.id === 'glacier';
 
   return createTheme({
     cssVariables: true,
@@ -428,8 +520,52 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiPaper: {
         styleOverrides: {
           root: {
-            backdropFilter: 'blur(16px)',
+            backdropFilter: isGlacier ? 'blur(22px) saturate(1.45)' : 'blur(16px)',
+            backgroundImage: isGlacier
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.28))'
+              : 'none',
+            boxShadow: isGlacier
+              ? 'inset 0 1px 0 rgba(255,255,255,0.78), inset 0 -18px 32px rgba(120, 182, 226, 0.08)'
+              : undefined,
           },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: isGlacier
+            ? {
+                backdropFilter: 'blur(26px) saturate(1.5)',
+                background:
+                  'linear-gradient(180deg, rgba(255,255,255,0.68), rgba(231,244,255,0.4))',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow:
+                  '0 28px 80px rgba(89, 142, 186, 0.22), inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -22px 40px rgba(144, 201, 237, 0.12)',
+              }
+            : undefined,
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: isGlacier
+            ? {
+                backdropFilter: 'blur(14px) saturate(1.35)',
+                borderColor: 'rgba(255,255,255,0.7)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.84), 0 12px 24px rgba(106, 162, 205, 0.16)',
+              }
+            : undefined,
+          contained: isGlacier
+            ? {
+                background:
+                  'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(188,227,255,0.78))',
+                color: '#17466f',
+              }
+            : undefined,
+          outlined: isGlacier
+            ? {
+                backgroundColor: 'rgba(255,255,255,0.3)',
+              }
+            : undefined,
         },
       },
     },

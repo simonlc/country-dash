@@ -35,6 +35,9 @@ interface WebGlResources {
   indexCount: number;
   lastRotation: [number, number] | null;
   mesh: SphereMesh;
+  overlayPositionBuffer: WebGLBuffer;
+  overlayPositions: Float32Array;
+  overlayTexture: WebGLTexture;
   positionBuffer: WebGLBuffer;
   program: WebGLProgram;
   shadowTexture: WebGLTexture;
@@ -120,7 +123,7 @@ const fragmentShaderSource = `
     float directLight = clamp(light, 0.0, 1.0);
 
     float facing = clamp(normal.z, 0.0, 1.0);
-    float rim = pow(1.0 - facing, 2.2) * u_rimLightStrength * (0.35 + daylight * 0.65);
+    float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48);
     float specular = pow(
       max(dot(reflect(-sunDirection, normal), vec3(0.0, 0.0, 1.0)), 0.0),
       u_specularPower
@@ -137,11 +140,11 @@ const fragmentShaderSource = `
     float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
 
     float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength;
-    float atmosphere = u_atmosphereOpacity * (0.08 + directLight * 0.42 + rim * 0.3);
+    float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18);
 
     vec3 color = shaded;
     color += u_atmosphereTint * atmosphere;
-    color += u_gridColor * (grid + scanline * 0.18);
+    color += u_gridColor * (grid + scanline * 0.12);
     color += u_rimLightColor * (rim + aurora);
     color += u_specularColor * specular;
     color += grain;
@@ -296,6 +299,68 @@ function drawFeatureCollection(
   }
 }
 
+function applyCountryDeboss(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  palette: GlobePalette,
+) {
+  if (palette.countryDebossStrength <= 0) {
+    return;
+  }
+
+  for (const feature of world.features) {
+    context.save();
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.clip();
+
+    context.globalAlpha = palette.countryDebossStrength;
+    context.lineJoin = 'round';
+    context.lineWidth = palette.countryDebossWidth;
+
+    context.translate(-palette.countryDebossOffset, -palette.countryDebossOffset);
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.strokeStyle = palette.countryDebossLight;
+    context.stroke();
+
+    context.translate(-palette.countryDebossOffset * 2, -palette.countryDebossOffset * 2);
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.strokeStyle = palette.countryDebossDark;
+    context.stroke();
+
+    context.restore();
+  }
+}
+
+function applyCountryShadow(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  palette: GlobePalette,
+) {
+  if (palette.countryShadowBlur <= 0) {
+    return;
+  }
+
+  context.save();
+  context.fillStyle = palette.countryShadowColor;
+  context.shadowBlur = palette.countryShadowBlur;
+  context.shadowColor = palette.countryShadowColor;
+  context.shadowOffsetX = palette.countryShadowOffsetX;
+  context.shadowOffsetY = palette.countryShadowOffsetY;
+
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.fill();
+  }
+
+  context.restore();
+}
+
 function withTextureContext(
   canvas: HTMLCanvasElement,
   draw: (context: CanvasRenderingContext2D) => void,
@@ -308,7 +373,32 @@ function withTextureContext(
   draw(context);
 }
 
-function buildTextureCanvas(
+function buildOceanTextureCanvas(
+  world: FeatureCollectionLike,
+  palette: GlobePalette,
+  textureSize: number,
+) {
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = textureSize;
+  textureCanvas.height = textureSize / 2;
+
+  withTextureContext(textureCanvas, (context) => {
+    context.fillStyle = palette.oceanFill;
+    context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+
+    if (palette.countryElevation > 0) {
+      const projection = geoEquirectangular()
+        .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+        .scale(textureCanvas.width / (2 * Math.PI));
+      const path = geoPath(projection, context);
+      applyCountryShadow(context, path, world, palette);
+    }
+  });
+
+  return textureCanvas;
+}
+
+function buildCombinedTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature,
   palette: GlobePalette,
@@ -336,6 +426,7 @@ function buildTextureCanvas(
     context.lineWidth = 1.2;
     context.stroke();
 
+    applyCountryShadow(context, path, world, palette);
     drawFeatureCollection(
       context,
       path,
@@ -344,6 +435,63 @@ function buildTextureCanvas(
       palette.countryStroke,
       1.2,
     );
+    applyCountryDeboss(context, path, world, palette);
+
+    context.beginPath();
+    path(targetFeature as GeoPermissibleObjects);
+    context.fillStyle = palette.selectedFill;
+    context.strokeStyle = palette.countryStroke;
+    context.lineWidth = 1.6;
+    context.fill();
+    context.stroke();
+
+    if (geoLength(targetFeature) < 0.02) {
+      context.beginPath();
+      path(selectedCircle);
+      context.strokeStyle = palette.smallCountryCircle;
+      context.lineWidth = 3;
+      context.stroke();
+    }
+  });
+
+  return textureCanvas;
+}
+
+function buildCountryTextureCanvas(
+  world: FeatureCollectionLike,
+  targetFeature: CountryFeature,
+  palette: GlobePalette,
+  textureSize: number,
+) {
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = textureSize;
+  textureCanvas.height = textureSize / 2;
+
+  withTextureContext(textureCanvas, (context) => {
+    const projection = geoEquirectangular()
+      .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+      .scale(textureCanvas.width / (2 * Math.PI));
+    const path = geoPath(projection, context);
+    const selectedCircle = geoCircle()
+      .center(geoCentroid(targetFeature as GeoPermissibleObjects))
+      .radius(1)();
+
+    context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+    context.beginPath();
+    path(geoGraticule10());
+    context.strokeStyle = palette.graticule;
+    context.lineWidth = 1.2;
+    context.stroke();
+
+    drawFeatureCollection(
+      context,
+      path,
+      world,
+      palette.countryFill,
+      palette.countryStroke,
+      1.2,
+    );
+    applyCountryDeboss(context, path, world, palette);
 
     context.beginPath();
     path(targetFeature as GeoPermissibleObjects);
@@ -423,13 +571,24 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
 
   const program = createProgram(gl);
   const mesh = createSphereMesh();
+  const overlayPositions = new Float32Array(mesh.positions);
   const positionBuffer = gl.createBuffer();
+  const overlayPositionBuffer = gl.createBuffer();
   const uvBuffer = gl.createBuffer();
   const indexBuffer = gl.createBuffer();
   const texture = gl.createTexture();
+  const overlayTexture = gl.createTexture();
   const shadowTexture = gl.createTexture();
 
-  if (!positionBuffer || !uvBuffer || !indexBuffer || !texture || !shadowTexture) {
+  if (
+    !positionBuffer ||
+    !overlayPositionBuffer ||
+    !uvBuffer ||
+    !indexBuffer ||
+    !texture ||
+    !overlayTexture ||
+    !shadowTexture
+  ) {
     throw new Error('Failed to allocate WebGL buffers.');
   }
 
@@ -441,6 +600,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
 
+  gl.bindBuffer(gl.ARRAY_BUFFER, overlayPositionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, overlayPositions, gl.DYNAMIC_DRAW);
+
   gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, mesh.uvs, gl.STATIC_DRAW);
   const uvLocation = gl.getAttribLocation(program, 'a_uv');
@@ -451,6 +613,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
   configureTexture(gl, texture);
+  configureTexture(gl, overlayTexture);
   configureTexture(gl, shadowTexture);
 
   gl.enable(gl.DEPTH_TEST);
@@ -462,6 +625,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     indexCount: mesh.indices.length,
     lastRotation: null,
     mesh,
+    overlayPositionBuffer,
+    overlayPositions,
+    overlayTexture,
     positionBuffer,
     program,
     shadowTexture,
@@ -500,7 +666,15 @@ function drawGlobe(
   palette: GlobePalette,
   effectTimeSeconds: number,
 ) {
-  const { gl, indexCount, mesh, positionBuffer, uniforms } = resources;
+  const {
+    gl,
+    indexCount,
+    mesh,
+    overlayPositionBuffer,
+    overlayPositions,
+    positionBuffer,
+    uniforms,
+  } = resources;
   const dpr = window.devicePixelRatio || 1;
   const targetWidth = Math.max(Math.floor(width * dpr), 1);
   const targetHeight = Math.max(Math.floor(height * dpr), 1);
@@ -527,6 +701,7 @@ function drawGlobe(
   const [specularRed, specularGreen, specularBlue] = cssColorToVec3(
     palette.specularColor,
   );
+  const hasRaisedCountries = palette.countryElevation > 0;
 
   if (
     !resources.lastRotation ||
@@ -542,9 +717,13 @@ function drawGlobe(
       ]);
       const position = geoToSpherePosition(rotated[0], rotated[1]);
       const targetIndex = (index / 2) * 3;
+      const elevatedScale = 1 + palette.countryElevation;
       mesh.positions[targetIndex] = position.x;
       mesh.positions[targetIndex + 1] = position.y;
       mesh.positions[targetIndex + 2] = position.z;
+      overlayPositions[targetIndex] = position.x * elevatedScale;
+      overlayPositions[targetIndex + 1] = position.y * elevatedScale;
+      overlayPositions[targetIndex + 2] = position.z * elevatedScale;
     }
 
     resources.lastRotation = [...currentRotation];
@@ -554,6 +733,7 @@ function drawGlobe(
   gl.useProgram(resources.program);
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
+  gl.vertexAttribPointer(gl.getAttribLocation(resources.program, 'a_position'), 3, gl.FLOAT, false, 0, 0);
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.shadowTexture, 1);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
@@ -583,7 +763,21 @@ function drawGlobe(
   gl.uniform1f(uniforms.specularStrength, palette.specularStrength);
   gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
   gl.uniform1f(uniforms.time, effectTimeSeconds);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, resources.texture);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+
+  if (hasRaisedCountries) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, overlayPositionBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, overlayPositions);
+    gl.vertexAttribPointer(gl.getAttribLocation(resources.program, 'a_position'), 3, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+    gl.disable(gl.BLEND);
+  }
 }
 
 export function WebGlGlobe({
@@ -665,12 +859,20 @@ export function WebGlGlobe({
       Number.isFinite(textureLimit) ? textureLimit : 4096,
       8192,
     );
-    const textureCanvas = buildTextureCanvas(
-      world,
-      targetFeature,
-      palette,
-      textureSize >= 8192 ? 8192 : textureSize >= 4096 ? 4096 : 2048,
-    );
+    const textureResolution =
+      textureSize >= 8192 ? 8192 : textureSize >= 4096 ? 4096 : 2048;
+    const hasRaisedCountries = palette.countryElevation > 0;
+    const baseTextureCanvas = hasRaisedCountries
+      ? buildOceanTextureCanvas(world, palette, textureResolution)
+      : buildCombinedTextureCanvas(world, targetFeature, palette, textureResolution);
+    const countryTextureCanvas = hasRaisedCountries
+      ? buildCountryTextureCanvas(
+          world,
+          targetFeature,
+          palette,
+          textureResolution,
+        )
+      : null;
     const shadowCanvas = buildShadowTextureCanvas(
       palette,
       textureSize >= 4096 ? 4096 : 2048,
@@ -685,8 +887,22 @@ export function WebGlGlobe({
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      textureCanvas,
+      baseTextureCanvas,
     );
+
+    if (countryTextureCanvas) {
+      gl.activeTexture(gl.TEXTURE0);
+      configureTexture(gl, resources.overlayTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        countryTextureCanvas,
+      );
+    }
 
     gl.activeTexture(gl.TEXTURE1);
     configureTexture(gl, resources.shadowTexture);
