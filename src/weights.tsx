@@ -262,12 +262,12 @@ export const weights = {
   SX: 0.2,
 };
 
-export function weightedShuffle(array) {
+export function weightedShuffle<T extends readonly [string, number]>(array: T[]) {
   const arr = [...array];
   const newWeights = arr.map(([key, value]) => [
     key,
     Math.pow(Math.random(), 1 / value),
-  ]);
+  ] as const);
   newWeights.sort((a, b) => {
     return a[1] < b[1] ? 1 : -1;
   });

@@ -1,14 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-import '@reach/dialog/styles.css';
 import NiceModal from '@ebay/nice-modal-react';
+import { RouterProvider } from '@tanstack/react-router';
+import { AppProviders } from './app/providers';
+import { router } from './app/router';
+import '@/styles/index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <NiceModal.Provider>
-      <App />
-    </NiceModal.Provider>
+    <AppProviders>
+      <NiceModal.Provider>
+        <RouterProvider router={router} />
+      </NiceModal.Provider>
+    </AppProviders>
   </React.StrictMode>,
 );
