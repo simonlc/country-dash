@@ -47,5 +47,4 @@ export interface GameState {
 
 export interface WorldData {
   world: FeatureCollectionLike;
-  world110m: FeatureCollectionLike;
 }

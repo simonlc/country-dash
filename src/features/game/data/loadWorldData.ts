@@ -33,13 +33,9 @@ function toFeatureCollection(topology: WorldTopologyObject): FeatureCollectionLi
 }
 
 export async function loadWorldData(): Promise<WorldData> {
-  const [worldTopology, world110mTopology] = await Promise.all([
-    loadJson<WorldTopologyObject>('data/world-topo.json'),
-    loadJson<WorldTopologyObject>('data/world-topo-110m.json'),
-  ]);
+  const worldTopology = await loadJson<WorldTopologyObject>('data/world-topo.json');
 
   return {
     world: toFeatureCollection(worldTopology),
-    world110m: toFeatureCollection(world110mTopology),
   };
 }

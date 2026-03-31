@@ -213,7 +213,6 @@ export function GamePage() {
           rotation={rotation}
           width={size.width}
           world={worldData.world}
-          world110m={worldData.world110m}
         />
       </Box>
       <Container

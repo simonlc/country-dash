@@ -12,7 +12,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import * as solar from 'solar-calculator';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
@@ -24,7 +23,6 @@ interface GlobeProps {
   rotation: [number, number];
   focusRequest: number;
   world: FeatureCollectionLike;
-  world110m: FeatureCollectionLike;
 }
 
 const styles: Record<'root', CSSProperties> = {
@@ -106,35 +104,43 @@ export function Globe({
   rotation,
   focusRequest,
   world,
-  world110m,
 }: GlobeProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const renderFrameRef = useRef<number | null>(null);
   const renderRef = useRef<(() => void) | null>(null);
   const isDraggingRef = useRef(false);
+  const zoomScaleRef = useRef(1);
   const currentRotationRef = useRef<[number, number, number]>([
     rotation[0],
     rotation[1],
     0,
   ]);
-  const [zoomScale, setZoomScale] = useState(1);
-
-  const projection = useMemo(() => {
-    const initialScale = Math.max(Math.min(width, height) / 2 - 10, 1);
-    return geoOrthographic()
-      .scale(initialScale * zoomScale)
-      .center([0, 0])
-      .translate([width / 2, height / 2]);
-  }, [height, width, zoomScale]);
+  const baseScale = useMemo(
+    () => Math.max(Math.min(width, height) / 2 - 10, 1),
+    [height, width],
+  );
+  const projection = useMemo(
+    () =>
+      geoOrthographic()
+        .scale(baseScale)
+        .center([0, 0])
+        .translate([width / 2, height / 2]),
+    [baseScale, height, width],
+  );
 
   const targetFeature = useMemo(
     () => world.features.find((feature) => feature.id === country.id) ?? country,
     [country, world.features],
   );
-
   const countrySize = useMemo(() => geoLength(targetFeature), [targetFeature]);
+  const selectedCircle = useMemo(
+    () => geoCircle().center(geoCentroid(targetFeature)).radius(1)(),
+    [targetFeature],
+  );
+  const graticule = useMemo(() => geoGraticule10(), []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -165,34 +171,47 @@ export function Globe({
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.scale(dpr, dpr);
 
+    projection
+      .translate([width / 2, height / 2])
+      .scale(baseScale * zoomScaleRef.current)
+      .rotate(currentRotationRef.current);
+
+    const path = geoPath(projection, context);
+    const hazeCanvas = document.createElement('canvas');
+    hazeCanvas.width = width * dpr;
+    hazeCanvas.height = height * dpr;
+    const hazeContext = hazeCanvas.getContext('2d');
+
+    if (!hazeContext) {
+      return;
+    }
+
+    hazeContext.setTransform(1, 0, 0, 1, 0, 0);
+    hazeContext.scale(dpr, dpr);
+
+    const haze = hazeContext.createRadialGradient(
+      width / 3,
+      height / 3,
+      0,
+      width / 2,
+      height / 2,
+      Math.max(width, height) * 0.85,
+    );
+    haze.addColorStop(0, colors.hazeInner);
+    haze.addColorStop(1, colors.hazeOuter);
+
+    hazeContext.fillStyle = colors.hazeOuter;
+    hazeContext.fillRect(0, 0, width, height);
+    hazeContext.globalAlpha = 0.6;
+    hazeContext.fillStyle = haze;
+    hazeContext.beginPath();
+    hazeContext.arc(width / 2, height / 2, Math.max(width, height), 0, tau);
+    hazeContext.fill();
+    hazeContext.globalAlpha = 1;
+
     const render = () => {
-      const path = geoPath(projection, context);
-      const graticule = geoGraticule10();
-      const selectedCircle = geoCircle()
-        .center(geoCentroid(country))
-        .radius(1);
-      const dataset = world;
-
       context.clearRect(0, 0, width, height);
-      context.fillStyle = colors.hazeOuter;
-      context.fillRect(0, 0, width, height);
-
-      const haze = context.createRadialGradient(
-        width / 3,
-        height / 3,
-        0,
-        width / 2,
-        height / 2,
-        Math.max(width, height) * 0.85,
-      );
-      haze.addColorStop(0, colors.hazeInner);
-      haze.addColorStop(1, colors.hazeOuter);
-      context.globalAlpha = 0.6;
-      context.fillStyle = haze;
-      context.beginPath();
-      context.arc(width / 2, height / 2, Math.max(width, height), 0, tau);
-      context.fill();
-      context.globalAlpha = 1;
+      context.drawImage(hazeCanvas, 0, 0, width, height);
 
       context.beginPath();
       path(sphere);
@@ -206,7 +225,7 @@ export function Globe({
       context.stroke();
 
       context.beginPath();
-      path(dataset as GeoPermissibleObjects);
+      path(world as GeoPermissibleObjects);
       context.fillStyle = colors.countryFill;
       context.strokeStyle = colors.countryStroke;
       context.lineWidth = 0.8;
@@ -223,7 +242,7 @@ export function Globe({
 
       if (countrySize < 0.02) {
         context.beginPath();
-        path(selectedCircle());
+        path(selectedCircle);
         context.strokeStyle = colors.smallCountryCircle;
         context.lineWidth = 2;
         context.stroke();
@@ -249,6 +268,17 @@ export function Globe({
 
     renderRef.current = render;
     render();
+
+    const scheduleRender = () => {
+      if (renderFrameRef.current !== null) {
+        return;
+      }
+
+      renderFrameRef.current = requestAnimationFrame(() => {
+        renderFrameRef.current = null;
+        render();
+      });
+    };
 
     let dragging = false;
     let startX = 0;
@@ -280,7 +310,7 @@ export function Globe({
         startRotation[2],
       ];
       projection.rotate(currentRotationRef.current);
-      render();
+      scheduleRender();
     };
 
     const stopDragging = (event: PointerEvent) => {
@@ -293,11 +323,13 @@ export function Globe({
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
-      const nextScale = clampScale(zoomScale - event.deltaY * 0.001);
-      if (nextScale === zoomScale) {
+      const nextScale = clampScale(zoomScaleRef.current - event.deltaY * 0.001);
+      if (nextScale === zoomScaleRef.current) {
         return;
       }
-      setZoomScale(nextScale);
+      zoomScaleRef.current = nextScale;
+      projection.scale(baseScale * nextScale);
+      scheduleRender();
     };
 
     canvas.addEventListener('pointerdown', handlePointerDown);
@@ -308,16 +340,29 @@ export function Globe({
 
     return () => {
       renderRef.current = null;
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerup', stopDragging);
       canvas.removeEventListener('pointerleave', stopDragging);
       canvas.removeEventListener('wheel', handleWheel);
     };
-  }, [country, countrySize, height, projection, width, world, world110m, zoomScale, targetFeature]);
+  }, [
+    baseScale,
+    countrySize,
+    graticule,
+    height,
+    projection,
+    selectedCircle,
+    targetFeature,
+    width,
+    world,
+  ]);
 
   useEffect(() => {
-    currentRotationRef.current = [rotation[0], rotation[1], 0];
     projection.rotate(currentRotationRef.current);
     renderRef.current?.();
   }, [projection]);
