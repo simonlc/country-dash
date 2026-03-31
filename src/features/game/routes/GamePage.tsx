@@ -25,6 +25,7 @@ import { useWindowSize } from '@/features/game/hooks/useWindowSize';
 import { GuessInput } from '@/features/game/ui/GuessInput';
 import { IntroDialog } from '@/features/game/ui/IntroDialog';
 import { GameTimer } from '@/features/game/ui/GameTimer';
+import { AboutDialog } from '@/features/game/ui/AboutDialog';
 import { ThemeMenu } from '@/features/game/ui/ThemeMenu';
 import type {
   AnswerResult,
@@ -223,7 +224,12 @@ export function GamePage() {
           world={worldData.world}
         />
       </Box>
-      <ThemeMenu onRefocus={() => setFocusRequest((value) => value + 1)} />
+      <ThemeMenu
+        onAbout={() => {
+          void NiceModal.show(AboutDialog);
+        }}
+        onRefocus={() => setFocusRequest((value) => value + 1)}
+      />
       <Container
         maxWidth="lg"
         sx={{
@@ -231,6 +237,7 @@ export function GamePage() {
           position: 'absolute',
           py: { md: 3, xs: 2 },
           pointerEvents: 'none',
+          zIndex: 1,
         }}
       >
         <Stack

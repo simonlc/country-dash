@@ -6,12 +6,12 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { Link as RouterLink } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import type { AppThemeDefinition } from '@/app/theme';
 
 interface ThemeMenuProps {
+  onAbout: () => void;
   onRefocus: () => void;
 }
 
@@ -88,7 +88,7 @@ function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
   );
 }
 
-export function ThemeMenu({ onRefocus }: ThemeMenuProps) {
+export function ThemeMenu({ onAbout, onRefocus }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
 
@@ -97,10 +97,10 @@ export function ThemeMenu({ onRefocus }: ThemeMenuProps) {
       sx={{
         left: { md: 24, xs: 16 },
         pointerEvents: 'auto',
-        position: 'absolute',
+        position: 'fixed',
         top: { md: 24, xs: 16 },
         width: { md: 320, xs: 'calc(100% - 32px)' },
-        zIndex: 3,
+        zIndex: 20,
       }}
     >
       <Stack alignItems="flex-start" spacing={1.5}>
@@ -135,12 +135,7 @@ export function ThemeMenu({ onRefocus }: ThemeMenuProps) {
                 <Button size="small" variant="contained" onClick={onRefocus}>
                   Refocus
                 </Button>
-                <Button
-                  component={RouterLink}
-                  size="small"
-                  to="/about"
-                  variant="outlined"
-                >
+                <Button size="small" variant="outlined" onClick={onAbout}>
                   About
                 </Button>
               </Stack>
