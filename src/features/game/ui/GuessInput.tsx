@@ -36,10 +36,12 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
 
+  function getFilteredOptions(nextValue: string) {
+    return filterOptions(options, nextValue);
+  }
+
   function updateHint(nextValue: string) {
-    const matchingOption = options.find((option) =>
-      option.nameEn.toLowerCase().startsWith(nextValue.toLowerCase()),
-    );
+    const [matchingOption] = getFilteredOptions(nextValue);
 
     hintRef.current =
       nextValue && matchingOption
@@ -94,13 +96,12 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         }}
         onKeyDown={(event) => {
           if (event.key === 'Tab' && hintRef.current) {
-            const matchingOption = options.find((option) =>
-              option.nameEn.toLowerCase() === hintRef.current.toLowerCase(),
-            );
+            const [matchingOption] = getFilteredOptions(inputValue);
 
             if (matchingOption) {
               setInputValue(matchingOption.nameEn);
               setValue(matchingOption);
+              hintRef.current = matchingOption.nameEn;
               setOpen(false);
               event.preventDefault();
             }
