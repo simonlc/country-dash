@@ -5,14 +5,15 @@ import {
   geoGraticule10,
   geoLength,
   geoPath,
+  geoRotation,
   type GeoPermissibleObjects,
 } from 'd3';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 import {
+  geoToSpherePosition,
   getSunDirection,
-  getRotationMatrix,
   useGlobeInteraction,
   type GlobeViewProps,
 } from './globeShared';
@@ -24,33 +25,39 @@ interface WebGlGlobeProps extends GlobeViewProps {
 interface WebGlResources {
   gl: WebGLRenderingContext;
   indexCount: number;
+  mesh: SphereMesh;
+  positionBuffer: WebGLBuffer;
   program: WebGLProgram;
   texture: WebGLTexture;
   uniforms: {
     hazeColor: WebGLUniformLocation;
     nightStrength: WebGLUniformLocation;
-    rotation: WebGLUniformLocation;
     scale: WebGLUniformLocation;
     sunDirection: WebGLUniformLocation;
     texture: WebGLUniformLocation;
   };
 }
 
+interface SphereMesh {
+  indices: Uint16Array;
+  positions: Float32Array;
+  sourceCoordinates: Float32Array;
+  uvs: Float32Array;
+}
+
 const vertexShaderSource = `
   attribute vec3 a_position;
   attribute vec2 a_uv;
 
-  uniform mat3 u_rotation;
   uniform vec2 u_scale;
 
   varying vec2 v_uv;
   varying vec3 v_rotatedNormal;
 
   void main() {
-    vec3 rotated = u_rotation * a_position;
-    gl_Position = vec4(rotated.x * u_scale.x, rotated.y * u_scale.y, rotated.z * 0.5, 1.0);
+    gl_Position = vec4(a_position.x * u_scale.x, a_position.y * u_scale.y, a_position.z * 0.5, 1.0);
     v_uv = vec2(1.0 - a_uv.x, a_uv.y);
-    v_rotatedNormal = rotated;
+    v_rotatedNormal = a_position;
   }
 `;
 
@@ -122,26 +129,25 @@ function createProgram(gl: WebGLRenderingContext) {
   return program;
 }
 
-function createSphereMesh(latitudeBands = 96, longitudeBands = 192) {
-  const vertices: number[] = [];
+function createSphereMesh(latitudeBands = 96, longitudeBands = 192): SphereMesh {
+  const positions: number[] = [];
+  const sourceCoordinates: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
 
   for (let lat = 0; lat <= latitudeBands; lat += 1) {
     const v = lat / latitudeBands;
     const latitude = Math.PI * (0.5 - v);
-    const cosLat = Math.cos(latitude);
-    const sinLat = Math.sin(latitude);
 
     for (let lon = 0; lon <= longitudeBands; lon += 1) {
       const u = lon / longitudeBands;
       const longitude = (u - 0.5) * Math.PI * 2;
+      const longitudeDegrees = (longitude * 180) / Math.PI;
+      const latitudeDegrees = (latitude * 180) / Math.PI;
+      const position = geoToSpherePosition(longitudeDegrees, latitudeDegrees);
 
-      vertices.push(
-        Math.sin(longitude) * cosLat,
-        sinLat,
-        Math.cos(longitude) * cosLat,
-      );
+      positions.push(position.x, position.y, position.z);
+      sourceCoordinates.push(longitudeDegrees, latitudeDegrees);
       uvs.push(u, v);
     }
   }
@@ -158,8 +164,9 @@ function createSphereMesh(latitudeBands = 96, longitudeBands = 192) {
 
   return {
     indices: new Uint16Array(indices),
+    positions: new Float32Array(positions),
+    sourceCoordinates: new Float32Array(sourceCoordinates),
     uvs: new Float32Array(uvs),
-    vertices: new Float32Array(vertices),
   };
 }
 
@@ -295,7 +302,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.useProgram(program);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
   const positionLocation = gl.getAttribLocation(program, 'a_position');
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
@@ -322,12 +329,13 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   return {
     gl,
     indexCount: mesh.indices.length,
+    mesh,
+    positionBuffer,
     program,
     texture,
     uniforms: {
       hazeColor: getUniformLocation(gl, program, 'u_hazeColor'),
       nightStrength: getUniformLocation(gl, program, 'u_nightStrength'),
-      rotation: getUniformLocation(gl, program, 'u_rotation'),
       scale: getUniformLocation(gl, program, 'u_scale'),
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
       texture: getUniformLocation(gl, program, 'u_texture'),
@@ -344,7 +352,7 @@ function drawGlobe(
   currentRotation: [number, number],
   palette: GlobePalette,
 ) {
-  const { gl, indexCount, uniforms } = resources;
+  const { gl, indexCount, mesh, positionBuffer, uniforms } = resources;
   const dpr = window.devicePixelRatio || 1;
 
   canvas.width = width * dpr;
@@ -357,15 +365,28 @@ function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
-  const rotationMatrix = getRotationMatrix(currentRotation);
   const sunDirection = getSunDirection();
   const hazeColor = toRgbTriplet(palette.hazeInner);
+  const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
+
+  for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
+    const rotated = rotate([
+      mesh.sourceCoordinates[index]!,
+      mesh.sourceCoordinates[index + 1]!,
+    ]);
+    const position = geoToSpherePosition(rotated[0], rotated[1]);
+    const targetIndex = (index / 2) * 3;
+    mesh.positions[targetIndex] = position.x;
+    mesh.positions[targetIndex + 1] = position.y;
+    mesh.positions[targetIndex + 2] = position.z;
+  }
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.useProgram(resources.program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
-  gl.uniformMatrix3fv(uniforms.rotation, false, new Float32Array(rotationMatrix));
   gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
   gl.uniform3f(uniforms.hazeColor, hazeColor[0], hazeColor[1], hazeColor[2]);
   gl.uniform1f(uniforms.nightStrength, 0.32);
