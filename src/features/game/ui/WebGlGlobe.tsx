@@ -419,6 +419,7 @@ export function WebGlGlobe({
   const { currentRotation, interactionHandlers, zoomScale } = useGlobeInteraction({
     baseScale,
     focusRequest,
+    pointerDirection: { x: -1, y: -1 },
     rotation,
   });
 

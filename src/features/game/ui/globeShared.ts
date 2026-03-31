@@ -118,12 +118,17 @@ interface UseGlobeInteractionArgs {
   baseScale: number;
   focusRequest: number;
   rotation: [number, number];
+  pointerDirection?: {
+    x: 1 | -1;
+    y: 1 | -1;
+  };
 }
 
 export function useGlobeInteraction({
   baseScale,
   focusRequest,
   rotation,
+  pointerDirection = { x: 1, y: 1 },
 }: UseGlobeInteractionArgs) {
   const [zoomScale, setZoomScale] = useState(1);
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
@@ -181,15 +186,17 @@ export function useGlobeInteraction({
       const sensitivity = 75 / (baseScale * zoomScale);
       pendingRotationRef.current = [
         startRotationRef.current[0] +
-          (event.clientX - startPointRef.current.x) * sensitivity,
+          (event.clientX - startPointRef.current.x) * sensitivity * pointerDirection.x,
         clampLatitudeRotation(
           startRotationRef.current[1] -
-            (event.clientY - startPointRef.current.y) * sensitivity,
+            (event.clientY - startPointRef.current.y) *
+              sensitivity *
+              pointerDirection.y,
         ),
       ];
       scheduleInteractionFlush();
     },
-    [baseScale, scheduleInteractionFlush, zoomScale],
+    [baseScale, pointerDirection.x, pointerDirection.y, scheduleInteractionFlush, zoomScale],
   );
 
   const onPointerUp = useCallback(
