@@ -1,4 +1,10 @@
 import {
+  createNightCircle,
+  geoToSpherePosition,
+  useGlobeInteraction,
+  type GlobeViewProps,
+} from './globeShared';
+import {
   geoCentroid,
   geoCircle,
   geoEquirectangular,
@@ -11,33 +17,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
-import {
-  geoToSpherePosition,
-  getRotatedSunDirection,
-  useGlobeInteraction,
-  type GlobeViewProps,
-} from './globeShared';
 
 interface WebGlGlobeProps extends GlobeViewProps {
   palette: GlobePalette;
-}
-
-interface WebGlResources {
-  gl: WebGLRenderingContext;
-  indexCount: number;
-  mesh: SphereMesh;
-  positionBuffer: WebGLBuffer;
-  program: WebGLProgram;
-  texture: WebGLTexture;
-  uniforms: {
-    penumbra: WebGLUniformLocation;
-    shadowAlpha: WebGLUniformLocation;
-    shadowColor: WebGLUniformLocation;
-    nightStrength: WebGLUniformLocation;
-    scale: WebGLUniformLocation;
-    sunDirection: WebGLUniformLocation;
-    texture: WebGLUniformLocation;
-  };
 }
 
 interface SphereMesh {
@@ -47,6 +29,21 @@ interface SphereMesh {
   uvs: Float32Array;
 }
 
+interface WebGlResources {
+  gl: WebGLRenderingContext;
+  indexCount: number;
+  mesh: SphereMesh;
+  positionBuffer: WebGLBuffer;
+  program: WebGLProgram;
+  shadowTexture: WebGLTexture;
+  texture: WebGLTexture;
+  uniforms: {
+    scale: WebGLUniformLocation;
+    shadowTexture: WebGLUniformLocation;
+    texture: WebGLUniformLocation;
+  };
+}
+
 const vertexShaderSource = `
   attribute vec3 a_position;
   attribute vec2 a_uv;
@@ -54,12 +51,10 @@ const vertexShaderSource = `
   uniform vec2 u_scale;
 
   varying vec2 v_uv;
-  varying vec3 v_rotatedNormal;
 
   void main() {
     gl_Position = vec4(a_position.x * u_scale.x, a_position.y * u_scale.y, a_position.z * 0.5, 1.0);
-    v_uv = vec2(1.0 - a_uv.x, a_uv.y);
-    v_rotatedNormal = a_position;
+    v_uv = a_uv;
   }
 `;
 
@@ -67,21 +62,14 @@ const fragmentShaderSource = `
   precision mediump float;
 
   uniform sampler2D u_texture;
-  uniform float u_penumbra;
-  uniform float u_shadowAlpha;
-  uniform vec3 u_shadowColor;
-  uniform vec3 u_sunDirection;
-  uniform float u_nightStrength;
+  uniform sampler2D u_shadowTexture;
 
   varying vec2 v_uv;
-  varying vec3 v_rotatedNormal;
 
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
-    float light = dot(normalize(v_rotatedNormal), normalize(u_sunDirection));
-    float nightMix = smoothstep(u_penumbra, -u_penumbra, light) * u_nightStrength;
-    vec3 shadowed = mix(baseColor.rgb, u_shadowColor, u_shadowAlpha);
-    vec3 shaded = mix(baseColor.rgb, shadowed, nightMix);
+    vec4 shadow = texture2D(u_shadowTexture, v_uv);
+    vec3 shaded = mix(baseColor.rgb, shadow.rgb, shadow.a);
     gl_FragColor = vec4(shaded, baseColor.a);
   }
 `;
@@ -181,9 +169,9 @@ function parseCssColor(color: string) {
     return {
       alpha: rgbaMatch[4] ? Number(rgbaMatch[4]) : 1,
       rgb: [
-        Number(rgbaMatch[1]) / 255,
-        Number(rgbaMatch[2]) / 255,
-        Number(rgbaMatch[3]) / 255,
+        Number(rgbaMatch[1]),
+        Number(rgbaMatch[2]),
+        Number(rgbaMatch[3]),
       ] as [number, number, number],
     };
   }
@@ -200,9 +188,9 @@ function parseCssColor(color: string) {
   return {
     alpha: 1,
     rgb: [
-      parseInt(fullHex.slice(0, 2), 16) / 255,
-      parseInt(fullHex.slice(2, 4), 16) / 255,
-      parseInt(fullHex.slice(4, 6), 16) / 255,
+      parseInt(fullHex.slice(0, 2), 16),
+      parseInt(fullHex.slice(2, 4), 16),
+      parseInt(fullHex.slice(4, 6), 16),
     ] as [number, number, number],
   };
 }
@@ -227,6 +215,22 @@ function drawFeatureCollection(
   }
 }
 
+function withMirroredTextureContext(
+  canvas: HTMLCanvasElement,
+  draw: (context: CanvasRenderingContext2D) => void,
+) {
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Failed to create globe texture context.');
+  }
+
+  context.save();
+  context.translate(canvas.width, 0);
+  context.scale(-1, 1);
+  draw(context);
+  context.restore();
+}
+
 function buildTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature,
@@ -236,53 +240,84 @@ function buildTextureCanvas(
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
   textureCanvas.height = textureSize / 2;
-  const context = textureCanvas.getContext('2d');
 
-  if (!context) {
-    throw new Error('Failed to create globe texture context.');
-  }
+  withMirroredTextureContext(textureCanvas, (context) => {
+    const projection = geoEquirectangular()
+      .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+      .scale(textureCanvas.width / (2 * Math.PI));
+    const path = geoPath(projection, context);
+    const selectedCircle = geoCircle()
+      .center(geoCentroid(targetFeature as GeoPermissibleObjects))
+      .radius(1)();
 
-  const projection = geoEquirectangular()
-    .translate([textureCanvas.width / 2, textureCanvas.height / 2])
-    .scale(textureCanvas.width / (2 * Math.PI));
-  const path = geoPath(projection, context);
-  const selectedCircle = geoCircle()
-    .center(geoCentroid(targetFeature as GeoPermissibleObjects))
-    .radius(1)();
+    context.fillStyle = palette.oceanFill;
+    context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
-  context.fillStyle = palette.oceanFill;
-  context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-
-  context.beginPath();
-  path(geoGraticule10());
-  context.strokeStyle = palette.graticule;
-  context.lineWidth = 1.2;
-  context.stroke();
-
-  drawFeatureCollection(
-    context,
-    path,
-    world,
-    palette.countryFill,
-    palette.countryStroke,
-    1.2,
-  );
-
-  context.beginPath();
-  path(targetFeature as GeoPermissibleObjects);
-  context.fillStyle = palette.selectedFill;
-  context.strokeStyle = palette.countryStroke;
-  context.lineWidth = 1.6;
-  context.fill();
-  context.stroke();
-
-  if (geoLength(targetFeature) < 0.02) {
     context.beginPath();
-    path(selectedCircle);
-    context.strokeStyle = palette.smallCountryCircle;
-    context.lineWidth = 3;
+    path(geoGraticule10());
+    context.strokeStyle = palette.graticule;
+    context.lineWidth = 1.2;
     context.stroke();
-  }
+
+    drawFeatureCollection(
+      context,
+      path,
+      world,
+      palette.countryFill,
+      palette.countryStroke,
+      1.2,
+    );
+
+    context.beginPath();
+    path(targetFeature as GeoPermissibleObjects);
+    context.fillStyle = palette.selectedFill;
+    context.strokeStyle = palette.countryStroke;
+    context.lineWidth = 1.6;
+    context.fill();
+    context.stroke();
+
+    if (geoLength(targetFeature) < 0.02) {
+      context.beginPath();
+      path(selectedCircle);
+      context.strokeStyle = palette.smallCountryCircle;
+      context.lineWidth = 3;
+      context.stroke();
+    }
+  });
+
+  return textureCanvas;
+}
+
+function buildShadowTextureCanvas(
+  palette: GlobePalette,
+  textureSize: number,
+) {
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = textureSize;
+  textureCanvas.height = textureSize / 2;
+  const shadow = parseCssColor(palette.nightShade);
+
+  withMirroredTextureContext(textureCanvas, (context) => {
+    const projection = geoEquirectangular()
+      .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+      .scale(textureCanvas.width / (2 * Math.PI));
+    const path = geoPath(projection, context);
+    const fill = `rgba(${shadow.rgb[0]}, ${shadow.rgb[1]}, ${shadow.rgb[2]}, ${shadow.alpha})`;
+
+    context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+
+    context.filter = 'blur(2px)';
+    context.beginPath();
+    path(createNightCircle());
+    context.fillStyle = fill;
+    context.fill();
+
+    context.filter = 'none';
+    context.beginPath();
+    path(createNightCircle());
+    context.fillStyle = fill;
+    context.fill();
+  });
 
   return textureCanvas;
 }
@@ -297,6 +332,14 @@ function getUniformLocation(
     throw new Error(`Missing WebGL uniform: ${name}`);
   }
   return location;
+}
+
+function configureTexture(gl: WebGLRenderingContext, texture: WebGLTexture) {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
 function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
@@ -314,8 +357,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const uvBuffer = gl.createBuffer();
   const indexBuffer = gl.createBuffer();
   const texture = gl.createTexture();
+  const shadowTexture = gl.createTexture();
 
-  if (!positionBuffer || !uvBuffer || !indexBuffer || !texture) {
+  if (!positionBuffer || !uvBuffer || !indexBuffer || !texture || !shadowTexture) {
     throw new Error('Failed to allocate WebGL buffers.');
   }
 
@@ -336,11 +380,8 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  configureTexture(gl, texture);
+  configureTexture(gl, shadowTexture);
 
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
@@ -352,14 +393,11 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     mesh,
     positionBuffer,
     program,
+    shadowTexture,
     texture,
     uniforms: {
-      penumbra: getUniformLocation(gl, program, 'u_penumbra'),
-      shadowAlpha: getUniformLocation(gl, program, 'u_shadowAlpha'),
-      shadowColor: getUniformLocation(gl, program, 'u_shadowColor'),
-      nightStrength: getUniformLocation(gl, program, 'u_nightStrength'),
       scale: getUniformLocation(gl, program, 'u_scale'),
-      sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
+      shadowTexture: getUniformLocation(gl, program, 'u_shadowTexture'),
       texture: getUniformLocation(gl, program, 'u_texture'),
     },
   };
@@ -372,7 +410,6 @@ function drawGlobe(
   height: number,
   zoomScale: number,
   currentRotation: [number, number],
-  palette: GlobePalette,
 ) {
   const { gl, indexCount, mesh, positionBuffer, uniforms } = resources;
   const dpr = window.devicePixelRatio || 1;
@@ -387,8 +424,6 @@ function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
-  const sunDirection = getRotatedSunDirection(currentRotation);
-  const shadow = parseCssColor(palette.nightShade);
   const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
 
   for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
@@ -408,12 +443,8 @@ function drawGlobe(
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
   gl.uniform1i(uniforms.texture, 0);
+  gl.uniform1i(uniforms.shadowTexture, 1);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
-  gl.uniform1f(uniforms.penumbra, 100 / 6371);
-  gl.uniform1f(uniforms.shadowAlpha, shadow.alpha);
-  gl.uniform3f(uniforms.shadowColor, shadow.rgb[0], shadow.rgb[1], shadow.rgb[2]);
-  gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
-  gl.uniform1f(uniforms.nightStrength, 1.0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -487,9 +518,13 @@ export function WebGlGlobe({
       palette,
       textureSize >= 8192 ? 8192 : textureSize >= 4096 ? 4096 : 2048,
     );
+    const shadowCanvas = buildShadowTextureCanvas(
+      palette,
+      textureSize >= 4096 ? 4096 : 2048,
+    );
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, resources.texture);
+    configureTexture(gl, resources.texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -498,6 +533,18 @@ export function WebGlGlobe({
       gl.RGBA,
       gl.UNSIGNED_BYTE,
       textureCanvas,
+    );
+
+    gl.activeTexture(gl.TEXTURE1);
+    configureTexture(gl, resources.shadowTexture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      shadowCanvas,
     );
 
     window.setTimeout(() => {
@@ -518,8 +565,8 @@ export function WebGlGlobe({
       return;
     }
 
-    drawGlobe(resources, canvas, width, height, zoomScale, currentRotation, palette);
-  }, [currentRotation, height, palette, width, zoomScale]);
+    drawGlobe(resources, canvas, width, height, zoomScale, currentRotation);
+  }, [currentRotation, height, width, zoomScale]);
 
   return (
     <div

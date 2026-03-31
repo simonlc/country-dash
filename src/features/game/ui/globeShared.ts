@@ -1,4 +1,4 @@
-import { geoCircle } from 'd3';
+import { geoCircle, geoRotation } from 'd3';
 import {
   useCallback,
   useEffect,
@@ -66,52 +66,11 @@ export function geoToSpherePosition(longitude: number, latitude: number) {
   };
 }
 
-function multiplyMat3Vec3(
-  matrix: [number, number, number, number, number, number, number, number, number],
-  vector: { x: number; y: number; z: number },
-) {
-  return {
-    x: matrix[0] * vector.x + matrix[1] * vector.y + matrix[2] * vector.z,
-    y: matrix[3] * vector.x + matrix[4] * vector.y + matrix[5] * vector.z,
-    z: matrix[6] * vector.x + matrix[7] * vector.y + matrix[8] * vector.z,
-  };
-}
-
-export function getRotationMatrix(
-  rotation: [number, number],
-): [number, number, number, number, number, number, number, number, number] {
-  const y = (rotation[0] * Math.PI) / 180;
-  const x = (-rotation[1] * Math.PI) / 180;
-
-  const cy = Math.cos(y);
-  const sy = Math.sin(y);
-  const cx = Math.cos(x);
-  const sx = Math.sin(x);
-
-  return [
-    cy,
-    0,
-    sy,
-    sx * sy,
-    cx,
-    -sx * cy,
-    -cx * sy,
-    sx,
-    cx * cy,
-  ];
-}
-
 export function getRotatedSunDirection(rotation: [number, number]) {
   const [longitude, latitude] = getSunPosition();
-  return multiplyMat3Vec3(
-    getRotationMatrix(rotation),
-    geoToSpherePosition(longitude, latitude),
-  );
-}
-
-export function getSunDirection() {
-  const [longitude, latitude] = getSunPosition();
-  return geoToSpherePosition(longitude, latitude);
+  const rotate = geoRotation([rotation[0], rotation[1], 0]);
+  const rotated = rotate([longitude, latitude]);
+  return geoToSpherePosition(rotated[0], rotated[1]);
 }
 
 interface UseGlobeInteractionArgs {
