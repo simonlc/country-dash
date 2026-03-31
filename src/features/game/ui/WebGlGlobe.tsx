@@ -13,7 +13,7 @@ import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 import {
   geoToSpherePosition,
-  getSunDirection,
+  getRotatedSunDirection,
   useGlobeInteraction,
   type GlobeViewProps,
 } from './globeShared';
@@ -30,7 +30,9 @@ interface WebGlResources {
   program: WebGLProgram;
   texture: WebGLTexture;
   uniforms: {
-    hazeColor: WebGLUniformLocation;
+    penumbra: WebGLUniformLocation;
+    shadowAlpha: WebGLUniformLocation;
+    shadowColor: WebGLUniformLocation;
     nightStrength: WebGLUniformLocation;
     scale: WebGLUniformLocation;
     sunDirection: WebGLUniformLocation;
@@ -65,7 +67,9 @@ const fragmentShaderSource = `
   precision mediump float;
 
   uniform sampler2D u_texture;
-  uniform vec3 u_hazeColor;
+  uniform float u_penumbra;
+  uniform float u_shadowAlpha;
+  uniform vec3 u_shadowColor;
   uniform vec3 u_sunDirection;
   uniform float u_nightStrength;
 
@@ -75,10 +79,9 @@ const fragmentShaderSource = `
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
     float light = dot(normalize(v_rotatedNormal), normalize(u_sunDirection));
-    float nightMix = smoothstep(0.08, -0.58, light) * u_nightStrength;
-    float rim = pow(1.0 - max(v_rotatedNormal.z, 0.0), 3.0);
-    vec3 shaded = mix(baseColor.rgb, baseColor.rgb * 0.84, nightMix);
-    shaded += u_hazeColor * rim * 0.08;
+    float nightMix = smoothstep(u_penumbra, -u_penumbra, light) * u_nightStrength;
+    vec3 shadowed = mix(baseColor.rgb, u_shadowColor, u_shadowAlpha);
+    vec3 shaded = mix(baseColor.rgb, shadowed, nightMix);
     gl_FragColor = vec4(shaded, baseColor.a);
   }
 `;
@@ -170,7 +173,21 @@ function createSphereMesh(latitudeBands = 96, longitudeBands = 192): SphereMesh 
   };
 }
 
-function toRgbTriplet(color: string): [number, number, number] {
+function parseCssColor(color: string) {
+  const rgbaMatch = color.match(
+    /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/i,
+  );
+  if (rgbaMatch) {
+    return {
+      alpha: rgbaMatch[4] ? Number(rgbaMatch[4]) : 1,
+      rgb: [
+        Number(rgbaMatch[1]) / 255,
+        Number(rgbaMatch[2]) / 255,
+        Number(rgbaMatch[3]) / 255,
+      ] as [number, number, number],
+    };
+  }
+
   const hex = color.replace('#', '');
   const fullHex =
     hex.length === 3
@@ -180,11 +197,14 @@ function toRgbTriplet(color: string): [number, number, number] {
           .join('')
       : hex;
 
-  return [
-    parseInt(fullHex.slice(0, 2), 16) / 255,
-    parseInt(fullHex.slice(2, 4), 16) / 255,
-    parseInt(fullHex.slice(4, 6), 16) / 255,
-  ];
+  return {
+    alpha: 1,
+    rgb: [
+      parseInt(fullHex.slice(0, 2), 16) / 255,
+      parseInt(fullHex.slice(2, 4), 16) / 255,
+      parseInt(fullHex.slice(4, 6), 16) / 255,
+    ] as [number, number, number],
+  };
 }
 
 function drawFeatureCollection(
@@ -236,7 +256,7 @@ function buildTextureCanvas(
   context.beginPath();
   path(geoGraticule10());
   context.strokeStyle = palette.graticule;
-  context.lineWidth = 0.9;
+  context.lineWidth = 1.2;
   context.stroke();
 
   drawFeatureCollection(
@@ -317,7 +337,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -334,7 +354,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     program,
     texture,
     uniforms: {
-      hazeColor: getUniformLocation(gl, program, 'u_hazeColor'),
+      penumbra: getUniformLocation(gl, program, 'u_penumbra'),
+      shadowAlpha: getUniformLocation(gl, program, 'u_shadowAlpha'),
+      shadowColor: getUniformLocation(gl, program, 'u_shadowColor'),
       nightStrength: getUniformLocation(gl, program, 'u_nightStrength'),
       scale: getUniformLocation(gl, program, 'u_scale'),
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
@@ -365,8 +387,8 @@ function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
-  const sunDirection = getSunDirection();
-  const hazeColor = toRgbTriplet(palette.hazeInner);
+  const sunDirection = getRotatedSunDirection(currentRotation);
+  const shadow = parseCssColor(palette.nightShade);
   const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
 
   for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
@@ -387,9 +409,11 @@ function drawGlobe(
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
+  gl.uniform1f(uniforms.penumbra, 100 / 6371);
+  gl.uniform1f(uniforms.shadowAlpha, shadow.alpha);
+  gl.uniform3f(uniforms.shadowColor, shadow.rgb[0], shadow.rgb[1], shadow.rgb[2]);
   gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
-  gl.uniform3f(uniforms.hazeColor, hazeColor[0], hazeColor[1], hazeColor[2]);
-  gl.uniform1f(uniforms.nightStrength, 0.32);
+  gl.uniform1f(uniforms.nightStrength, 1.0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -475,7 +499,6 @@ export function WebGlGlobe({
       gl.UNSIGNED_BYTE,
       textureCanvas,
     );
-    gl.generateMipmap(gl.TEXTURE_2D);
 
     window.setTimeout(() => {
       if (!cancelled) {
