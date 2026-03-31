@@ -1,12 +1,22 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import type { PropsWithChildren } from 'react';
-import { theme } from './theme';
+import { AppearanceProvider, useAppearance } from './appearance';
 
-export function AppProviders({ children }: PropsWithChildren) {
+function ThemedProviders({ children }: PropsWithChildren) {
+  const { muiTheme } = useAppearance();
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       {children}
     </ThemeProvider>
+  );
+}
+
+export function AppProviders({ children }: PropsWithChildren) {
+  return (
+    <AppearanceProvider>
+      <ThemedProviders>{children}</ThemedProviders>
+    </AppearanceProvider>
   );
 }

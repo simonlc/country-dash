@@ -5,13 +5,12 @@ import {
   Button,
   CircularProgress,
   Container,
-  Link,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
-import { Link as RouterLink } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAppearance } from '@/app/appearance';
 import { Globe } from '@/Globe';
 import { loadWorldData } from '@/features/game/data/loadWorldData';
 import {
@@ -26,6 +25,7 @@ import { useWindowSize } from '@/features/game/hooks/useWindowSize';
 import { GuessInput } from '@/features/game/ui/GuessInput';
 import { IntroDialog } from '@/features/game/ui/IntroDialog';
 import { GameTimer } from '@/features/game/ui/GameTimer';
+import { ThemeMenu } from '@/features/game/ui/ThemeMenu';
 import type {
   AnswerResult,
   CountryProperties,
@@ -36,6 +36,7 @@ import type {
 
 export function GamePage() {
   const size = useWindowSize();
+  const { activeTheme } = useAppearance();
   const [worldData, setWorldData] = useState<WorldData | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
@@ -204,23 +205,31 @@ export function GamePage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', position: 'relative' }}>
+    <Box
+      sx={{
+        backgroundImage: activeTheme.background.app,
+        minHeight: '100vh',
+        position: 'relative',
+      }}
+    >
       <Box sx={{ height: '100vh' }}>
         <Globe
           country={currentCountry}
           focusRequest={focusRequest}
           height={size.height}
+          palette={activeTheme.globe}
           rotation={rotation}
           width={size.width}
           world={worldData.world}
         />
       </Box>
+      <ThemeMenu onRefocus={() => setFocusRequest((value) => value + 1)} />
       <Container
         maxWidth="lg"
         sx={{
           inset: 0,
           position: 'absolute',
-          py: 3,
+          py: { md: 3, xs: 2 },
           pointerEvents: 'none',
         }}
       >
@@ -229,7 +238,16 @@ export function GamePage() {
           justifyContent="space-between"
           spacing={2}
         >
-          <Paper elevation={4} sx={{ p: 2, pointerEvents: 'auto' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor: activeTheme.background.panel,
+              border: `1px solid ${activeTheme.background.panelBorder}`,
+              boxShadow: activeTheme.background.panelShadow,
+              p: 2,
+              pointerEvents: 'auto',
+            }}
+          >
             <Stack spacing={1}>
               <Typography variant="body2">
                 Round {gameState.roundIndex + 1}/{currentCountries.length}
@@ -242,7 +260,16 @@ export function GamePage() {
               />
             </Stack>
           </Paper>
-          <Paper elevation={4} sx={{ p: 2, pointerEvents: 'auto' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor: activeTheme.background.panel,
+              border: `1px solid ${activeTheme.background.panelBorder}`,
+              boxShadow: activeTheme.background.panelShadow,
+              p: 2,
+              pointerEvents: 'auto',
+            }}
+          >
             <Stack spacing={1} textAlign={{ md: 'right', xs: 'left' }}>
               <Typography variant="body2">Streak: {gameState.streak}</Typography>
               <Typography variant="body2">
@@ -261,9 +288,6 @@ export function GamePage() {
                   Refocus country
                 </Button>
               ) : null}
-              <Link component={RouterLink} to="/about" underline="hover">
-                About
-              </Link>
             </Stack>
           </Paper>
         </Stack>
@@ -281,8 +305,11 @@ export function GamePage() {
           }}
         >
           <Paper
-            elevation={8}
+            elevation={0}
             sx={{
+              backgroundColor: activeTheme.background.mutedPanel,
+              border: `1px solid ${activeTheme.background.panelBorder}`,
+              boxShadow: activeTheme.background.panelShadow,
               maxWidth: 420,
               p: 3,
               pointerEvents: 'auto',

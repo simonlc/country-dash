@@ -14,6 +14,7 @@ import {
   useRef,
 } from 'react';
 import * as solar from 'solar-calculator';
+import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 
 interface GlobeProps {
@@ -23,6 +24,7 @@ interface GlobeProps {
   rotation: [number, number];
   focusRequest: number;
   world: FeatureCollectionLike;
+  palette: GlobePalette;
 }
 
 const styles: Record<'root', CSSProperties> = {
@@ -30,18 +32,6 @@ const styles: Record<'root', CSSProperties> = {
     width: '100%',
     height: '100%',
   },
-};
-
-const colors = {
-  oceanFill: '#dcefff',
-  graticule: 'rgba(0, 0, 0, 0.12)',
-  countryFill: '#9fc2a8',
-  countryStroke: 'rgba(0, 0, 0, 0.35)',
-  selectedFill: '#ffbc42',
-  hazeOuter: '#eaf4ff',
-  hazeInner: '#9ed8ff',
-  nightShade: 'rgba(0, 0, 0, 0.18)',
-  smallCountryCircle: 'rgba(217, 74, 51, 0.95)',
 };
 
 const tau = 2 * Math.PI;
@@ -104,6 +94,7 @@ export function Globe({
   rotation,
   focusRequest,
   world,
+  palette,
 }: GlobeProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -197,10 +188,10 @@ export function Globe({
       height / 2,
       Math.max(width, height) * 0.85,
     );
-    haze.addColorStop(0, colors.hazeInner);
-    haze.addColorStop(1, colors.hazeOuter);
+    haze.addColorStop(0, palette.hazeInner);
+    haze.addColorStop(1, palette.hazeOuter);
 
-    hazeContext.fillStyle = colors.hazeOuter;
+    hazeContext.fillStyle = palette.hazeOuter;
     hazeContext.fillRect(0, 0, width, height);
     hazeContext.globalAlpha = 0.6;
     hazeContext.fillStyle = haze;
@@ -215,27 +206,27 @@ export function Globe({
 
       context.beginPath();
       path(sphere);
-      context.fillStyle = colors.oceanFill;
+      context.fillStyle = palette.oceanFill;
       context.fill();
 
       context.beginPath();
       path(graticule);
-      context.strokeStyle = colors.graticule;
+      context.strokeStyle = palette.graticule;
       context.lineWidth = 0.8;
       context.stroke();
 
       context.beginPath();
       path(world as GeoPermissibleObjects);
-      context.fillStyle = colors.countryFill;
-      context.strokeStyle = colors.countryStroke;
+      context.fillStyle = palette.countryFill;
+      context.strokeStyle = palette.countryStroke;
       context.lineWidth = 0.8;
       context.fill();
       context.stroke();
 
       context.beginPath();
       path(targetFeature);
-      context.fillStyle = colors.selectedFill;
-      context.strokeStyle = colors.countryStroke;
+      context.fillStyle = palette.selectedFill;
+      context.strokeStyle = palette.countryStroke;
       context.lineWidth = 1;
       context.fill();
       context.stroke();
@@ -243,7 +234,7 @@ export function Globe({
       if (countrySize < 0.02) {
         context.beginPath();
         path(selectedCircle);
-        context.strokeStyle = colors.smallCountryCircle;
+        context.strokeStyle = palette.smallCountryCircle;
         context.lineWidth = 2;
         context.stroke();
       }
@@ -258,7 +249,7 @@ export function Globe({
         () => {
           context.beginPath();
           path(nightCircle());
-          context.fillStyle = colors.nightShade;
+          context.fillStyle = palette.nightShade;
           context.fill();
         },
         10,
@@ -360,6 +351,7 @@ export function Globe({
     targetFeature,
     width,
     world,
+    palette,
   ]);
 
   useEffect(() => {
