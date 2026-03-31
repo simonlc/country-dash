@@ -25,6 +25,10 @@ export function clampScale(value: number) {
   return Math.min(20, Math.max(0.35, value));
 }
 
+export function clampLatitudeRotation(value: number) {
+  return Math.max(-85, Math.min(85, value));
+}
+
 export function normalizeLongitude(value: number) {
   return ((((value + 180) % 360) + 360) % 360) - 180;
 }
@@ -105,6 +109,11 @@ export function getRotatedSunDirection(rotation: [number, number]) {
   );
 }
 
+export function getSunDirection() {
+  const [longitude, latitude] = getSunPosition();
+  return geoToSpherePosition(longitude, latitude);
+}
+
 interface UseGlobeInteractionArgs {
   baseScale: number;
   focusRequest: number;
@@ -119,14 +128,39 @@ export function useGlobeInteraction({
   const [zoomScale, setZoomScale] = useState(1);
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
   const animationFrameRef = useRef<number | null>(null);
+  const interactionFrameRef = useRef<number | null>(null);
   const draggingRef = useRef(false);
   const startPointRef = useRef({ x: 0, y: 0 });
   const startRotationRef = useRef<[number, number]>(rotation);
   const latestRotationRef = useRef<[number, number]>(rotation);
+  const pendingRotationRef = useRef<[number, number] | null>(null);
+  const pendingZoomRef = useRef<number | null>(null);
 
   useEffect(() => {
     latestRotationRef.current = currentRotation;
   }, [currentRotation]);
+
+  const flushInteraction = useCallback(() => {
+    interactionFrameRef.current = null;
+
+    if (pendingRotationRef.current) {
+      setCurrentRotation(pendingRotationRef.current);
+      pendingRotationRef.current = null;
+    }
+
+    if (pendingZoomRef.current !== null) {
+      setZoomScale(pendingZoomRef.current);
+      pendingZoomRef.current = null;
+    }
+  }, []);
+
+  const scheduleInteractionFlush = useCallback(() => {
+    if (interactionFrameRef.current !== null) {
+      return;
+    }
+
+    interactionFrameRef.current = requestAnimationFrame(flushInteraction);
+  }, [flushInteraction]);
 
   const onPointerDown = useCallback(
     <T extends Element>(event: ReactPointerEvent<T>) => {
@@ -145,14 +179,17 @@ export function useGlobeInteraction({
       }
 
       const sensitivity = 75 / (baseScale * zoomScale);
-      setCurrentRotation([
+      pendingRotationRef.current = [
         startRotationRef.current[0] +
           (event.clientX - startPointRef.current.x) * sensitivity,
-        startRotationRef.current[1] -
-          (event.clientY - startPointRef.current.y) * sensitivity,
-      ]);
+        clampLatitudeRotation(
+          startRotationRef.current[1] -
+            (event.clientY - startPointRef.current.y) * sensitivity,
+        ),
+      ];
+      scheduleInteractionFlush();
     },
-    [baseScale, zoomScale],
+    [baseScale, scheduleInteractionFlush, zoomScale],
   );
 
   const onPointerUp = useCallback(
@@ -171,8 +208,11 @@ export function useGlobeInteraction({
 
   const onWheel = useCallback((event: ReactWheelEvent<Element>) => {
     event.preventDefault();
-    setZoomScale((value) => clampScale(value - event.deltaY * 0.001));
-  }, []);
+    pendingZoomRef.current = clampScale(
+      (pendingZoomRef.current ?? zoomScale) - event.deltaY * 0.001,
+    );
+    scheduleInteractionFlush();
+  }, [scheduleInteractionFlush, zoomScale]);
 
   useEffect(() => {
     if (draggingRef.current) {
@@ -194,7 +234,10 @@ export function useGlobeInteraction({
 
       setCurrentRotation([
         interpolateAngle(startRotation[0], targetRotation[0], easedProgress),
-        startRotation[1] + (targetRotation[1] - startRotation[1]) * easedProgress,
+        clampLatitudeRotation(
+          startRotation[1] +
+            (targetRotation[1] - startRotation[1]) * easedProgress,
+        ),
       ]);
 
       if (progress < 1) {
@@ -210,6 +253,10 @@ export function useGlobeInteraction({
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
+      }
+      if (interactionFrameRef.current !== null) {
+        cancelAnimationFrame(interactionFrameRef.current);
+        interactionFrameRef.current = null;
       }
     };
   }, [focusRequest, rotation]);

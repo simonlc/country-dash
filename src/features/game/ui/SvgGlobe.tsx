@@ -67,7 +67,6 @@ export function SvgGlobe({
   const countrySize = useMemo(() => geoLength(targetFeature), [targetFeature]);
   const gradientId = useId();
   const clipId = useId();
-  const filterId = useId();
 
   return (
     <svg
@@ -84,9 +83,6 @@ export function SvgGlobe({
         <clipPath id={clipId}>
           <path d={spherePath} />
         </clipPath>
-        <filter id={filterId}>
-          <feGaussianBlur stdDeviation="10" />
-        </filter>
       </defs>
       <rect fill={palette.hazeOuter} height={height} width={width} x={0} y={0} />
       <rect
@@ -128,7 +124,7 @@ export function SvgGlobe({
         <path
           d={nightPath}
           fill={palette.nightShade}
-          filter={`url(#${filterId})`}
+          opacity={0.92}
         />
       </g>
     </svg>

@@ -233,11 +233,12 @@ export function GamePage() {
     <Box
       sx={{
         backgroundImage: activeTheme.background.app,
-        minHeight: '100vh',
+        height: '100dvh',
+        overflow: 'hidden',
         position: 'relative',
       }}
     >
-      <Box sx={{ height: '100vh' }}>
+      <Box sx={{ height: '100%' }}>
         <Globe
           country={currentCountry}
           focusRequest={focusRequest}

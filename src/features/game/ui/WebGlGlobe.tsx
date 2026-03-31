@@ -2,6 +2,7 @@ import {
   geoCentroid,
   geoCircle,
   geoEquirectangular,
+  geoGraticule10,
   geoLength,
   geoPath,
   type GeoPermissibleObjects,
@@ -10,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 import {
-  getRotatedSunDirection,
+  getSunDirection,
   getRotationMatrix,
   useGlobeInteraction,
   type GlobeViewProps,
@@ -48,7 +49,7 @@ const vertexShaderSource = `
   void main() {
     vec3 rotated = u_rotation * a_position;
     gl_Position = vec4(rotated.x * u_scale.x, rotated.y * u_scale.y, rotated.z * 0.5, 1.0);
-    v_uv = a_uv;
+    v_uv = vec2(1.0 - a_uv.x, a_uv.y);
     v_rotatedNormal = rotated;
   }
 `;
@@ -67,10 +68,10 @@ const fragmentShaderSource = `
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
     float light = dot(normalize(v_rotatedNormal), normalize(u_sunDirection));
-    float nightMix = smoothstep(0.15, -0.45, light) * u_nightStrength;
+    float nightMix = smoothstep(0.08, -0.58, light) * u_nightStrength;
     float rim = pow(1.0 - max(v_rotatedNormal.z, 0.0), 3.0);
-    vec3 shaded = mix(baseColor.rgb, baseColor.rgb * 0.68, nightMix);
-    shaded += u_hazeColor * rim * 0.18;
+    vec3 shaded = mix(baseColor.rgb, baseColor.rgb * 0.84, nightMix);
+    shaded += u_hazeColor * rim * 0.08;
     gl_FragColor = vec4(shaded, baseColor.a);
   }
 `;
@@ -179,6 +180,26 @@ function toRgbTriplet(color: string): [number, number, number] {
   ];
 }
 
+function drawFeatureCollection(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  fillStyle: string,
+  strokeStyle: string,
+  lineWidth: number,
+) {
+  context.fillStyle = fillStyle;
+  context.strokeStyle = strokeStyle;
+  context.lineWidth = lineWidth;
+
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.fill();
+    context.stroke();
+  }
+}
+
 function buildTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature,
@@ -206,12 +227,19 @@ function buildTextureCanvas(
   context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
   context.beginPath();
-  path(world as GeoPermissibleObjects);
-  context.fillStyle = palette.countryFill;
-  context.strokeStyle = palette.countryStroke;
-  context.lineWidth = 1.2;
-  context.fill();
+  path(geoGraticule10());
+  context.strokeStyle = palette.graticule;
+  context.lineWidth = 0.9;
   context.stroke();
+
+  drawFeatureCollection(
+    context,
+    path,
+    world,
+    palette.countryFill,
+    palette.countryStroke,
+    1.2,
+  );
 
   context.beginPath();
   path(targetFeature as GeoPermissibleObjects);
@@ -232,7 +260,11 @@ function buildTextureCanvas(
   return textureCanvas;
 }
 
-function getUniformLocation(gl: WebGLRenderingContext, program: WebGLProgram, name: string) {
+function getUniformLocation(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string,
+) {
   const location = gl.getUniformLocation(program, name);
   if (!location) {
     throw new Error(`Missing WebGL uniform: ${name}`);
@@ -251,7 +283,6 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
 
   const program = createProgram(gl);
   const mesh = createSphereMesh();
-
   const positionBuffer = gl.createBuffer();
   const uvBuffer = gl.createBuffer();
   const indexBuffer = gl.createBuffer();
@@ -279,14 +310,13 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
   gl.enable(gl.DEPTH_TEST);
-  gl.enable(gl.CULL_FACE);
-  gl.cullFace(gl.BACK);
+  gl.disable(gl.CULL_FACE);
   gl.clearColor(0, 0, 0, 0);
 
   return {
@@ -328,7 +358,7 @@ function drawGlobe(
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
   const rotationMatrix = getRotationMatrix(currentRotation);
-  const sunDirection = getRotatedSunDirection(currentRotation);
+  const sunDirection = getSunDirection();
   const hazeColor = toRgbTriplet(palette.hazeInner);
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -338,7 +368,7 @@ function drawGlobe(
   gl.uniformMatrix3fv(uniforms.rotation, false, new Float32Array(rotationMatrix));
   gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
   gl.uniform3f(uniforms.hazeColor, hazeColor[0], hazeColor[1], hazeColor[2]);
-  gl.uniform1f(uniforms.nightStrength, 0.45);
+  gl.uniform1f(uniforms.nightStrength, 0.32);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -403,13 +433,13 @@ export function WebGlGlobe({
     const textureLimit = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
     const textureSize = Math.min(
       Number.isFinite(textureLimit) ? textureLimit : 4096,
-      4096,
+      8192,
     );
     const textureCanvas = buildTextureCanvas(
       world,
       targetFeature,
       palette,
-      textureSize >= 4096 ? 4096 : 2048,
+      textureSize >= 8192 ? 8192 : textureSize >= 4096 ? 4096 : 2048,
     );
 
     gl.activeTexture(gl.TEXTURE0);
@@ -423,6 +453,8 @@ export function WebGlGlobe({
       gl.UNSIGNED_BYTE,
       textureCanvas,
     );
+    gl.generateMipmap(gl.TEXTURE_2D);
+
     window.setTimeout(() => {
       if (!cancelled) {
         setErrorMessage(null);
