@@ -1,8 +1,6 @@
 import {
-  geoCentroid,
   geoCircle,
   geoGraticule10,
-  geoLength,
   geoOrthographic,
   geoPath,
   type GeoPermissibleObjects,
@@ -11,6 +9,7 @@ import { useId, useMemo } from 'react';
 import type { AppThemeId, GlobePalette } from '@/app/theme';
 import {
   createNightCircle,
+  getCountryHighlightRings,
   useGlobeInteraction,
   type GlobeViewProps,
 } from './globeShared';
@@ -30,7 +29,6 @@ export function SvgGlobe({
   focusRequest,
   world,
   palette,
-  themeId: _themeId,
 }: SvgGlobeProps) {
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -63,10 +61,13 @@ export function SvgGlobe({
   const targetPath = path(targetFeature as GeoPermissibleObjects) ?? '';
   const graticulePath = path(geoGraticule10()) ?? '';
   const nightPath = path(createNightCircle()) ?? '';
-  const selectedCirclePath = path(
-    geoCircle().center(geoCentroid(targetFeature as GeoPermissibleObjects)).radius(1)(),
+  const selectedRingPaths = useMemo(
+    () =>
+      getCountryHighlightRings(targetFeature)
+        .map((ring) => path(geoCircle().center(ring.center).radius(ring.radius)()))
+        .filter((ringPath): ringPath is string => Boolean(ringPath)),
+    [path, targetFeature],
   );
-  const countrySize = useMemo(() => geoLength(targetFeature), [targetFeature]);
   const gradientId = useId();
   const clipId = useId();
 
@@ -114,14 +115,15 @@ export function SvgGlobe({
         stroke={palette.countryStroke}
         strokeWidth={1}
       />
-      {countrySize < 0.02 && selectedCirclePath ? (
+      {selectedRingPaths.map((ringPath, index) => (
         <path
-          d={selectedCirclePath}
+          key={`${targetFeature.id}-ring-${index}`}
+          d={ringPath}
           fill="none"
           stroke={palette.smallCountryCircle}
           strokeWidth={2}
         />
-      ) : null}
+      ))}
       <g clipPath={`url(#${clipId})`}>
         <path
           d={nightPath}

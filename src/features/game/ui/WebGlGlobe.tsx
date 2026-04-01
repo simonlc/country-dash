@@ -1,16 +1,15 @@
 import {
   createNightCircle,
   geoToSpherePosition,
+  getCountryHighlightRings,
   getRotatedSunDirection,
   useGlobeInteraction,
   type GlobeViewProps,
 } from './globeShared';
 import {
-  geoCentroid,
   geoCircle,
   geoEquirectangular,
   geoGraticule10,
-  geoLength,
   geoPath,
   geoRotation,
   type GeoPermissibleObjects,
@@ -488,9 +487,9 @@ function buildCombinedTextureCanvas(
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
-    const selectedCircle = geoCircle()
-      .center(geoCentroid(targetFeature as GeoPermissibleObjects))
-      .radius(1)();
+    const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
+      geoCircle().center(ring.center).radius(ring.radius)(),
+    );
 
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
@@ -532,9 +531,9 @@ function buildCombinedTextureCanvas(
     context.fill();
     context.stroke();
 
-    if (geoLength(targetFeature) < 0.02) {
+    for (const selectedRing of selectedRings) {
       context.beginPath();
-      path(selectedCircle);
+      path(selectedRing);
       context.strokeStyle = palette.smallCountryCircle;
       context.lineWidth = 3;
       context.stroke();
@@ -561,9 +560,9 @@ function buildCountryTextureCanvas(
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
-    const selectedCircle = geoCircle()
-      .center(geoCentroid(targetFeature as GeoPermissibleObjects))
-      .radius(1)();
+    const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
+      geoCircle().center(ring.center).radius(ring.radius)(),
+    );
 
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
     if (isAtlas) {
@@ -600,9 +599,9 @@ function buildCountryTextureCanvas(
     context.fill();
     context.stroke();
 
-    if (geoLength(targetFeature) < 0.02) {
+    for (const selectedRing of selectedRings) {
       context.beginPath();
-      path(selectedCircle);
+      path(selectedRing);
       context.strokeStyle = palette.smallCountryCircle;
       context.lineWidth = 3;
       context.stroke();
@@ -980,7 +979,6 @@ export function WebGlGlobe({
 
   useEffect(() => {
     if (!isAtlas) {
-      setAtlasPaperImage(null);
       return;
     }
 
@@ -1062,7 +1060,7 @@ export function WebGlGlobe({
           palette,
           textureResolution,
           isAtlas,
-          atlasPaperImage,
+          isAtlas ? atlasPaperImage : null,
         )
       : buildCombinedTextureCanvas(
           world,
@@ -1070,7 +1068,7 @@ export function WebGlGlobe({
           palette,
           textureResolution,
           isAtlas,
-          atlasPaperImage,
+          isAtlas ? atlasPaperImage : null,
         );
     const countryTextureCanvas = hasRaisedCountries
       ? buildCountryTextureCanvas(
@@ -1079,7 +1077,7 @@ export function WebGlGlobe({
           palette,
           textureResolution,
           isAtlas,
-          atlasPaperImage,
+          isAtlas ? atlasPaperImage : null,
         )
       : null;
     const shadowCanvas = buildShadowTextureCanvas(

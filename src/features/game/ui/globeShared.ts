@@ -1,4 +1,6 @@
-import { geoCircle, geoRotation } from 'd3';
+import { geoArea, geoCentroid, geoCircle, geoLength, geoRotation } from 'd3';
+import type { GeoPermissibleObjects } from 'd3';
+import type { Feature, Polygon } from 'geojson';
 import {
   useCallback,
   useEffect,
@@ -52,6 +54,88 @@ export function getSunPosition(): [number, number] {
 export function createNightCircle() {
   const [longitude, latitude] = getSunPosition();
   return geoCircle().radius(90).center([longitude + 180, -latitude])();
+}
+
+interface CountryHighlightRing {
+  center: [number, number];
+  radius: number;
+}
+
+const compactCountryPerimeterThreshold = 0.02;
+const fragmentedCountryPartThreshold = 3;
+const fragmentedCountryAreaThreshold = 0.00008;
+const fragmentedCountryLargestPartThreshold = 0.00003;
+const fragmentedCountryMaxRings = 3;
+
+function clampHighlightRadius(area: number, fallbackRadius: number) {
+  return Math.max(0.8, Math.min(2.2, fallbackRadius + Math.sqrt(area) * 220));
+}
+
+function toPolygonFeatures(country: CountryFeature): Array<Feature<Polygon>> {
+  if (country.geometry.type === 'Polygon') {
+    return [
+      {
+        type: 'Feature',
+        geometry: country.geometry,
+        properties: {},
+      },
+    ];
+  }
+
+  if (country.geometry.type === 'MultiPolygon') {
+    return country.geometry.coordinates.map((coordinates) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates,
+      },
+      properties: {},
+    }));
+  }
+
+  return [];
+}
+
+export function getCountryHighlightRings(
+  country: CountryFeature,
+): CountryHighlightRing[] {
+  if (geoLength(country) < compactCountryPerimeterThreshold) {
+    return [
+      {
+        center: geoCentroid(country as GeoPermissibleObjects),
+        radius: 1,
+      },
+    ];
+  }
+
+  const polygonFeatures = toPolygonFeatures(country);
+  if (polygonFeatures.length < fragmentedCountryPartThreshold) {
+    return [];
+  }
+
+  const totalArea = geoArea(country as GeoPermissibleObjects);
+  const polygonMetrics = polygonFeatures
+    .map((feature) => ({
+      area: geoArea(feature as GeoPermissibleObjects),
+      center: geoCentroid(feature as GeoPermissibleObjects),
+    }))
+    .sort((left, right) => right.area - left.area);
+  const largestPartArea = polygonMetrics[0]?.area ?? 0;
+
+  if (
+    totalArea >= fragmentedCountryAreaThreshold ||
+    largestPartArea >= fragmentedCountryLargestPartThreshold
+  ) {
+    return [];
+  }
+
+  return polygonMetrics
+    .filter((metric) => metric.area >= totalArea * 0.08)
+    .slice(0, fragmentedCountryMaxRings)
+    .map((metric) => ({
+      center: metric.center,
+      radius: clampHighlightRadius(metric.area, 0.85),
+    }));
 }
 
 export function geoToSpherePosition(longitude: number, latitude: number) {
