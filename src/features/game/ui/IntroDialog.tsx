@@ -21,8 +21,10 @@ import {
 } from 'react-feather';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
+import { designTokens } from '@/app/designSystem';
 import {
   getThemeAccentSurfaceStyles,
+  getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import {
@@ -30,6 +32,7 @@ import {
   randomRunPresetDifficulties,
   regionLabels,
 } from '@/features/game/logic/gameLogic';
+import { getSelectorCardSx } from '@/features/game/ui/controlStyles';
 import type {
   CountrySizeFilter,
   DailyChallengeResult,
@@ -50,26 +53,31 @@ interface IntroDialogProps {
 }
 
 const modeDetails: Array<{
+  description: string;
   icon: typeof Circle;
   label: string;
   value: GameMode;
 }> = [
   {
+    description: 'Standard scoring with no life limit.',
     icon: Circle,
     value: 'classic',
     label: 'Classic',
   },
   {
+    description: 'Run ends after 3 incorrect answers.',
     icon: Heart,
     value: 'threeLives',
     label: '3 Lives',
   },
   {
+    description: 'Guess capital cities instead of countries.',
     icon: MapPin,
     value: 'capitals',
     label: 'Capitals',
   },
   {
+    description: 'Build longest correct-answer streak.',
     icon: Triangle,
     value: 'streak',
     label: 'Streak',
@@ -167,13 +175,16 @@ export const IntroDialog = NiceModal.create(
     const [countrySizeFilter, setCountrySizeFilter] =
       useState<CountrySizeFilter>('mixed');
     const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
-    const accentSurface = getThemeAccentSurfaceStyles(activeTheme);
     const strongAccentSurface = getThemeAccentSurfaceStyles(
       activeTheme,
       'strong',
     );
     const panelSurface = getThemeSurfaceStyles(activeTheme);
-    const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
+    const displaySurface = getThemeDisplaySurfaceStyles(activeTheme);
+    const displayAccentSurface = getThemeDisplaySurfaceStyles(
+      activeTheme,
+      'accent',
+    );
 
     const dailySummary = useMemo(() => {
       if (!dailyResult) {
@@ -188,7 +199,7 @@ export const IntroDialog = NiceModal.create(
         <DialogContent sx={{ p: { md: 4, xs: 2.5 } }}>
           <Stack spacing={3}>
             <Stack spacing={1}>
-              <Typography lineHeight={0.95} variant="h2">
+              <Typography variant="h2">
                 Country Guesser
               </Typography>
               <Typography color="text.secondary" maxWidth={520} variant="body2">
@@ -211,14 +222,14 @@ export const IntroDialog = NiceModal.create(
                 sx={{
                   ...panelSurface,
                   ...strongAccentSurface,
-                  borderRadius: 3.5,
+                  borderRadius: designTokens.radius.md,
                   p: { md: 2.25, xs: 2 },
                 }}
               >
                 <Stack spacing={1.5}>
                   <Stack spacing={0.35}>
                     <Typography variant="overline">Daily Challenge</Typography>
-                    <Typography lineHeight={1.05} variant="h5">
+                    <Typography variant="h5">
                       Today&apos;s route
                     </Typography>
                   </Stack>
@@ -227,8 +238,8 @@ export const IntroDialog = NiceModal.create(
                     <Paper
                       elevation={0}
                       sx={{
-                        ...accentSurface,
-                        borderRadius: 1.75,
+                        ...displayAccentSurface,
+                        borderRadius: designTokens.radius.md,
                         p: 1.9,
                       }}
                     >
@@ -242,7 +253,7 @@ export const IntroDialog = NiceModal.create(
                           <Typography color="text.secondary" variant="caption">
                             Completed
                           </Typography>
-                          <Typography lineHeight={1} variant="h4">
+                          <Typography variant="h4">
                             {dailySummary}
                           </Typography>
                         </Box>
@@ -257,8 +268,8 @@ export const IntroDialog = NiceModal.create(
                     <Paper
                       elevation={0}
                       sx={{
-                        ...mutedSurface,
-                        borderRadius: 1.75,
+                        ...displaySurface,
+                        borderRadius: designTokens.radius.md,
                         p: 1.9,
                       }}
                     >
@@ -268,7 +279,7 @@ export const IntroDialog = NiceModal.create(
                         justifyContent="space-between"
                         spacing={1.5}
                       >
-                        <Typography lineHeight={1} variant="h4">
+                        <Typography variant="h4">
                           5
                         </Typography>
                         <Typography color="text.secondary" variant="body2">
@@ -305,7 +316,7 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
-                  borderRadius: 3.5,
+                  borderRadius: designTokens.radius.md,
                   p: 2.5,
                 }}
               >
@@ -326,42 +337,49 @@ export const IntroDialog = NiceModal.create(
                       const ModeIcon = option.icon;
 
                       return (
-                        <Button
+                        <Box
                           aria-label={option.label}
+                          aria-pressed={mode === option.value}
+                          component="button"
                           key={option.value}
+                          type="button"
                           sx={{
-                            ...(mode === option.value
-                              ? strongAccentSurface
-                              : mutedSurface),
-                            borderColor:
-                              mode === option.value
-                                ? 'primary.main'
-                                : undefined,
-                            borderRadius: 1.75,
-                            display: 'grid',
-                            gap: 0.55,
-                            minHeight: 88,
+                            ...getSelectorCardSx(activeTheme, {
+                              selected: mode === option.value,
+                            }),
+                            minHeight: 94,
                             minWidth: 0,
-                            px: 1,
-                            py: 1.2,
+                            px: 1.5,
+                            py: 1.1,
                           }}
-                          variant="outlined"
                           onClick={() => setMode(option.value)}
                         >
-                          <Box
-                            aria-hidden
-                            sx={{
-                              display: 'grid',
-                              lineHeight: 0,
-                              placeItems: 'center',
-                            }}
-                          >
-                            <ModeIcon size={16} strokeWidth={2} />
-                          </Box>
-                          <Typography variant="caption">
-                            {option.label}
-                          </Typography>
-                        </Button>
+                          <Stack spacing={0.45}>
+                            <Box
+                              sx={{
+                                alignItems: 'center',
+                                display: 'flex',
+                                gap: 0.75,
+                              }}
+                            >
+                              <ModeIcon
+                                aria-hidden
+                                size={15}
+                                strokeWidth={2}
+                              />
+                              <Typography variant="body2">
+                                {option.label}
+                              </Typography>
+                            </Box>
+                            <Typography
+                              color="text.secondary"
+                              sx={{ display: 'block' }}
+                              variant="caption"
+                            >
+                              {option.description}
+                            </Typography>
+                          </Stack>
+                        </Box>
                       );
                     })}
                   </Box>
@@ -435,32 +453,29 @@ export const IntroDialog = NiceModal.create(
                       const ItemIcon = item.icon;
 
                       return (
-                        <Button
+                        <Box
                           aria-label={
                             item.isSize
                               ? `${item.label} ${item.meta} ${item.description}`
                               : `${item.label} Category pool ${item.description}`
                           }
+                          aria-pressed={item.selected}
+                          component="button"
                           key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
+                          type="button"
                           sx={{
                             alignItems: 'flex-start',
-                            ...(item.selected
-                              ? strongAccentSurface
-                              : item.isSize
-                                ? panelSurface
-                                : mutedSurface),
-                            borderColor: item.selected
-                              ? 'primary.main'
-                              : undefined,
-                            borderRadius: 1.75,
+                            ...getSelectorCardSx(activeTheme, {
+                              selected: item.selected,
+                              tone: item.isSize ? 'panel' : 'muted',
+                            }),
                             justifyContent: 'flex-start',
                             minHeight: item.isSize ? 124 : 72,
                             minWidth: 0,
-                            px: item.isSize ? 1.65 : 1.35,
+                            px: item.isSize ? 2 : 1.75,
                             py: item.isSize ? 1.7 : 1.2,
                             textAlign: 'left',
                           }}
-                          variant="outlined"
                           onClick={() => {
                             if (item.isSize) {
                               setCountrySizeFilter(
@@ -480,10 +495,7 @@ export const IntroDialog = NiceModal.create(
                               size={item.isSize ? 18 : 16}
                               strokeWidth={2}
                             />
-                            <Typography
-                              fontWeight={700}
-                              variant={item.isSize ? 'h6' : 'body2'}
-                            >
+                            <Typography variant={item.isSize ? 'h6' : 'body2'}>
                               {item.label}
                             </Typography>
                             {item.meta ? (
@@ -507,7 +519,7 @@ export const IntroDialog = NiceModal.create(
                               </Typography>
                             ) : null}
                           </Stack>
-                        </Button>
+                        </Box>
                       );
                     })}
                   </Box>

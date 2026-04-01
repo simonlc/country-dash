@@ -2,11 +2,12 @@ import { Box, Button, Collapse, Paper, Stack, Typography } from '@mui/material';
 import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
+import { designTokens } from '@/app/designSystem';
 import {
-  getThemeAccentSurfaceStyles,
   getThemeSurfaceStyles,
   type AppThemeDefinition,
 } from '@/app/theme';
+import { getSelectorCardSx } from '@/features/game/ui/controlStyles';
 
 interface ThemeMenuProps {
   onAbout: () => void;
@@ -35,7 +36,7 @@ function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
     <Box
       sx={{
         background: theme.preview.sky,
-        borderRadius: 1.5,
+        borderRadius: designTokens.radius.sm,
         height: 78,
         overflow: 'hidden',
         position: 'relative',
@@ -126,7 +127,6 @@ export function ThemeMenu({
   const [open, setOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
-  const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
   const actions: MenuAction[] = [
     {
       icon: Crosshair,
@@ -155,13 +155,11 @@ export function ThemeMenu({
           aria-expanded={open}
           size="small"
           sx={{
-            ...panelSurface,
-            borderRadius: 2,
             minWidth: 0,
-            px: 1.75,
+            px: 2,
             py: 0.85,
           }}
-          variant="outlined"
+          variant="contained"
           onClick={() => setOpen((value) => !value)}
         >
           Menu
@@ -171,7 +169,7 @@ export function ThemeMenu({
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: 5,
+              borderRadius: designTokens.radius.md,
               p: 1.5,
             }}
           >
@@ -196,10 +194,7 @@ export function ThemeMenu({
                       key={action.label}
                       size="small"
                       sx={{
-                        ...((action.tone === 'contained'
-                          ? panelSurface
-                          : mutedSurface) as object),
-                        borderRadius: 1.75,
+                        borderRadius: designTokens.radius.md,
                         display: 'grid',
                         gap: 0.55,
                         minHeight: 76,
@@ -239,22 +234,20 @@ export function ThemeMenu({
                   const isActive = theme.id === activeTheme.id;
 
                   return (
-                    <Button
+                    <Box
+                      aria-pressed={isActive}
+                      component="button"
                       key={theme.id}
+                      type="button"
                       sx={{
                         alignItems: 'stretch',
-                        ...(isActive
-                          ? getThemeAccentSurfaceStyles(activeTheme, 'strong')
-                          : mutedSurface),
-                        borderColor: isActive
-                          ? 'primary.main'
-                          : activeTheme.background.panelBorder,
-                        borderRadius: 1.75,
+                        ...getSelectorCardSx(activeTheme, {
+                          selected: isActive,
+                        }),
                         justifyContent: 'flex-start',
                         p: 0.95,
                         textAlign: 'left',
                       }}
-                      variant="outlined"
                       onClick={() => setTheme(theme.id)}
                     >
                       <Stack
@@ -274,7 +267,7 @@ export function ThemeMenu({
                           </Typography>
                         </Box>
                       </Stack>
-                    </Button>
+                    </Box>
                   );
                 })}
               </Stack>

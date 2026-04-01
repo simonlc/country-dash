@@ -1,4 +1,5 @@
 import { createTheme, type Theme } from '@mui/material/styles';
+import { designTokens } from '@/app/designSystem';
 
 export type AppThemeId =
   | 'daybreak'
@@ -548,6 +549,28 @@ export function getThemeAccentSurfaceStyles(
   };
 }
 
+export function getThemeDisplaySurfaceStyles(
+  definition: AppThemeDefinition,
+  tone: 'neutral' | 'accent' = 'neutral',
+) {
+  if (tone === 'accent') {
+    return {
+      background: hexToRgba(
+        definition.palette.primary,
+        definition.mode === 'light' ? 0.09 : 0.16,
+      ),
+      border: `1px solid ${hexToRgba(definition.palette.primary, 0.26)}`,
+      boxShadow: 'none',
+    };
+  }
+
+  return {
+    background: definition.background.mutedPanel,
+    border: `1px solid ${hexToRgba(definition.palette.textPrimary, 0.1)}`,
+    boxShadow: 'none',
+  };
+}
+
 function hexToRgba(value: string, alpha: number) {
   const hex = value.replace('#', '');
 
@@ -667,15 +690,18 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 999,
-            fontWeight: 700,
+            borderRadius: designTokens.radius.pill,
+            fontSize: designTokens.fontSize.sm,
+            fontWeight: designTokens.fontWeight.semibold,
+            minHeight: 42,
             paddingInline: 18,
             paddingBlock: 10,
             textTransform: 'none',
-            transition: 'transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease',
+            transition:
+              `transform ${designTokens.motion.fast} ease, box-shadow ${designTokens.motion.fast} ease, border-color ${designTokens.motion.fast} ease, background-color ${designTokens.motion.fast} ease`,
             '&:hover': {
               boxShadow: 'none',
-              transform: 'translateY(-1px)',
+              transform: 'none',
             },
           },
           contained: {
@@ -687,15 +713,29 @@ export function createAppTheme(themeId: AppThemeId): Theme {
               definition.palette.primary,
               definition.mode === 'light' ? 0.2 : 0.28,
             )}`,
+            '&:hover': {
+              boxShadow: `0 18px 34px ${hexToRgba(
+                definition.palette.primary,
+                definition.mode === 'light' ? 0.24 : 0.32,
+              )}`,
+              transform: 'translateY(-1px)',
+            },
           },
           outlined: {
-            ...accentSurface,
+            backgroundColor: 'transparent',
+            borderColor: hexToRgba(definition.palette.primary, 0.4),
+            boxShadow: 'none',
             color: definition.palette.textPrimary,
+            '&:hover': {
+              backgroundColor: hexToRgba(definition.palette.primary, 0.1),
+              borderColor: definition.palette.primary,
+            },
           },
           text: {
             color: definition.palette.textSecondary,
           },
           sizeSmall: {
+            minHeight: 34,
             paddingBlock: 7,
             paddingInline: 14,
           },
@@ -704,7 +744,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: 18,
+            borderRadius: designTokens.radius.md,
             background: hexToRgba(
               definition.palette.backgroundPaper,
               definition.mode === 'light' ? 0.74 : 0.12,
@@ -722,7 +762,10 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             },
           },
           input: {
-            paddingBlock: 15,
+            fontSize: designTokens.fontSize.md,
+            fontWeight: designTokens.fontWeight.medium,
+            lineHeight: designTokens.lineHeight.base,
+            paddingBlock: 14,
           },
         },
       },
@@ -736,7 +779,9 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             padding: 8,
           },
           option: {
-            borderRadius: 12,
+            borderRadius: designTokens.radius.sm,
+            fontSize: designTokens.fontSize.sm,
+            fontWeight: designTokens.fontWeight.medium,
             marginBottom: 4,
             minHeight: 0,
             '&[aria-selected="true"]': {
@@ -751,7 +796,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiAlert: {
         styleOverrides: {
           root: {
-            borderRadius: 16,
+            borderRadius: designTokens.radius.md,
             border: `1px solid ${darkOutline}`,
           },
           standardSuccess: {
@@ -787,33 +832,86 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       },
     },
     shape: {
-      borderRadius: isAtlas ? 10 : 14,
+      borderRadius: isAtlas ? designTokens.radius.sm : designTokens.radius.md,
     },
     typography: {
       fontFamily: isAtlas ? atlasBodyFont : bodyFont,
+      body1: {
+        fontSize: designTokens.fontSize.md,
+        fontWeight: designTokens.fontWeight.regular,
+        lineHeight: designTokens.lineHeight.base,
+      },
+      body2: {
+        fontSize: designTokens.fontSize.sm,
+        fontWeight: designTokens.fontWeight.regular,
+        lineHeight: designTokens.lineHeight.base,
+      },
+      caption: {
+        fontSize: designTokens.fontSize.xs,
+        fontWeight: designTokens.fontWeight.medium,
+        letterSpacing: '0.02em',
+        lineHeight: designTokens.lineHeight.base,
+      },
       h1: {
         fontFamily: isAtlas ? atlasHeadingFont : headingFont,
-        fontWeight: 700,
+        fontSize: designTokens.fontSize.xxxl,
+        fontWeight: designTokens.fontWeight.bold,
+        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: isAtlas ? '0.06em' : '0.02em',
       },
       h2: {
         fontFamily: isAtlas ? atlasHeadingFont : headingFont,
-        fontWeight: 700,
+        fontSize: designTokens.fontSize.xxl,
+        fontWeight: designTokens.fontWeight.bold,
+        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: isAtlas ? '0.05em' : '0.02em',
       },
       h3: {
         fontFamily: isAtlas ? atlasHeadingFont : headingFont,
-        fontWeight: 700,
+        fontSize: designTokens.fontSize.xl,
+        fontWeight: designTokens.fontWeight.bold,
+        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: isAtlas ? '0.07em' : '0.03em',
       },
       h4: {
         fontFamily: isAtlas ? atlasHeadingFont : headingFont,
-        fontWeight: 700,
+        fontSize: designTokens.fontSize.lg,
+        fontWeight: designTokens.fontWeight.semibold,
+        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: isAtlas ? '0.05em' : '0.02em',
+      },
+      h5: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontSize: designTokens.fontSize.lg,
+        fontWeight: designTokens.fontWeight.semibold,
+        lineHeight: designTokens.lineHeight.tight,
+      },
+      h6: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontSize: designTokens.fontSize.md,
+        fontWeight: designTokens.fontWeight.semibold,
+        lineHeight: designTokens.lineHeight.tight,
+      },
+      overline: {
+        fontSize: designTokens.fontSize.overline,
+        fontWeight: designTokens.fontWeight.semibold,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+      },
+      subtitle1: {
+        fontSize: designTokens.fontSize.md,
+        fontWeight: designTokens.fontWeight.semibold,
+        lineHeight: designTokens.lineHeight.tight,
+      },
+      subtitle2: {
+        fontSize: designTokens.fontSize.sm,
+        fontWeight: designTokens.fontWeight.semibold,
+        lineHeight: designTokens.lineHeight.tight,
       },
       button: {
         fontFamily: isAtlas ? atlasHeadingFont : undefined,
-        fontWeight: 700,
+        fontSize: designTokens.fontSize.sm,
+        fontWeight: designTokens.fontWeight.semibold,
         letterSpacing: isAtlas ? '0.08em' : '0.03em',
       },
     },

@@ -11,8 +11,9 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
+import { designTokens } from '@/app/designSystem';
 import {
-  getThemeAccentSurfaceStyles,
+  getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { Globe } from '@/Globe';
@@ -120,12 +121,12 @@ export function GamePage() {
     () => getThemeSurfaceStyles(activeTheme, 'elevated'),
     [activeTheme],
   );
-  const mutedSurface = useMemo(
-    () => getThemeSurfaceStyles(activeTheme, 'muted'),
+  const displaySurface = useMemo(
+    () => getThemeDisplaySurfaceStyles(activeTheme),
     [activeTheme],
   );
-  const accentSurface = useMemo(
-    () => getThemeAccentSurfaceStyles(activeTheme),
+  const displayAccentSurface = useMemo(
+    () => getThemeDisplaySurfaceStyles(activeTheme, 'accent'),
     [activeTheme],
   );
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
@@ -662,7 +663,7 @@ export function GamePage() {
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: isAtlas ? '6px 9px 7px 8px' : 3,
+              borderRadius: designTokens.radius.sm,
               flex: 1,
               p: { md: 1.75, xs: 1.4 },
               pointerEvents: 'auto',
@@ -694,7 +695,7 @@ export function GamePage() {
                     : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
                 </Typography>
                 <Stack direction="row" flexWrap="wrap" gap={0.75}>
-                  <Typography fontWeight={700} lineHeight={1} variant="h6">
+                  <Typography variant="h6">
                     {getSessionModeLabel(gameState)}
                   </Typography>
                   {getSessionSummaryLabel(gameState) ? (
@@ -739,8 +740,8 @@ export function GamePage() {
                 <Box
                   key={item.label}
                   sx={{
-                    ...mutedSurface,
-                    borderRadius: 999,
+                    ...displaySurface,
+                    borderRadius: designTokens.radius.sm,
                     minWidth: { md: 74, xs: 0 },
                     px: 1.3,
                     py: 0.95,
@@ -766,8 +767,8 @@ export function GamePage() {
               <Paper
                 elevation={0}
                 sx={{
-                  ...accentSurface,
-                  borderRadius: 999,
+                  ...displayAccentSurface,
+                  borderRadius: designTokens.radius.sm,
                   px: 1.3,
                   py: 0.95,
                   justifySelf: { md: 'end', xs: 'stretch' },
@@ -812,7 +813,7 @@ export function GamePage() {
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: isAtlas ? '8px 10px 8px 7px' : 3,
+              borderRadius: designTokens.radius.xs,
               maxWidth: 560,
               p: { md: 2.4, xs: 2 },
               pointerEvents: 'auto',
@@ -838,8 +839,8 @@ export function GamePage() {
                           <Paper
                             elevation={0}
                             sx={{
-                              ...mutedSurface,
-                              borderRadius: 2.25,
+                              ...displaySurface,
+                              borderRadius: designTokens.radius.md,
                               p: 1.5,
                             }}
                           >
@@ -847,7 +848,6 @@ export function GamePage() {
                               component="pre"
                               sx={{
                                 fontFamily: 'inherit',
-                                fontSize: '0.95rem',
                                 m: 0,
                                 whiteSpace: 'pre-wrap',
                               }}
@@ -927,8 +927,8 @@ export function GamePage() {
                   <Paper
                     elevation={0}
                     sx={{
-                      ...mutedSurface,
-                      borderRadius: 2.25,
+                      ...displaySurface,
+                      borderRadius: designTokens.radius.md,
                       p: 1.5,
                       textAlign: 'left',
                     }}
@@ -971,8 +971,8 @@ export function GamePage() {
                         key={item.label}
                         elevation={0}
                         sx={{
-                          ...accentSurface,
-                          borderRadius: 2,
+                          ...displayAccentSurface,
+                          borderRadius: designTokens.radius.sm,
                           p: 1.1,
                         }}
                       >

@@ -10,12 +10,16 @@ import {
   Typography,
 } from '@mui/material';
 import { useAppearance } from '@/app/appearance';
-import { getThemeAccentSurfaceStyles } from '@/app/theme';
+import { designTokens } from '@/app/designSystem';
+import { getThemeDisplaySurfaceStyles } from '@/app/theme';
 
 export const AboutDialog = NiceModal.create(() => {
   const modal = useModal();
   const { activeTheme } = useAppearance();
-  const accentSurface = getThemeAccentSurfaceStyles(activeTheme);
+  const displayAccentSurface = getThemeDisplaySurfaceStyles(
+    activeTheme,
+    'accent',
+  );
 
   return (
     <Dialog
@@ -36,8 +40,8 @@ export const AboutDialog = NiceModal.create(() => {
         <Stack spacing={2.5}>
           <Box
             sx={{
-              ...accentSurface,
-              borderRadius: 3,
+              ...displayAccentSurface,
+              borderRadius: designTokens.radius.md,
               p: 2,
             }}
           >

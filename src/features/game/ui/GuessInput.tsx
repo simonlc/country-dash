@@ -6,7 +6,7 @@ import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
 import { matchSorter } from 'match-sorter';
 import { useMemo, useRef, useState } from 'react';
-import { useAppearance } from '@/app/appearance';
+import { designTokens } from '@/app/designSystem';
 import { normalizeGuess } from '@/features/game/logic/gameLogic';
 import type { CountryProperties } from '@/features/game/types';
 
@@ -37,7 +37,6 @@ const filterOptions = (options: GuessChoice[], inputValue: string) =>
   }).slice(0, 5);
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
-  const { activeTheme } = useAppearance();
   const hintRef = useRef('');
   const [value, setValue] = useState<GuessChoice | undefined>(undefined);
   const [inputValue, setInputValue] = useState('');
@@ -193,33 +192,12 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               }
               sx={{
                 '& .MuiInputLabel-root': {
-                  fontWeight: 700,
-                },
-                '& .MuiOutlinedInput-root': {
-                  background:
-                    activeTheme.mode === 'light'
-                      ? 'rgba(255,255,255,0.94)'
-                      : 'rgba(8,18,30,0.84)',
-                  boxShadow:
-                    activeTheme.mode === 'light'
-                      ? `0 20px 40px ${activeTheme.background.panelBorder}, inset 0 1px 0 rgba(255,255,255,0.9)`
-                      : `0 18px 40px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08)`,
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: activeTheme.palette.primary,
-                    borderWidth: 2,
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: activeTheme.palette.secondary,
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: activeTheme.palette.secondary,
-                    borderWidth: 2,
-                  },
+                  fontWeight: designTokens.fontWeight.semibold,
                 },
                 '& .MuiInputBase-input': {
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  py: 2,
+                  fontSize: designTokens.fontSize.md,
+                  fontWeight: designTokens.fontWeight.semibold,
+                  py: 1.5,
                 },
               }}
               onChange={(event) => {
@@ -240,18 +218,15 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
             />
             <Typography
               sx={{
-                color:
-                  activeTheme.mode === 'light'
-                    ? 'rgba(19, 48, 73, 0.28)'
-                    : 'rgba(237, 246, 255, 0.24)',
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                left: 18,
+                color: 'text.disabled',
+                fontSize: designTokens.fontSize.md,
+                fontWeight: designTokens.fontWeight.semibold,
+                left: 16,
                 overflow: 'hidden',
                 pointerEvents: 'none',
                 position: 'absolute',
-                right: 18,
-                top: 21,
+                right: 16,
+                top: 19,
                 whiteSpace: 'nowrap',
               }}
             >

@@ -13,7 +13,6 @@ export function GameTimer({ elapsedMs }: GameTimerProps) {
       </Typography>
       <Typography
         component="p"
-        lineHeight={1}
         sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
         variant="h6"
       >
