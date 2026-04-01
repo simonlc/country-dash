@@ -663,9 +663,9 @@ export function GamePage() {
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: designTokens.radius.sm,
+              borderRadius: designTokens.radius.pill,
               flex: 1,
-              p: { md: 1.75, xs: 1.4 },
+              p: { md: designTokens.componentSpacing.dialogPanel.desktop, xs: 1.4 },
               pointerEvents: 'auto',
             }}
           >
@@ -741,10 +741,10 @@ export function GamePage() {
                   key={item.label}
                   sx={{
                     ...displaySurface,
-                    borderRadius: designTokens.radius.sm,
+                    borderRadius: designTokens.radius.pill,
                     minWidth: { md: 74, xs: 0 },
-                    px: 1.3,
-                    py: 0.95,
+                    px: designTokens.componentSpacing.hudChip.px,
+                    py: designTokens.componentSpacing.hudChip.py,
                     textAlign: 'center',
                   }}
                 >
@@ -768,9 +768,9 @@ export function GamePage() {
                 elevation={0}
                 sx={{
                   ...displayAccentSurface,
-                  borderRadius: designTokens.radius.sm,
-                  px: 1.3,
-                  py: 0.95,
+                  borderRadius: designTokens.radius.pill,
+                  px: designTokens.componentSpacing.hudChip.px,
+                  py: designTokens.componentSpacing.hudChip.py,
                   justifySelf: { md: 'end', xs: 'stretch' },
                   gridColumn: { xs: 'span 2', md: 'auto' },
                 }}
@@ -813,9 +813,12 @@ export function GamePage() {
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: designTokens.radius.xs,
+              borderRadius: designTokens.radius.md,
               maxWidth: 560,
-              p: { md: 2.4, xs: 2 },
+              p: {
+                md: designTokens.componentSpacing.overlayPanel.desktop,
+                xs: designTokens.componentSpacing.overlayPanel.mobile,
+              },
               pointerEvents: 'auto',
               textAlign: 'center',
               width: '100%',

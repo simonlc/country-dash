@@ -42,7 +42,7 @@ export function getSelectorCardSx(
         ? hexToRgba(activeTheme.palette.primary, 0.72)
         : hexToRgba(activeTheme.palette.textPrimary, 0.14)
     }`,
-    borderRadius: designTokens.radius.sm,
+    borderRadius: designTokens.radius.md,
     color: 'inherit',
     cursor: 'pointer',
     font: 'inherit',

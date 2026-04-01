@@ -168,7 +168,7 @@ export function ThemeMenu({
             sx={{
               ...panelSurface,
               borderRadius: designTokens.radius.md,
-              p: 1.5,
+              p: designTokens.componentSpacing.menuPanel.p,
             }}
           >
             <Stack spacing={1.25}>
@@ -192,13 +192,10 @@ export function ThemeMenu({
                       key={action.label}
                       size="small"
                       sx={{
-                        borderRadius: designTokens.radius.md,
                         display: 'grid',
                         gap: 0.55,
                         minHeight: 76,
                         minWidth: 0,
-                        px: 1.2,
-                        py: 1.15,
                       }}
                       variant="contained"
                       onClick={action.onClick}

@@ -36,6 +36,35 @@ export const designTokens = {
     xl: 2.5,
     xxl: 3,
   },
+  componentSpacing: {
+    dialogPanel: {
+      desktop: 2.25,
+      mobile: 2,
+    },
+    hudChip: {
+      px: 1.7,
+      py: 0.95,
+    },
+    menuPanel: {
+      p: 1.5,
+    },
+    overlayPanel: {
+      desktop: 2.4,
+      mobile: 2,
+    },
+    selectorCard: {
+      px: 1.75,
+      py: 1.2,
+    },
+    selectorCardDense: {
+      px: 1.5,
+      py: 1.1,
+    },
+    selectorCardLarge: {
+      px: 2,
+      py: 1.7,
+    },
+  },
   motion: {
     fast: '140ms',
     base: '180ms',

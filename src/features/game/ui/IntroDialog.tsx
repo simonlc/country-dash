@@ -223,7 +223,10 @@ export const IntroDialog = NiceModal.create(
                   ...panelSurface,
                   ...strongAccentSurface,
                   borderRadius: designTokens.radius.md,
-                  p: { md: 2.25, xs: 2 },
+                  p: {
+                    md: designTokens.componentSpacing.dialogPanel.desktop,
+                    xs: designTokens.componentSpacing.dialogPanel.mobile,
+                  },
                 }}
               >
                 <Stack spacing={1.5}>
@@ -349,8 +352,8 @@ export const IntroDialog = NiceModal.create(
                             }),
                             minHeight: 94,
                             minWidth: 0,
-                            px: 1.5,
-                            py: 1.1,
+                            px: designTokens.componentSpacing.selectorCardDense.px,
+                            py: designTokens.componentSpacing.selectorCardDense.py,
                           }}
                           onClick={() => setMode(option.value)}
                         >
@@ -472,8 +475,12 @@ export const IntroDialog = NiceModal.create(
                             justifyContent: 'flex-start',
                             minHeight: item.isSize ? 124 : 72,
                             minWidth: 0,
-                            px: item.isSize ? 2 : 1.75,
-                            py: item.isSize ? 1.7 : 1.2,
+                            px: item.isSize
+                              ? designTokens.componentSpacing.selectorCardLarge.px
+                              : designTokens.componentSpacing.selectorCard.px,
+                            py: item.isSize
+                              ? designTokens.componentSpacing.selectorCardLarge.py
+                              : designTokens.componentSpacing.selectorCard.py,
                             textAlign: 'left',
                           }}
                           onClick={() => {

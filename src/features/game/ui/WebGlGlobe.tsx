@@ -45,6 +45,7 @@ interface WebGlResources {
   overlayTexture: WebGLTexture;
   positionBuffer: WebGLBuffer;
   program: WebGLProgram;
+  reliefTexture: WebGLTexture;
   texture: WebGLTexture;
   uniforms: {
     atmosphereOpacity: WebGLUniformLocation;
@@ -61,6 +62,9 @@ interface WebGlResources {
     scale: WebGLUniformLocation;
     scanlineDensity: WebGLUniformLocation;
     scanlineStrength: WebGLUniformLocation;
+    reliefStrength: WebGLUniformLocation;
+    reliefTexture: WebGLUniformLocation;
+    reliefTexelSize: WebGLUniformLocation;
     specularColor: WebGLUniformLocation;
     specularPower: WebGLUniformLocation;
     specularStrength: WebGLUniformLocation;
@@ -107,6 +111,9 @@ const fragmentShaderSource = `
   uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
   uniform float u_scanlineStrength;
+  uniform float u_reliefStrength;
+  uniform sampler2D u_reliefTexture;
+  uniform vec2 u_reliefTexelSize;
   uniform float u_specularPower;
   uniform float u_specularStrength;
   uniform vec3 u_sunDirection;
@@ -119,41 +126,116 @@ const fragmentShaderSource = `
     return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
   }
 
+  float noise(vec2 point) {
+    vec2 cell = floor(point);
+    vec2 local = fract(point);
+    float a = hash(cell);
+    float b = hash(cell + vec2(1.0, 0.0));
+    float c = hash(cell + vec2(0.0, 1.0));
+    float d = hash(cell + vec2(1.0, 1.0));
+    vec2 smooth = local * local * (3.0 - 2.0 * local);
+    return mix(mix(a, b, smooth.x), mix(c, d, smooth.x), smooth.y);
+  }
+
+  float fbm(vec2 point) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    vec2 p = point;
+    for (int octave = 0; octave < 4; octave += 1) {
+      value += noise(p) * amplitude;
+      p *= 2.03;
+      amplitude *= 0.52;
+    }
+    return value;
+  }
+
+  float sampleRelief(vec2 uv) {
+    vec3 reliefSample = texture2D(u_reliefTexture, uv).rgb;
+    return dot(reliefSample, vec3(0.299, 0.587, 0.114));
+  }
+
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
     vec3 normal = normalize(v_normal);
     vec3 sunDirection = normalize(u_sunDirection);
+
+    float lon = (v_uv.x - 0.5) * 6.28318530718;
+    float lat = (0.5 - v_uv.y) * 3.14159265359;
+    vec3 east = normalize(vec3(cos(lon), 0.0, sin(lon)));
+    vec3 north = normalize(vec3(-sin(lon) * sin(lat), cos(lat), cos(lon) * sin(lat)));
+    float hWest = sampleRelief(v_uv - vec2(u_reliefTexelSize.x, 0.0));
+    float hEast = sampleRelief(v_uv + vec2(u_reliefTexelSize.x, 0.0));
+    float hSouth = sampleRelief(v_uv + vec2(0.0, u_reliefTexelSize.y));
+    float hNorth = sampleRelief(v_uv - vec2(0.0, u_reliefTexelSize.y));
+    float slopeEast = hEast - hWest;
+    float slopeNorth = hNorth - hSouth;
+    vec3 reliefNormal = normalize(
+      normal - east * slopeEast * u_reliefStrength - north * slopeNorth * u_reliefStrength
+    );
+
+    float reliefMask = smoothstep(0.08, 0.38, sampleRelief(v_uv));
+    normal = normalize(mix(normal, reliefNormal, reliefMask));
+
     float light = dot(normal, sunDirection);
     float twilight = smoothstep(u_penumbra, -u_penumbra, light) * u_nightAlpha;
     vec3 shaded = mix(baseColor.rgb, u_nightColor, clamp(twilight, 0.0, 1.0));
     float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     float directLight = clamp(light, 0.0, 1.0);
+    float umbra = clamp(twilight, 0.0, 1.0);
+    vec3 viewDirection = vec3(0.0, 0.0, 1.0);
+
+    float paperFiber = fbm(v_uv * vec2(1100.0, 540.0));
+    float paperTooth = fbm(v_uv * vec2(2800.0, 1360.0));
+    normal = normalize(
+      normal +
+      (paperTooth - 0.5) * (east * 0.065 + north * 0.045) * (1.0 - umbra * 0.7)
+    );
+    light = dot(normal, sunDirection);
+    daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
+    directLight = clamp(light, 0.0, 1.0);
 
     float facing = clamp(normal.z, 0.0, 1.0);
-    float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48);
+    float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48) * (1.0 - umbra * 0.66);
     float specular = pow(
-      max(dot(reflect(-sunDirection, normal), vec3(0.0, 0.0, 1.0)), 0.0),
+      max(dot(reflect(-sunDirection, normal), viewDirection), 0.0),
       u_specularPower
     ) * u_specularStrength * directLight;
+    vec3 halfVector = normalize(sunDirection + viewDirection);
+    float vellumSheen = pow(max(dot(normal, halfVector), 0.0), 26.0);
+    float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.2);
+    float reliefSlope = length(vec2(slopeEast, slopeNorth));
+    float reliefOcclusion = clamp(1.0 - reliefSlope * 8.5, 0.62, 1.0);
 
     float lonLine = 1.0 - smoothstep(0.02, 0.055, abs(fract(v_uv.x * 24.0 + u_time * 0.015) - 0.5));
     float latLine = 1.0 - smoothstep(0.02, 0.06, abs(fract(v_uv.y * 12.0) - 0.5));
     float grid = max(lonLine, latLine) * u_gridStrength * facing * directLight;
 
     float scanlineWave = sin(v_uv.y * u_scanlineDensity + u_time * 5.0 + v_uv.x * 12.0);
-    float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight;
+    float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight * (1.0 - umbra);
 
     float auroraWave = sin(v_uv.y * 18.0 - u_time * 0.9 + normal.x * 3.5);
     float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
 
-    float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength;
+    float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength * (0.75 - umbra * 0.45);
+    float parchmentSpeckle = (paperFiber - 0.5) * (0.06 + u_noiseStrength * 1.3);
+    float reliefLight =
+      (dot(reliefNormal, sunDirection) - dot(normalize(v_normal), sunDirection)) * reliefMask;
     float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18);
 
     vec3 color = shaded;
+    color *= reliefOcclusion;
+    float colorLuma = dot(color, vec3(0.299, 0.587, 0.114));
+    vec3 desaturatedUmbra = mix(vec3(colorLuma), u_nightColor, 0.2);
+    color = mix(color, desaturatedUmbra, umbra * 0.75);
+    color *= 1.0 - umbra * 0.12;
     color += u_atmosphereTint * atmosphere;
     color += u_gridColor * (grid + scanline * 0.12);
     color += u_rimLightColor * (rim + aurora);
-    color += u_specularColor * specular;
+    color += u_specularColor * specular * (1.0 - umbra);
+    color += u_atmosphereTint * vellumSheen * (0.13 + fresnel * 0.22) * (1.0 - umbra);
+    color += vec3(0.08, 0.06, 0.03) * fresnel * (0.08 + daylight * 0.12) * (1.0 - umbra * 0.7);
+    color += vec3(reliefLight) * (0.34 * (1.0 - umbra));
+    color += parchmentSpeckle * (1.0 - umbra * 0.55);
     color += grain;
 
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), baseColor.a);
@@ -451,12 +533,449 @@ function applyAtlasPaperTexture(
   context.restore();
 }
 
+function applyAtlasParchmentAging(
+  context: CanvasRenderingContext2D,
+  textureCanvas: HTMLCanvasElement,
+  palette: GlobePalette,
+) {
+  const { width, height } = textureCanvas;
+  context.save();
+
+  const edgeDarken = context.createRadialGradient(
+    width * 0.5,
+    height * 0.5,
+    width * 0.12,
+    width * 0.5,
+    height * 0.5,
+    width * 0.78,
+  );
+  edgeDarken.addColorStop(0, shiftColor(palette.oceanFill, 0, 0, 0, 0));
+  edgeDarken.addColorStop(1, 'rgba(88, 55, 21, 0.28)');
+  context.globalCompositeOperation = 'multiply';
+  context.fillStyle = edgeDarken;
+  context.fillRect(0, 0, width, height);
+
+  const warmBloom = context.createRadialGradient(
+    width * 0.42,
+    height * 0.37,
+    width * 0.06,
+    width * 0.42,
+    height * 0.37,
+    width * 0.65,
+  );
+  warmBloom.addColorStop(0, 'rgba(251, 234, 194, 0.18)');
+  warmBloom.addColorStop(1, 'rgba(210, 173, 118, 0)');
+  context.globalCompositeOperation = 'screen';
+  context.fillStyle = warmBloom;
+  context.fillRect(0, 0, width, height);
+
+  context.globalCompositeOperation = 'multiply';
+  for (let index = 0; index < 26; index += 1) {
+    const x = ((index * 197) % width) + (index % 5) * 7;
+    const y = ((index * 131) % height) + (index % 4) * 9;
+    const radius = width * (0.0015 + (index % 3) * 0.0006);
+    const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    blot.addColorStop(0, 'rgba(112, 74, 35, 0.07)');
+    blot.addColorStop(0.65, 'rgba(151, 103, 52, 0.03)');
+    blot.addColorStop(1, 'rgba(169, 131, 82, 0)');
+    context.fillStyle = blot;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.globalCompositeOperation = 'multiply';
+  context.globalAlpha = 0.18;
+  context.strokeStyle = 'rgba(118, 80, 40, 0.35)';
+  context.lineWidth = Math.max(width / 4200, 0.35);
+  for (let fold = 0; fold < 3; fold += 1) {
+    const x = width * (0.2 + fold * 0.3);
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x + (fold - 1) * 8, height);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
+function applyAtlasSatelliteWatercolor(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+  palette: GlobePalette,
+  atlasImageryImage: HTMLImageElement | null,
+) {
+  if (!atlasImageryImage) {
+    return;
+  }
+
+  const { width, height } = textureCanvas;
+  const imageryCanvas = document.createElement('canvas');
+  imageryCanvas.width = width;
+  imageryCanvas.height = height;
+  const imageryContext = imageryCanvas.getContext('2d');
+  if (!imageryContext) {
+    return;
+  }
+
+  imageryContext.drawImage(atlasImageryImage, 0, 0, width, height);
+  const imageryData = imageryContext.getImageData(0, 0, width, height);
+  const pixels = imageryData.data;
+  const levels = 8;
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const red = pixels[index] ?? 0;
+    const green = pixels[index + 1] ?? 0;
+    const blue = pixels[index + 2] ?? 0;
+    const x = (index / 4) % width;
+    const y = Math.floor(index / 4 / width);
+    const luma = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
+    const posterized = Math.round(luma * (levels - 1)) / (levels - 1);
+    const pigmentNoise =
+      (Math.sin(x * 0.053 + y * 0.031) + Math.sin(x * 0.11 - y * 0.046)) *
+      0.018;
+    const paperMapped = Math.max(0, Math.min(1, posterized + pigmentNoise));
+    const ink = Math.pow(paperMapped, 0.92);
+
+    pixels[index] = Math.round(ink * 244);
+    pixels[index + 1] = Math.round(ink * 231);
+    pixels[index + 2] = Math.round(ink * 202);
+    pixels[index + 3] = 255;
+  }
+
+  imageryContext.putImageData(imageryData, 0, 0);
+
+  context.save();
+
+  context.globalAlpha = 0.34;
+  context.globalCompositeOperation = 'multiply';
+  context.drawImage(imageryCanvas, 0, 0);
+
+  context.globalCompositeOperation = 'soft-light';
+  context.fillStyle = shiftColor(palette.oceanFill, 8, 12, 14, 0.38);
+  context.fillRect(0, 0, width, height);
+
+  context.save();
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+  }
+  context.clip();
+
+  context.globalCompositeOperation = 'multiply';
+  context.globalAlpha = 0.72;
+  context.drawImage(imageryCanvas, 0, 0);
+  context.fillStyle = shiftColor(palette.countryFill, -8, -4, -3, 0.3);
+  context.fillRect(0, 0, width, height);
+  context.globalCompositeOperation = 'soft-light';
+  context.globalAlpha = 0.32;
+  context.fillStyle = shiftColor(palette.countryFill, 20, 18, 8, 0.34);
+  context.fillRect(0, 0, width, height);
+
+  context.restore();
+  context.restore();
+}
+
+function clampChannel(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function shiftColor(
+  color: string,
+  redShift: number,
+  greenShift: number,
+  blueShift: number,
+  alphaOverride?: number,
+) {
+  const parsed = parseCssColor(color);
+  const alpha = alphaOverride ?? parsed.alpha;
+  return `rgba(${clampChannel(parsed.rgb[0] + redShift)}, ${clampChannel(
+    parsed.rgb[1] + greenShift,
+  )}, ${clampChannel(parsed.rgb[2] + blueShift)}, ${Math.max(
+    0,
+    Math.min(1, alpha),
+  )})`;
+}
+
+function applyAtlasWatercolorOcean(
+  context: CanvasRenderingContext2D,
+  textureCanvas: HTMLCanvasElement,
+  palette: GlobePalette,
+) {
+  const { width, height } = textureCanvas;
+  context.save();
+
+  const wash = context.createLinearGradient(0, 0, 0, height);
+  wash.addColorStop(0, shiftColor(palette.oceanFill, -8, -6, -2, 0.38));
+  wash.addColorStop(0.5, shiftColor(palette.oceanFill, 7, 10, 14, 0.22));
+  wash.addColorStop(1, shiftColor(palette.oceanFill, -10, -10, -6, 0.36));
+  context.fillStyle = wash;
+  context.fillRect(0, 0, width, height);
+
+  context.globalCompositeOperation = 'multiply';
+  for (let index = 0; index < 24; index += 1) {
+    const x = ((index * 227) % width) + (index % 3) * 17;
+    const y = ((index * 139) % height) + (index % 5) * 11;
+    const radius = width * (0.035 + (index % 7) * 0.004);
+    const blot = context.createRadialGradient(x, y, radius * 0.1, x, y, radius);
+    blot.addColorStop(0, shiftColor(palette.oceanFill, -20, -14, -10, 0.09));
+    blot.addColorStop(1, shiftColor(palette.oceanFill, 8, 10, 14, 0));
+    context.fillStyle = blot;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.globalCompositeOperation = 'soft-light';
+  for (let index = 0; index < 18; index += 1) {
+    const x = ((index * 193) % width) + 8;
+    const y = ((index * 101) % height) + 6;
+    const radius = width * (0.022 + (index % 5) * 0.003);
+    const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    blot.addColorStop(0, shiftColor(palette.oceanFill, 18, 22, 30, 0.11));
+    blot.addColorStop(1, shiftColor(palette.oceanFill, 0, 0, 0, 0));
+    context.fillStyle = blot;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.restore();
+}
+
+function applyAtlasOceanCurrentHatching(
+  context: CanvasRenderingContext2D,
+  textureCanvas: HTMLCanvasElement,
+) {
+  const { width, height } = textureCanvas;
+  const spacing = Math.max(Math.floor(height / 24), 14);
+
+  context.save();
+  context.globalAlpha = 0.22;
+  context.strokeStyle = 'rgba(98, 121, 124, 0.24)';
+  context.lineWidth = Math.max(width / 4600, 0.4);
+
+  for (let y = -spacing; y <= height + spacing; y += spacing) {
+    context.beginPath();
+    for (let x = 0; x <= width; x += 24) {
+      const wave =
+        Math.sin((x / width) * Math.PI * 4.0 + y * 0.02) * 2.4 +
+        Math.sin((x / width) * Math.PI * 11.0 + y * 0.011) * 0.9;
+      const py = y + wave;
+      if (x === 0) {
+        context.moveTo(x, py);
+      } else {
+        context.lineTo(x, py);
+      }
+    }
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.13;
+  context.strokeStyle = 'rgba(240, 233, 205, 0.2)';
+  context.lineWidth = Math.max(width / 5400, 0.3);
+  for (let y = spacing / 2; y <= height + spacing; y += spacing) {
+    context.beginPath();
+    for (let x = 0; x <= width; x += 24) {
+      const wave = Math.sin((x / width) * Math.PI * 5.0 + y * 0.018) * 1.8;
+      const py = y + wave;
+      if (x === 0) {
+        context.moveTo(x, py);
+      } else {
+        context.lineTo(x, py);
+      }
+    }
+    context.stroke();
+  }
+
+  context.restore();
+}
+
+function applyAtlasWatercolorLand(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+  palette: GlobePalette,
+) {
+  const { width, height } = textureCanvas;
+
+  context.save();
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+  }
+  context.clip();
+
+  const landWash = context.createLinearGradient(0, 0, width, height);
+  landWash.addColorStop(0, shiftColor(palette.countryFill, 16, 14, 6, 0.2));
+  landWash.addColorStop(0.5, shiftColor(palette.countryFill, -8, -10, -4, 0.16));
+  landWash.addColorStop(1, shiftColor(palette.countryFill, 8, 8, 3, 0.18));
+  context.fillStyle = landWash;
+  context.fillRect(0, 0, width, height);
+
+  context.globalCompositeOperation = 'multiply';
+  for (let index = 0; index < 28; index += 1) {
+    const x = ((index * 181) % width) + (index % 4) * 9;
+    const y = ((index * 127) % height) + (index % 6) * 7;
+    const radius = width * (0.028 + (index % 6) * 0.004);
+    const blot = context.createRadialGradient(x, y, radius * 0.15, x, y, radius);
+    blot.addColorStop(0, shiftColor(palette.countryFill, -20, -16, -8, 0.08));
+    blot.addColorStop(1, shiftColor(palette.countryFill, 2, 2, 1, 0));
+    context.fillStyle = blot;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.globalCompositeOperation = 'soft-light';
+  for (let index = 0; index < 20; index += 1) {
+    const x = ((index * 149) % width) + 5;
+    const y = ((index * 113) % height) + 5;
+    const radius = width * (0.016 + (index % 5) * 0.0035);
+    const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    blot.addColorStop(0, shiftColor(palette.countryFill, 24, 22, 12, 0.1));
+    blot.addColorStop(1, shiftColor(palette.countryFill, 0, 0, 0, 0));
+    context.fillStyle = blot;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.restore();
+}
+
+function applyAtlasInkBleed(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+) {
+  context.save();
+  context.globalAlpha = 0.18;
+  context.strokeStyle = 'rgba(70, 42, 18, 0.42)';
+  context.lineWidth = Math.max(textureCanvas.width / 2300, 0.8);
+  context.shadowColor = 'rgba(61, 35, 14, 0.35)';
+  context.shadowBlur = Math.max(textureCanvas.width / 480, 2.4);
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = Math.max(textureCanvas.width / 4096, 0.45);
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function applyAtlasInkCoastline(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+) {
+  context.save();
+  context.globalAlpha = 0.9;
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+  context.strokeStyle = 'rgba(78, 46, 20, 0.58)';
+  context.lineWidth = Math.max(textureCanvas.width / 2048, 0.95);
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.45;
+  context.strokeStyle = 'rgba(244, 231, 198, 0.46)';
+  context.lineWidth = Math.max(textureCanvas.width / 4096, 0.45);
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function applyAtlasCoastalWash(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+  palette: GlobePalette,
+) {
+  context.save();
+
+  context.globalAlpha = 0.34;
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+  context.strokeStyle = shiftColor(palette.oceanFill, 22, 24, 28, 0.36);
+  context.lineWidth = Math.max(textureCanvas.width / 540, 3.2);
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.25;
+  context.strokeStyle = shiftColor(palette.oceanFill, -12, -10, -6, 0.32);
+  context.lineWidth = Math.max(textureCanvas.width / 900, 1.9);
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
+function applyAtlasLandHachure(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+  textureCanvas: HTMLCanvasElement,
+) {
+  const { width, height } = textureCanvas;
+  const spacing = Math.max(Math.floor(width / 96), 14);
+
+  context.save();
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+  }
+  context.clip();
+
+  context.globalAlpha = 0.2;
+  context.strokeStyle = 'rgba(93, 58, 28, 0.24)';
+  context.lineWidth = Math.max(width / 3072, 0.5);
+  for (let offset = -height; offset < width + height; offset += spacing) {
+    context.beginPath();
+    context.moveTo(offset, 0);
+    context.lineTo(offset - height, height);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.11;
+  context.strokeStyle = 'rgba(244, 229, 198, 0.22)';
+  context.lineWidth = Math.max(width / 4096, 0.4);
+  for (let offset = -height + spacing / 2; offset < width + height; offset += spacing) {
+    context.beginPath();
+    context.moveTo(offset, 0);
+    context.lineTo(offset - height, height);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
 function buildOceanTextureCanvas(
   world: FeatureCollectionLike,
   palette: GlobePalette,
   textureSize: number,
-  _isAtlas: boolean,
+  isAtlas: boolean,
   atlasPaperImage: HTMLImageElement | null,
+  atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -465,7 +984,36 @@ function buildOceanTextureCanvas(
   withTextureContext(textureCanvas, (context) => {
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+    if (isAtlas) {
+      const projection = geoEquirectangular()
+        .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+        .scale(textureCanvas.width / (2 * Math.PI));
+      const path = geoPath(projection, context);
+      applyAtlasSatelliteWatercolor(
+        context,
+        path,
+        world,
+        textureCanvas,
+        palette,
+        atlasImageryImage,
+      );
+      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      applyAtlasOceanCurrentHatching(context, textureCanvas);
+    }
     applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+    if (isAtlas) {
+      applyAtlasParchmentAging(context, textureCanvas, palette);
+    }
+
+    if (isAtlas) {
+      const projection = geoEquirectangular()
+        .translate([textureCanvas.width / 2, textureCanvas.height / 2])
+        .scale(textureCanvas.width / (2 * Math.PI));
+      const path = geoPath(projection, context);
+      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+      applyAtlasInkCoastline(context, path, world, textureCanvas);
+      applyAtlasInkBleed(context, path, world, textureCanvas);
+    }
 
     if (palette.countryElevation > 0) {
       const projection = geoEquirectangular()
@@ -509,6 +1057,7 @@ function buildCombinedTextureCanvas(
   textureSize: number,
   isAtlas: boolean,
   atlasPaperImage: HTMLImageElement | null,
+  atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -523,11 +1072,28 @@ function buildCombinedTextureCanvas(
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
     if (isAtlas) {
+      applyAtlasSatelliteWatercolor(
+        context,
+        path,
+        world,
+        textureCanvas,
+        palette,
+        atlasImageryImage,
+      );
+      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      applyAtlasOceanCurrentHatching(context, textureCanvas);
       applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+      applyAtlasParchmentAging(context, textureCanvas, palette);
     }
 
     if (isAtlas) {
       drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
+
+    if (isAtlas) {
+      applyAtlasWatercolorLand(context, path, world, textureCanvas, palette);
+      applyAtlasLandHachure(context, path, world, textureCanvas);
+      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
 
     context.beginPath();
@@ -549,6 +1115,10 @@ function buildCombinedTextureCanvas(
       palette.countryStroke,
       isAtlas ? 1.4 : 1.2,
     );
+    if (isAtlas) {
+      applyAtlasInkCoastline(context, path, world, textureCanvas);
+      applyAtlasInkBleed(context, path, world, textureCanvas);
+    }
     applyCountryDeboss(context, path, world, palette);
 
     if (targetFeature) {
@@ -584,6 +1154,7 @@ function buildCountryTextureCanvas(
   textureSize: number,
   isAtlas: boolean,
   atlasPaperImage: HTMLImageElement | null,
+  atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -596,10 +1167,26 @@ function buildCountryTextureCanvas(
     const path = geoPath(projection, context);
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
     if (isAtlas) {
+      applyAtlasSatelliteWatercolor(
+        context,
+        path,
+        world,
+        textureCanvas,
+        palette,
+        atlasImageryImage,
+      );
+      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      applyAtlasOceanCurrentHatching(context, textureCanvas);
       applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+      applyAtlasParchmentAging(context, textureCanvas, palette);
     }
     if (isAtlas) {
       drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
+    if (isAtlas) {
+      applyAtlasWatercolorLand(context, path, world, textureCanvas, palette);
+      applyAtlasLandHachure(context, path, world, textureCanvas);
+      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
     context.beginPath();
     path(geoGraticule10());
@@ -619,6 +1206,10 @@ function buildCountryTextureCanvas(
       palette.countryStroke,
       isAtlas ? 1.4 : 1.2,
     );
+    if (isAtlas) {
+      applyAtlasInkCoastline(context, path, world, textureCanvas);
+      applyAtlasInkBleed(context, path, world, textureCanvas);
+    }
     applyCountryDeboss(context, path, world, palette);
 
     if (targetFeature) {
@@ -722,7 +1313,16 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const indexBuffer = gl.createBuffer();
   const texture = gl.createTexture();
   const overlayTexture = gl.createTexture();
-  if (!positionBuffer || !overlayPositionBuffer || !uvBuffer || !indexBuffer || !texture || !overlayTexture) {
+  const reliefTexture = gl.createTexture();
+  if (
+    !positionBuffer ||
+    !overlayPositionBuffer ||
+    !uvBuffer ||
+    !indexBuffer ||
+    !texture ||
+    !overlayTexture ||
+    !reliefTexture
+  ) {
     throw new Error('Failed to allocate WebGL buffers.');
   }
 
@@ -748,6 +1348,22 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
 
   configureTexture(gl, texture);
   configureTexture(gl, overlayTexture);
+  configureTexture(gl, reliefTexture);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, reliefTexture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([128, 128, 128, 255]),
+  );
+  gl.activeTexture(gl.TEXTURE0);
 
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
@@ -763,6 +1379,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     overlayTexture,
     positionBuffer,
     program,
+    reliefTexture,
     texture,
     uniforms: {
       atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
@@ -779,6 +1396,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       scale: getUniformLocation(gl, program, 'u_scale'),
       scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
       scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
+      reliefStrength: getUniformLocation(gl, program, 'u_reliefStrength'),
+      reliefTexture: getUniformLocation(gl, program, 'u_reliefTexture'),
+      reliefTexelSize: getUniformLocation(gl, program, 'u_reliefTexelSize'),
       specularColor: getUniformLocation(gl, program, 'u_specularColor'),
       specularPower: getUniformLocation(gl, program, 'u_specularPower'),
       specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
@@ -798,6 +1418,8 @@ function drawGlobe(
   currentRotation: [number, number],
   palette: GlobePalette,
   effectTimeSeconds: number,
+  reliefStrength: number,
+  reliefTexelSize: [number, number],
 ) {
   const {
     gl,
@@ -876,6 +1498,9 @@ function drawGlobe(
     0,
   );
   gl.uniform1i(uniforms.texture, 0);
+  gl.uniform1i(uniforms.reliefTexture, 1);
+  gl.uniform1f(uniforms.reliefStrength, reliefStrength);
+  gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
   gl.uniform3f(
     uniforms.atmosphereTint,
@@ -917,6 +1542,9 @@ function drawGlobe(
   gl.uniform1f(uniforms.time, effectTimeSeconds);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, resources.texture);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
+  gl.activeTexture(gl.TEXTURE0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
   if (hasRaisedCountries) {
@@ -932,6 +1560,9 @@ function drawGlobe(
     );
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
+    gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
@@ -1084,6 +1715,9 @@ export function WebGlGlobe({
   const paletteRef = useRef(palette);
   const [atlasPaperImage, setAtlasPaperImage] =
     useState<HTMLImageElement | null>(null);
+  const [atlasImageryImage, setAtlasImageryImage] =
+    useState<HTMLImageElement | null>(null);
+  const [reliefImage, setReliefImage] = useState<HTMLImageElement | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -1136,6 +1770,27 @@ export function WebGlGlobe({
   }, [targetFeature]);
 
   useEffect(() => {
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setReliefImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setReliefImage(null);
+      }
+    };
+    image.src = '/textures/world-relief.png';
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isAtlas) {
       return;
     }
@@ -1154,6 +1809,31 @@ export function WebGlGlobe({
       }
     };
     image.src = '/textures/atlas-paper.jpg';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAtlas]);
+
+  useEffect(() => {
+    if (!isAtlas) {
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setAtlasImageryImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setAtlasImageryImage(null);
+      }
+    };
+    image.src = '/textures/world-imagery.jpg';
 
     return () => {
       cancelled = true;
@@ -1179,6 +1859,10 @@ export function WebGlGlobe({
       frameState.currentRotation,
       paletteRef.current,
       now * 0.001,
+      isAtlas ? 16 : 0,
+      reliefImage
+        ? [1 / reliefImage.naturalWidth, 1 / reliefImage.naturalHeight]
+        : [1 / 2048, 1 / 1024],
     );
 
     drawSelectedCountryOverlay({
@@ -1192,7 +1876,7 @@ export function WebGlGlobe({
       width: frameState.width,
       zoomScale: frameState.zoomScale,
     });
-  }, [mode]);
+  }, [isAtlas, mode, reliefImage]);
 
   useEffect(() => {
     drawCurrentFrameRef.current = drawCurrentFrame;
@@ -1238,6 +1922,7 @@ export function WebGlGlobe({
           textureResolution,
           isAtlas,
           isAtlas ? atlasPaperImage : null,
+          isAtlas ? atlasImageryImage : null,
         )
       : buildCombinedTextureCanvas(
           world,
@@ -1246,6 +1931,7 @@ export function WebGlGlobe({
           textureResolution,
           isAtlas,
           isAtlas ? atlasPaperImage : null,
+          isAtlas ? atlasImageryImage : null,
         );
     const countryTextureCanvas = hasRaisedCountries
       ? buildCountryTextureCanvas(
@@ -1255,6 +1941,7 @@ export function WebGlGlobe({
           textureResolution,
           isAtlas,
           isAtlas ? atlasPaperImage : null,
+          isAtlas ? atlasImageryImage : null,
         )
       : null;
     gl.activeTexture(gl.TEXTURE0);
@@ -1283,6 +1970,21 @@ export function WebGlGlobe({
       );
     }
 
+    if (reliefImage) {
+      gl.activeTexture(gl.TEXTURE1);
+      configureTexture(gl, resources.reliefTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        reliefImage,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
     window.setTimeout(() => {
       if (!cancelled) {
         setErrorMessage(null);
@@ -1295,11 +1997,13 @@ export function WebGlGlobe({
       cancelled = true;
     };
   }, [
+    atlasImageryImage,
     atlasPaperImage,
     drawCurrentFrame,
     height,
     isAtlas,
     palette,
+    reliefImage,
     width,
     world,
   ]);
