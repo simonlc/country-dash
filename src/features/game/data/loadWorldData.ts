@@ -1,6 +1,7 @@
 import * as topojson from 'topojson-client';
 import { countries as countriesList } from 'countries-list';
 import { countryCapitals } from 'country-capitals';
+import { City } from 'country-state-city';
 import worldSource from '../../../../world.json';
 import type {
   CountryProperties,
@@ -17,8 +18,6 @@ interface SourceCountryProperties {
   CONTINENT?: string;
   REGION_UN?: string;
   SUBREGION?: string;
-  LABEL_X?: number;
-  LABEL_Y?: number;
 }
 
 const microstateCodes = new Set([
@@ -151,6 +150,7 @@ const middleEastCodes = new Set([
 
 const countriesByIso2 = countriesList as Record<string, { capital?: string }>;
 const capitalsByIso2 = countryCapitals as Record<string, string>;
+type CountryCity = NonNullable<ReturnType<typeof City.getCitiesOfCountry>>[number];
 
 function buildCountryTags(isocode: string): CountryTag[] {
   const tags: CountryTag[] = [];
@@ -211,8 +211,6 @@ function buildMetadataMap() {
       }
 
       const metadata = {
-        capitalLatitude: feature.properties.LABEL_Y ?? null,
-        capitalLongitude: feature.properties.LABEL_X ?? null,
         continent: feature.properties.CONTINENT ?? null,
         region: feature.properties.REGION_UN ?? null,
         subregion: feature.properties.SUBREGION ?? null,
@@ -249,6 +247,70 @@ function normalizeCapitalName(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function normalizeCapitalMatchKey(value: string) {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.'’()-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function parseCoordinate(value: string | number | null | undefined) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const citiesByIsoCode = new Map<string, CountryCity[]>();
+
+function getCitiesByCountryCode(countryCode: string) {
+  const cached = citiesByIsoCode.get(countryCode);
+  if (cached) {
+    return cached;
+  }
+
+  const cities = City.getCitiesOfCountry(countryCode);
+  const resolvedCities = cities ?? [];
+  citiesByIsoCode.set(countryCode, resolvedCities);
+  return resolvedCities;
+}
+
+function getCapitalCoordinates(
+  isocode: string,
+  capitalAliases: string[],
+) {
+  const normalizedIso2 = normalizeIso2Code(isocode);
+  if (!normalizedIso2 || capitalAliases.length === 0) {
+    return {
+      latitude: null,
+      longitude: null,
+    };
+  }
+
+  const aliasKeys = new Set(
+    capitalAliases
+      .map((alias) => normalizeCapitalMatchKey(alias))
+      .filter((value) => value.length > 0),
+  );
+  const cities = getCitiesByCountryCode(normalizedIso2);
+  const matchedCity = cities.find((city) =>
+    aliasKeys.has(normalizeCapitalMatchKey(city.name)),
+  );
+
+  if (!matchedCity) {
+    return {
+      latitude: null,
+      longitude: null,
+    };
+  }
+
+  return {
+    latitude: parseCoordinate(matchedCity.latitude),
+    longitude: parseCoordinate(matchedCity.longitude),
+  };
+}
+
 function getCapitalMetadata(country: { isocode: string; isocode3: string }) {
   const normalizedIso2 = normalizeIso2Code(country.isocode);
   const capitalFromList = normalizedIso2
@@ -278,12 +340,16 @@ function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectio
         metadataByCode.get(feature.properties.isocode) ??
         metadataByCode.get(feature.properties.isocode3);
       const capitalMetadata = getCapitalMetadata(feature.properties);
+      const capitalCoordinates = getCapitalCoordinates(
+        feature.properties.isocode,
+        capitalMetadata.aliases,
+      );
       const tags = buildCountryTags(feature.properties.isocode);
       const properties: CountryProperties = {
         ...feature.properties,
         capitalAliases: capitalMetadata.aliases,
-        capitalLatitude: metadata?.capitalLatitude ?? null,
-        capitalLongitude: metadata?.capitalLongitude ?? null,
+        capitalLatitude: capitalCoordinates.latitude,
+        capitalLongitude: capitalCoordinates.longitude,
         capitalName: capitalMetadata.name,
         continent: metadata?.continent ?? null,
         region: metadata?.region ?? null,

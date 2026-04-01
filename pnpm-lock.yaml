@@ -35,6 +35,9 @@ importers:
       country-capitals:
         specifier: ^1.0.2
         version: 1.0.2
+      country-state-city:
+        specifier: ^3.2.1
+        version: 3.2.1
       d3:
         specifier: ^7.9.0
         version: 7.9.0
@@ -56,6 +59,9 @@ importers:
       topojson-client:
         specifier: ^3.1.0
         version: 3.1.0
+      world-countries:
+        specifier: ^5.1.0
+        version: 5.1.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.1
@@ -1267,6 +1273,9 @@ packages:
   country-capitals@1.0.2:
     resolution: {integrity: sha512-GRo0l2W+KmVsZLrTQb0GJCt+jUlQy8mzfFGWQ8BzMyhkBgpEDP3XmSx0TodRKFN3CBYRpM//8KNAA+iwVwv6Gg==}
     hasBin: true
+
+  country-state-city@3.2.1:
+    resolution: {integrity: sha512-kxbanqMc6izjhc/EHkGPCTabSPZ2G6eG4/97akAYHJUN4stzzFEvQPZoF8oXDQ+10gM/O/yUmISCR1ZVxyb6EA==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -2712,6 +2721,9 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
+  world-countries@5.1.0:
+    resolution: {integrity: sha512-CXR6EBvTbArDlDDIWU3gfKb7Qk0ck2WNZ234b/A0vuecPzIfzzxH+O6Ejnvg1sT8XuiZjVlzOH0h08ZtaO7g0w==}
+
   ws@8.20.0:
     resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
     engines: {node: '>=10.0.0'}
@@ -3931,6 +3943,8 @@ snapshots:
   countries-list@3.3.0: {}
 
   country-capitals@1.0.2: {}
+
+  country-state-city@3.2.1: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -5510,6 +5524,8 @@ snapshots:
       stackback: 0.0.2
 
   word-wrap@1.2.5: {}
+
+  world-countries@5.1.0: {}
 
   ws@8.20.0: {}
 

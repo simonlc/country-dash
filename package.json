@@ -31,13 +31,15 @@
     "autosuggest-highlight": "^3.3.4",
     "countries-list": "^3.3.0",
     "country-capitals": "^1.0.2",
+    "country-state-city": "^3.2.1",
     "d3": "^7.9.0",
     "match-sorter": "^8.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-feather": "^2.0.10",
     "solar-calculator": "^0.3",
-    "topojson-client": "^3.1.0"
+    "topojson-client": "^3.1.0",
+    "world-countries": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
