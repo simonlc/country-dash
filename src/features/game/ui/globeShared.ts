@@ -92,48 +92,150 @@ export function useGlobeInteraction({
   const [zoomScale, setZoomScale] = useState(1);
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
   const animationFrameRef = useRef<number | null>(null);
-  const interactionFrameRef = useRef<number | null>(null);
   const draggingRef = useRef(false);
-  const startPointRef = useRef({ x: 0, y: 0 });
-  const startRotationRef = useRef<[number, number]>(rotation);
-  const latestRotationRef = useRef<[number, number]>(rotation);
-  const pendingRotationRef = useRef<[number, number] | null>(null);
-  const pendingZoomRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number | null>(null);
+  const lastDragSampleRef = useRef({ timeStamp: 0, x: 0, y: 0 });
+  const currentRotationRef = useRef<[number, number]>(rotation);
+  const targetRotationRef = useRef<[number, number]>(rotation);
+  const currentZoomRef = useRef(1);
+  const targetZoomRef = useRef(1);
+  const focusTargetRef = useRef<[number, number] | null>(null);
+  const rotationVelocityRef = useRef({ latitude: 0, longitude: 0 });
+  const zoomVelocityRef = useRef(0);
 
   useEffect(() => {
-    latestRotationRef.current = currentRotation;
+    currentRotationRef.current = currentRotation;
   }, [currentRotation]);
 
-  const flushInteraction = useCallback(() => {
-    interactionFrameRef.current = null;
+  useEffect(() => {
+    currentZoomRef.current = zoomScale;
+  }, [zoomScale]);
 
-    if (pendingRotationRef.current) {
-      setCurrentRotation(pendingRotationRef.current);
-      pendingRotationRef.current = null;
+  const stopAnimation = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
-
-    if (pendingZoomRef.current !== null) {
-      setZoomScale(pendingZoomRef.current);
-      pendingZoomRef.current = null;
-    }
+    lastFrameTimeRef.current = null;
   }, []);
 
-  const scheduleInteractionFlush = useCallback(() => {
-    if (interactionFrameRef.current !== null) {
+  const animate = useCallback(
+    (now: number) => {
+      const previousFrameTime = lastFrameTimeRef.current ?? now;
+      const frameScale = Math.min((now - previousFrameTime) / (1000 / 60), 4);
+      lastFrameTimeRef.current = now;
+
+      if (!draggingRef.current) {
+        if (focusTargetRef.current) {
+          const focusTarget = focusTargetRef.current;
+          targetRotationRef.current = [
+            interpolateAngle(targetRotationRef.current[0], focusTarget[0], 0.18 * frameScale),
+            clampLatitudeRotation(
+              targetRotationRef.current[1] +
+                (focusTarget[1] - targetRotationRef.current[1]) * 0.18 * frameScale,
+            ),
+          ];
+
+          const longitudeError = Math.abs(
+            normalizeLongitude(focusTarget[0] - targetRotationRef.current[0]),
+          );
+          const latitudeError = Math.abs(focusTarget[1] - targetRotationRef.current[1]);
+
+          if (longitudeError < 0.1 && latitudeError < 0.1) {
+            targetRotationRef.current = focusTarget;
+            focusTargetRef.current = null;
+          }
+        }
+
+        targetRotationRef.current = [
+          normalizeLongitude(
+            targetRotationRef.current[0] +
+              rotationVelocityRef.current.longitude * frameScale,
+          ),
+          clampLatitudeRotation(
+            targetRotationRef.current[1] +
+              rotationVelocityRef.current.latitude * frameScale,
+          ),
+        ];
+        targetZoomRef.current = clampScale(
+          targetZoomRef.current + zoomVelocityRef.current * frameScale,
+        );
+
+        const inertiaDecay = 0.9 ** frameScale;
+        rotationVelocityRef.current.longitude *= inertiaDecay;
+        rotationVelocityRef.current.latitude *= inertiaDecay;
+        zoomVelocityRef.current *= 0.82 ** frameScale;
+      }
+
+      const positionLerp = 1 - 0.12 ** frameScale;
+      const nextRotation: [number, number] = [
+        interpolateAngle(
+          currentRotationRef.current[0],
+          targetRotationRef.current[0],
+          positionLerp,
+        ),
+        clampLatitudeRotation(
+          currentRotationRef.current[1] +
+            (targetRotationRef.current[1] - currentRotationRef.current[1]) * positionLerp,
+        ),
+      ];
+      const nextZoom =
+        currentZoomRef.current +
+        (targetZoomRef.current - currentZoomRef.current) * (1 - 0.16 ** frameScale);
+
+      currentRotationRef.current = nextRotation;
+      currentZoomRef.current = nextZoom;
+      setCurrentRotation(nextRotation);
+      setZoomScale(nextZoom);
+
+      const rotationSettled =
+        Math.abs(normalizeLongitude(targetRotationRef.current[0] - nextRotation[0])) < 0.01 &&
+        Math.abs(targetRotationRef.current[1] - nextRotation[1]) < 0.01;
+      const zoomSettled = Math.abs(targetZoomRef.current - nextZoom) < 0.001;
+      const velocitySettled =
+        Math.abs(rotationVelocityRef.current.longitude) < 0.001 &&
+        Math.abs(rotationVelocityRef.current.latitude) < 0.001 &&
+        Math.abs(zoomVelocityRef.current) < 0.0005;
+
+      if (
+        draggingRef.current ||
+        focusTargetRef.current ||
+        !rotationSettled ||
+        !zoomSettled ||
+        !velocitySettled
+      ) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+        lastFrameTimeRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const startAnimation = useCallback(() => {
+    if (animationFrameRef.current !== null) {
       return;
     }
 
-    interactionFrameRef.current = requestAnimationFrame(flushInteraction);
-  }, [flushInteraction]);
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [animate]);
 
   const onPointerDown = useCallback(
     <T extends Element>(event: ReactPointerEvent<T>) => {
+      focusTargetRef.current = null;
+      rotationVelocityRef.current = { latitude: 0, longitude: 0 };
       draggingRef.current = true;
-      startPointRef.current = { x: event.clientX, y: event.clientY };
-      startRotationRef.current = latestRotationRef.current;
+      targetRotationRef.current = currentRotationRef.current;
+      lastDragSampleRef.current = {
+        timeStamp: event.timeStamp,
+        x: event.clientX,
+        y: event.clientY,
+      };
       event.currentTarget.setPointerCapture(event.pointerId);
+      startAnimation();
     },
-    [],
+    [startAnimation],
   );
 
   const onPointerMove = useCallback(
@@ -142,20 +244,31 @@ export function useGlobeInteraction({
         return;
       }
 
-      const sensitivity = 75 / (baseScale * zoomScale);
-      pendingRotationRef.current = [
-        startRotationRef.current[0] +
-          (event.clientX - startPointRef.current.x) * sensitivity * pointerDirection.x,
+      const sensitivity = 75 / (baseScale * targetZoomRef.current);
+      const deltaX = event.clientX - lastDragSampleRef.current.x;
+      const deltaY = event.clientY - lastDragSampleRef.current.y;
+      const deltaTime = Math.max(event.timeStamp - lastDragSampleRef.current.timeStamp, 1);
+      const longitudeDelta = deltaX * sensitivity * pointerDirection.x;
+      const latitudeDelta = -deltaY * sensitivity * pointerDirection.y;
+
+      targetRotationRef.current = [
+        normalizeLongitude(targetRotationRef.current[0] + longitudeDelta),
         clampLatitudeRotation(
-          startRotationRef.current[1] -
-            (event.clientY - startPointRef.current.y) *
-              sensitivity *
-              pointerDirection.y,
+          targetRotationRef.current[1] + latitudeDelta,
         ),
       ];
-      scheduleInteractionFlush();
+      rotationVelocityRef.current = {
+        latitude: latitudeDelta / (deltaTime / (1000 / 60)),
+        longitude: longitudeDelta / (deltaTime / (1000 / 60)),
+      };
+      lastDragSampleRef.current = {
+        timeStamp: event.timeStamp,
+        x: event.clientX,
+        y: event.clientY,
+      };
+      startAnimation();
     },
-    [baseScale, pointerDirection.x, pointerDirection.y, scheduleInteractionFlush, zoomScale],
+    [baseScale, pointerDirection.x, pointerDirection.y, startAnimation],
   );
 
   const onPointerUp = useCallback(
@@ -168,64 +281,37 @@ export function useGlobeInteraction({
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+      startAnimation();
     },
-    [],
+    [startAnimation],
   );
 
-  const onWheel = useCallback((event: ReactWheelEvent<Element>) => {
-    event.preventDefault();
-    pendingZoomRef.current = clampScale(
-      (pendingZoomRef.current ?? zoomScale) - event.deltaY * 0.001,
-    );
-    scheduleInteractionFlush();
-  }, [scheduleInteractionFlush, zoomScale]);
+  const onWheel = useCallback(
+    (event: ReactWheelEvent<Element>) => {
+      event.preventDefault();
+      focusTargetRef.current = null;
+      targetZoomRef.current = clampScale(targetZoomRef.current - event.deltaY * 0.001);
+      zoomVelocityRef.current = Math.max(
+        -0.16,
+        Math.min(0.16, zoomVelocityRef.current - event.deltaY * 0.00018),
+      );
+      startAnimation();
+    },
+    [startAnimation],
+  );
 
   useEffect(() => {
     if (draggingRef.current) {
       return;
     }
 
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    focusTargetRef.current = [rotation[0], rotation[1]];
+    targetRotationRef.current = currentRotationRef.current;
+    rotationVelocityRef.current = { latitude: 0, longitude: 0 };
+    startAnimation();
+  }, [focusRequest, rotation, startAnimation]);
 
-    const startRotation = latestRotationRef.current;
-    const targetRotation: [number, number] = [rotation[0], rotation[1]];
-    const durationMs = 650;
-    const startTime = performance.now();
-
-    const step = (now: number) => {
-      const progress = Math.min((now - startTime) / durationMs, 1);
-      const easedProgress = 1 - (1 - progress) ** 3;
-
-      setCurrentRotation([
-        interpolateAngle(startRotation[0], targetRotation[0], easedProgress),
-        clampLatitudeRotation(
-          startRotation[1] +
-            (targetRotation[1] - startRotation[1]) * easedProgress,
-        ),
-      ]);
-
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(step);
-      } else {
-        animationFrameRef.current = null;
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(step);
-
-    return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      if (interactionFrameRef.current !== null) {
-        cancelAnimationFrame(interactionFrameRef.current);
-        interactionFrameRef.current = null;
-      }
-    };
-  }, [focusRequest, rotation]);
+  useEffect(() => stopAnimation, [stopAnimation]);
 
   return {
     currentRotation,

@@ -429,7 +429,7 @@ export const appThemes: AppThemeDefinition[] = [
       textSecondary: '#7088a2',
     },
     globe: {
-      oceanFill: '#f4f8fb',
+      oceanFill: 'rgb(230, 232, 237)',
       oceanDepth: '#e6eef5',
       oceanHighlight: '#6cd6ff',
       oceanHighlightOpacity: 0.26,
@@ -443,7 +443,7 @@ export const appThemes: AppThemeDefinition[] = [
       countryDebossOffset: 2.1,
       countryDebossStrength: 0,
       countryShadowColor: 'rgba(130, 130, 135, 0.24)',
-      countryShadowBlur: 42,
+      countryShadowBlur: 80,
       countryShadowOffsetX: 0,
       countryShadowOffsetY: 0,
       selectedFill: '#62d9ff',
