@@ -8,7 +8,7 @@ import {
   type GeoPermissibleObjects,
 } from 'd3';
 import { useId, useMemo } from 'react';
-import type { GlobePalette } from '@/app/theme';
+import type { AppThemeId, GlobePalette } from '@/app/theme';
 import {
   createNightCircle,
   useGlobeInteraction,
@@ -19,6 +19,7 @@ const sphere: GeoPermissibleObjects = { type: 'Sphere' };
 
 interface SvgGlobeProps extends GlobeViewProps {
   palette: GlobePalette;
+  themeId: AppThemeId;
 }
 
 export function SvgGlobe({
@@ -29,6 +30,7 @@ export function SvgGlobe({
   focusRequest,
   world,
   palette,
+  themeId: _themeId,
 }: SvgGlobeProps) {
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),

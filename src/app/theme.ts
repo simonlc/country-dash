@@ -80,6 +80,9 @@ export interface AppThemeDefinition {
 
 const headingFont = '"Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
 const bodyFont = '"Nunito Sans", system-ui, sans-serif';
+const atlasHeadingFont =
+  '"Cinzel", "Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
+const atlasBodyFont = '"Alegreya", "Nunito Sans", system-ui, sans-serif';
 
 export const appThemes: AppThemeDefinition[] = [
   {
@@ -280,66 +283,66 @@ export const appThemes: AppThemeDefinition[] = [
   {
     id: 'atlas',
     label: 'Atlas',
-    description: 'Cartographic paper, muted seas, and print-like contrast.',
+    description: 'Weathered cartographic paper with expedition-map grit.',
     mode: 'light',
     background: {
-      app: 'radial-gradient(circle at top left, rgba(255,255,255,0.7), rgba(255,255,255,0) 24%), linear-gradient(145deg, #f6efe0 0%, #eadfca 48%, #d9ccb5 100%)',
-      panel: 'rgba(255, 250, 241, 0.84)',
-      panelBorder: 'rgba(113, 87, 52, 0.2)',
-      panelShadow: '0 24px 56px rgba(106, 79, 46, 0.16)',
-      mutedPanel: 'rgba(246, 238, 224, 0.82)',
+      app: 'radial-gradient(circle at 14% 12%, rgba(255,244,214,0.66), rgba(255,244,214,0) 18%), radial-gradient(circle at 84% 14%, rgba(120, 71, 28, 0.14), rgba(120, 71, 28, 0) 18%), linear-gradient(145deg, #d7bb8a 0%, #af8858 44%, #795831 100%)',
+      panel: 'rgba(251, 241, 215, 0.84)',
+      panelBorder: 'rgba(104, 68, 30, 0.34)',
+      panelShadow: '0 24px 56px rgba(88, 58, 27, 0.24)',
+      mutedPanel: 'rgba(238, 224, 193, 0.88)',
     },
     palette: {
-      primary: '#725228',
-      secondary: '#aa5f2b',
-      backgroundDefault: '#f3ecdf',
-      backgroundPaper: '#fffaf1',
-      textPrimary: '#45331f',
-      textSecondary: '#7b6244',
+      primary: '#6e441f',
+      secondary: '#aa5a2d',
+      backgroundDefault: '#d8bc89',
+      backgroundPaper: '#f2e3bf',
+      textPrimary: '#3f2812',
+      textSecondary: '#71512d',
     },
     globe: {
-      oceanFill: '#d5d1ba',
-      oceanDepth: '#c4bda3',
-      oceanHighlight: '#efe0b5',
+      oceanFill: '#c8bea1',
+      oceanDepth: '#ad9a76',
+      oceanHighlight: '#f3dc9f',
       oceanHighlightOpacity: 0.03,
       countryElevation: 0,
-      graticule: 'rgba(85, 61, 29, 0.16)',
-      countryFill: '#8ea472',
-      countryStroke: 'rgba(59, 44, 22, 0.32)',
-      countryDebossDark: 'rgba(88, 71, 45, 0.16)',
-      countryDebossLight: 'rgba(255, 249, 235, 0.18)',
+      graticule: 'rgba(86, 56, 24, 0.2)',
+      countryFill: '#7f8d53',
+      countryStroke: 'rgba(67, 42, 18, 0.4)',
+      countryDebossDark: 'rgba(74, 49, 21, 0.2)',
+      countryDebossLight: 'rgba(255, 247, 227, 0.16)',
       countryDebossWidth: 1.8,
       countryDebossOffset: 0.7,
-      countryDebossStrength: 0.14,
-      countryShadowColor: 'rgba(110, 90, 58, 0.08)',
-      countryShadowBlur: 2,
-      countryShadowOffsetX: 0.4,
-      countryShadowOffsetY: 0.4,
-      selectedFill: '#d27745',
-      hazeOuter: '#f2ebdf',
-      hazeInner: '#ded2b3',
-      nightShade: 'rgba(58, 41, 14, 0.12)',
-      smallCountryCircle: 'rgba(160, 66, 34, 0.94)',
-      atmosphereTint: '#f5efe1',
-      gridColor: '#b09b6e',
-      rimLightColor: '#fff8eb',
-      specularColor: '#fff6de',
+      countryDebossStrength: 0.18,
+      countryShadowColor: 'rgba(90, 65, 36, 0.12)',
+      countryShadowBlur: 2.4,
+      countryShadowOffsetX: 0.55,
+      countryShadowOffsetY: 0.55,
+      selectedFill: '#be6a33',
+      hazeOuter: '#ecdfbf',
+      hazeInner: '#d0b07d',
+      nightShade: 'rgba(58, 41, 14, 0.14)',
+      smallCountryCircle: 'rgba(132, 47, 18, 0.94)',
+      atmosphereTint: '#f2e2b2',
+      gridColor: '#9a7946',
+      rimLightColor: '#fff3d3',
+      specularColor: '#fce7b0',
       atmosphereOpacity: 0.025,
       auroraStrength: 0.0,
       gridStrength: 0.0,
-      noiseStrength: 0.01,
-      rimLightStrength: 0.03,
+      noiseStrength: 0.018,
+      rimLightStrength: 0.04,
       scanlineDensity: 140,
       scanlineStrength: 0.0,
       specularPower: 14,
       specularStrength: 0.03,
     },
     preview: {
-      sky: 'linear-gradient(145deg, #f7f0e2, #dacdb0)',
-      glow: '#e0cfab',
-      ocean: '#d5d1ba',
-      land: '#8ea472',
-      accent: '#d27745',
+      sky: 'linear-gradient(145deg, #f2e4c5, #c9a774)',
+      glow: '#e2c17f',
+      ocean: '#c8bea1',
+      land: '#7f8d53',
+      accent: '#be6a33',
     },
   },
   {
@@ -484,6 +487,7 @@ export function getAppThemeDefinition(themeId: AppThemeId): AppThemeDefinition {
 export function createAppTheme(themeId: AppThemeId): Theme {
   const definition = getAppThemeDefinition(themeId);
   const isGlacier = definition.id === 'glacier';
+  const isAtlas = definition.id === 'atlas';
 
   return createTheme({
     cssVariables: true,
@@ -523,13 +527,20 @@ export function createAppTheme(themeId: AppThemeId): Theme {
           root: {
             backdropFilter: isGlacier
               ? 'blur(22px) saturate(1.45)'
-              : 'blur(16px)',
+              : isAtlas
+                ? 'blur(8px) saturate(0.9)'
+                : 'blur(16px)',
+            overflow: isAtlas ? 'hidden' : undefined,
             backgroundImage: isGlacier
               ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
-              : 'none',
+              : isAtlas
+                ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
+                : 'none',
             boxShadow: isGlacier
               ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
-              : undefined,
+              : isAtlas
+                ? 'inset 0 1px 0 rgba(255,249,231,0.72), inset 0 -18px 28px rgba(116, 74, 31, 0.08)'
+                : undefined,
           },
         },
       },
@@ -544,31 +555,52 @@ export function createAppTheme(themeId: AppThemeId): Theme {
                 boxShadow:
                   '0 28px 80px rgba(104, 151, 191, 0.18), inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)',
               }
+            : isAtlas
+              ? {
+                  backdropFilter: 'blur(10px) saturate(0.9)',
+                  background:
+                    'linear-gradient(180deg, rgba(251,242,220,0.92), rgba(225,199,150,0.5))',
+                  border: '1px solid rgba(110,74,34,0.3)',
+                  overflow: 'hidden',
+                  boxShadow:
+                    '0 28px 80px rgba(82, 53, 23, 0.24), inset 0 1px 0 rgba(255,248,228,0.86), inset 0 -24px 42px rgba(116, 74, 31, 0.08)',
+                }
             : undefined,
         },
       },
       MuiButton: {
         styleOverrides: {
-          root: isGlacier
-            ? {
-                backdropFilter: 'blur(14px) saturate(1.35)',
-                borderColor: 'rgba(255,255,255,0.82)',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 24px rgba(112, 167, 210, 0.14)',
-              }
-            : undefined,
-          contained: isGlacier
-            ? {
-                background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(205,235,255,0.76))',
-                color: '#1b4f78',
-              }
-            : undefined,
-          outlined: isGlacier
-            ? {
-                backgroundColor: 'rgba(255,255,255,0.3)',
-              }
-            : undefined,
+          root:
+            isGlacier || isAtlas
+              ? {
+                  backdropFilter: isGlacier
+                    ? 'blur(14px) saturate(1.35)'
+                    : 'blur(6px) saturate(0.95)',
+                  borderColor: isGlacier
+                    ? 'rgba(255,255,255,0.82)'
+                    : 'rgba(108, 72, 31, 0.42)',
+                  boxShadow: isGlacier
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 24px rgba(112, 167, 210, 0.14)'
+                    : 'inset 0 1px 0 rgba(255,248,229,0.76), 0 10px 18px rgba(100, 63, 25, 0.14)',
+                }
+              : undefined,
+          contained:
+            isGlacier || isAtlas
+              ? {
+                  background: isGlacier
+                    ? 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(205,235,255,0.76))'
+                    : 'linear-gradient(180deg, #8b572a 0%, #6b3d17 100%)',
+                  color: isGlacier ? '#1b4f78' : '#f9edd3',
+                }
+              : undefined,
+          outlined:
+            isGlacier || isAtlas
+              ? {
+                  backgroundColor: isGlacier
+                    ? 'rgba(255,255,255,0.3)'
+                    : 'rgba(247,235,204,0.38)',
+                }
+              : undefined,
         },
       },
     },
@@ -590,15 +622,35 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       },
     },
     shape: {
-      borderRadius: 14,
+      borderRadius: isAtlas ? 10 : 14,
     },
     typography: {
-      fontFamily: bodyFont,
-      h1: { fontFamily: headingFont, fontWeight: 700, letterSpacing: '0.02em' },
-      h2: { fontFamily: headingFont, fontWeight: 700, letterSpacing: '0.02em' },
-      h3: { fontFamily: headingFont, fontWeight: 700, letterSpacing: '0.03em' },
-      h4: { fontFamily: headingFont, fontWeight: 700, letterSpacing: '0.02em' },
-      button: { fontWeight: 700, letterSpacing: '0.03em' },
+      fontFamily: isAtlas ? atlasBodyFont : bodyFont,
+      h1: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontWeight: 700,
+        letterSpacing: isAtlas ? '0.06em' : '0.02em',
+      },
+      h2: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontWeight: 700,
+        letterSpacing: isAtlas ? '0.05em' : '0.02em',
+      },
+      h3: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontWeight: 700,
+        letterSpacing: isAtlas ? '0.07em' : '0.03em',
+      },
+      h4: {
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontWeight: 700,
+        letterSpacing: isAtlas ? '0.05em' : '0.02em',
+      },
+      button: {
+        fontFamily: isAtlas ? atlasHeadingFont : undefined,
+        fontWeight: 700,
+        letterSpacing: isAtlas ? '0.08em' : '0.03em',
+      },
     },
   });
 }

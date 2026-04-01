@@ -19,6 +19,7 @@ interface ThemeMenuProps {
 }
 
 function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
+  const isAtlas = theme.id === 'atlas';
   const globeStyle = useMemo(
     () => ({
       background: `radial-gradient(circle at 36% 34%, ${theme.preview.glow}, transparent 38%), ${theme.preview.ocean}`,
@@ -35,6 +36,27 @@ function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
+        '&::before': isAtlas
+          ? {
+              background:
+                'radial-gradient(circle at 16% 28%, rgba(121, 71, 28, 0.18) 0, rgba(121, 71, 28, 0.1) 10%, rgba(121, 71, 28, 0) 20%), radial-gradient(circle at 82% 78%, rgba(101, 61, 20, 0.12) 0, rgba(101, 61, 20, 0.06) 12%, rgba(101, 61, 20, 0) 24%)',
+              content: '""',
+              inset: 0,
+              mixBlendMode: 'multiply',
+              position: 'absolute',
+            }
+          : undefined,
+        '&::after': isAtlas
+          ? {
+              backgroundImage:
+                'linear-gradient(90deg, rgba(95, 61, 28, 0.08) 0, rgba(95, 61, 28, 0.08) 1px, transparent 1px), linear-gradient(rgba(95, 61, 28, 0.08) 0, rgba(95, 61, 28, 0.08) 1px, transparent 1px)',
+              backgroundSize: '16px 16px',
+              content: '""',
+              inset: 0,
+              opacity: 0.45,
+              position: 'absolute',
+            }
+          : undefined,
       }}
     >
       <Box

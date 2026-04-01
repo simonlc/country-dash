@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { GlobePalette } from '@/app/theme';
+import type { AppThemeId, GlobePalette } from '@/app/theme';
 import { SvgGlobe } from '@/features/game/ui/SvgGlobe';
 import { WebGlGlobe } from '@/features/game/ui/WebGlGlobe';
 import type {
@@ -17,6 +17,7 @@ interface GlobeProps {
   world: FeatureCollectionLike;
   palette: GlobePalette;
   renderer: GlobeRenderer;
+  themeId: AppThemeId;
 }
 
 function GlobeComponent({

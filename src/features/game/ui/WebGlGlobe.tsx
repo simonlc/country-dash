@@ -16,11 +16,12 @@ import {
   type GeoPermissibleObjects,
 } from 'd3';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { GlobePalette } from '@/app/theme';
+import type { AppThemeId, GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 
 interface WebGlGlobeProps extends GlobeViewProps {
   palette: GlobePalette;
+  themeId: AppThemeId;
 }
 
 interface SphereMesh {
@@ -400,10 +401,31 @@ function withTextureContext(
   draw(context);
 }
 
+function applyAtlasPaperTexture(
+  context: CanvasRenderingContext2D,
+  textureCanvas: HTMLCanvasElement,
+  atlasPaperImage: HTMLImageElement | null,
+) {
+  if (!atlasPaperImage) {
+    return;
+  }
+
+  context.save();
+  context.globalAlpha = 0.3;
+  context.globalCompositeOperation = 'multiply';
+  context.drawImage(atlasPaperImage, 0, 0, textureCanvas.width, textureCanvas.height);
+  context.globalAlpha = 0.16;
+  context.globalCompositeOperation = 'soft-light';
+  context.drawImage(atlasPaperImage, 0, 0, textureCanvas.width, textureCanvas.height);
+  context.restore();
+}
+
 function buildOceanTextureCanvas(
   world: FeatureCollectionLike,
   palette: GlobePalette,
   textureSize: number,
+  _isAtlas: boolean,
+  atlasPaperImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -412,6 +434,7 @@ function buildOceanTextureCanvas(
   withTextureContext(textureCanvas, (context) => {
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+    applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
 
     if (palette.countryElevation > 0) {
       const projection = geoEquirectangular()
@@ -425,11 +448,36 @@ function buildOceanTextureCanvas(
   return textureCanvas;
 }
 
+function drawAtlasExpeditionDetails(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  textureCanvas: HTMLCanvasElement,
+) {
+  context.save();
+
+  context.strokeStyle = 'rgba(112, 72, 29, 0.18)';
+  context.lineWidth = Math.max(textureCanvas.width / 2400, 0.8);
+  context.setLineDash([7, 9]);
+  for (const route of [
+    geoCircle().center([-18, 12]).radius(58)(),
+    geoCircle().center([74, -4]).radius(46)(),
+    geoCircle().center([-110, 28]).radius(70)(),
+  ]) {
+    context.beginPath();
+    path(route);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
 function buildCombinedTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature,
   palette: GlobePalette,
   textureSize: number,
+  isAtlas: boolean,
+  atlasPaperImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -447,11 +495,23 @@ function buildCombinedTextureCanvas(
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
+    if (isAtlas) {
+      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+    }
+
+    if (isAtlas) {
+      drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
+
     context.beginPath();
     path(geoGraticule10());
     context.strokeStyle = palette.graticule;
-    context.lineWidth = 1.2;
+    context.lineWidth = isAtlas ? 1.4 : 1.2;
+    if (isAtlas) {
+      context.setLineDash([3, 8]);
+    }
     context.stroke();
+    context.setLineDash([]);
 
     applyCountryShadow(context, path, world, palette);
     drawFeatureCollection(
@@ -460,7 +520,7 @@ function buildCombinedTextureCanvas(
       world,
       palette.countryFill,
       palette.countryStroke,
-      1.2,
+      isAtlas ? 1.4 : 1.2,
     );
     applyCountryDeboss(context, path, world, palette);
 
@@ -468,7 +528,7 @@ function buildCombinedTextureCanvas(
     path(targetFeature as GeoPermissibleObjects);
     context.fillStyle = palette.selectedFill;
     context.strokeStyle = palette.countryStroke;
-    context.lineWidth = 1.6;
+    context.lineWidth = isAtlas ? 2 : 1.6;
     context.fill();
     context.stroke();
 
@@ -489,6 +549,8 @@ function buildCountryTextureCanvas(
   targetFeature: CountryFeature,
   palette: GlobePalette,
   textureSize: number,
+  isAtlas: boolean,
+  atlasPaperImage: HTMLImageElement | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -504,11 +566,21 @@ function buildCountryTextureCanvas(
       .radius(1)();
 
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+    if (isAtlas) {
+      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+    }
+    if (isAtlas) {
+      drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
     context.beginPath();
     path(geoGraticule10());
     context.strokeStyle = palette.graticule;
-    context.lineWidth = 1.2;
+    context.lineWidth = isAtlas ? 1.4 : 1.2;
+    if (isAtlas) {
+      context.setLineDash([3, 8]);
+    }
     context.stroke();
+    context.setLineDash([]);
 
     drawFeatureCollection(
       context,
@@ -516,7 +588,7 @@ function buildCountryTextureCanvas(
       world,
       palette.countryFill,
       palette.countryStroke,
-      1.2,
+      isAtlas ? 1.4 : 1.2,
     );
     applyCountryDeboss(context, path, world, palette);
 
@@ -524,7 +596,7 @@ function buildCountryTextureCanvas(
     path(targetFeature as GeoPermissibleObjects);
     context.fillStyle = palette.selectedFill;
     context.strokeStyle = palette.countryStroke;
-    context.lineWidth = 1.6;
+    context.lineWidth = isAtlas ? 2 : 1.6;
     context.fill();
     context.stroke();
 
@@ -857,7 +929,9 @@ export function WebGlGlobe({
   focusRequest,
   world,
   palette,
+  themeId,
 }: WebGlGlobeProps) {
+  const isAtlas = themeId === 'atlas';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
   const frameStateRef = useRef({
@@ -867,6 +941,7 @@ export function WebGlGlobe({
     zoomScale: 1,
   });
   const paletteRef = useRef(palette);
+  const [atlasPaperImage, setAtlasPaperImage] = useState<HTMLImageElement | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -902,6 +977,32 @@ export function WebGlGlobe({
   useEffect(() => {
     paletteRef.current = palette;
   }, [palette]);
+
+  useEffect(() => {
+    if (!isAtlas) {
+      setAtlasPaperImage(null);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setAtlasPaperImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setAtlasPaperImage(null);
+      }
+    };
+    image.src = '/textures/atlas-paper.jpg';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAtlas]);
 
   const drawCurrentFrame = useCallback((now = performance.now()) => {
     const canvas = canvasRef.current;
@@ -956,14 +1057,29 @@ export function WebGlGlobe({
     const textureResolution = getTextureResolution(gl, width, height);
     const hasRaisedCountries = palette.countryElevation > 0;
     const baseTextureCanvas = hasRaisedCountries
-      ? buildOceanTextureCanvas(world, palette, textureResolution)
-      : buildCombinedTextureCanvas(world, targetFeature, palette, textureResolution);
+      ? buildOceanTextureCanvas(
+          world,
+          palette,
+          textureResolution,
+          isAtlas,
+          atlasPaperImage,
+        )
+      : buildCombinedTextureCanvas(
+          world,
+          targetFeature,
+          palette,
+          textureResolution,
+          isAtlas,
+          atlasPaperImage,
+        );
     const countryTextureCanvas = hasRaisedCountries
       ? buildCountryTextureCanvas(
           world,
           targetFeature,
           palette,
           textureResolution,
+          isAtlas,
+          atlasPaperImage,
         )
       : null;
     const shadowCanvas = buildShadowTextureCanvas(
@@ -1020,7 +1136,7 @@ export function WebGlGlobe({
     return () => {
       cancelled = true;
     };
-  }, [drawCurrentFrame, height, palette, targetFeature, width, world]);
+  }, [atlasPaperImage, drawCurrentFrame, height, isAtlas, palette, targetFeature, width, world]);
 
   useEffect(() => {
     drawCurrentFrame();
