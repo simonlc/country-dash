@@ -245,7 +245,8 @@ export const IntroDialog = NiceModal.create(
                       display: 'grid',
                       gap: 1.25,
                       gridTemplateColumns: {
-                        md: 'repeat(3, minmax(0, 1fr))',
+                        md: 'repeat(12, minmax(0, 1fr))',
+                        sm: 'repeat(6, minmax(0, 1fr))',
                         xs: '1fr',
                       },
                     }}
@@ -278,18 +279,34 @@ export const IntroDialog = NiceModal.create(
                           alignItems: 'flex-start',
                           background: item.isSize
                             ? item.selected
-                              ? 'linear-gradient(180deg, rgba(73,151,255,0.26), rgba(14,35,54,0.98))'
-                              : 'linear-gradient(180deg, rgba(20,34,49,0.96), rgba(8,18,29,0.98))'
-                            : 'transparent',
+                              ? 'linear-gradient(180deg, rgba(73,151,255,0.34), rgba(14,35,54,0.98))'
+                              : 'linear-gradient(180deg, rgba(24,40,58,0.98), rgba(8,18,29,0.98))'
+                            : 'rgba(255,255,255,0.02)',
                           borderColor: item.selected
                             ? 'primary.main'
                             : 'rgba(146, 198, 255, 0.16)',
                           borderRadius: 3,
+                          boxShadow: item.isSize
+                            ? item.selected
+                              ? '0 16px 40px rgba(0, 0, 0, 0.24)'
+                              : '0 10px 24px rgba(0, 0, 0, 0.18)'
+                            : 'none',
                           color: item.selected ? 'common.white' : 'rgba(232,242,255,0.78)',
+                          gridColumn: item.isSize
+                            ? {
+                                md: 'span 4',
+                                sm: 'span 2',
+                                xs: 'auto',
+                              }
+                            : {
+                                md: 'span 3',
+                                sm: 'span 2',
+                                xs: 'auto',
+                              },
                           justifyContent: 'flex-start',
-                          minHeight: item.isSize ? 132 : 72,
+                          minHeight: item.isSize ? 156 : 76,
                           px: item.isSize ? 2 : 1.5,
-                          py: item.isSize ? 1.75 : 1.25,
+                          py: item.isSize ? 2 : 1.25,
                           textAlign: 'left',
                           textTransform: 'none',
                         }}
@@ -306,7 +323,7 @@ export const IntroDialog = NiceModal.create(
                         <Stack spacing={item.isSize ? 0.75 : 0.25}>
                           <Typography
                             fontWeight={700}
-                            variant={item.isSize ? 'h5' : 'body2'}
+                            variant={item.isSize ? 'h4' : 'body2'}
                           >
                             {item.label}
                           </Typography>
