@@ -672,40 +672,18 @@ function hasAmbientAnimation(palette: GlobePalette) {
   );
 }
 
-function getTextureLodLevel(zoomScale: number) {
-  if (zoomScale >= 3) {
-    return 3;
-  }
-
-  if (zoomScale >= 2) {
-    return 2;
-  }
-
-  if (zoomScale >= 1.35) {
-    return 1;
-  }
-
-  return 0;
-}
-
 function getTextureResolution(
   gl: WebGLRenderingContext,
   width: number,
   height: number,
-  textureLodLevel: number,
 ) {
   const textureLimit = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
   const maxTextureSize = Math.min(
     Number.isFinite(textureLimit) ? textureLimit : 4096,
-    8192,
+    4096,
   );
   const dpr = window.devicePixelRatio || 1;
-  const lodMultiplier = [1, 1.35, 1.8, 2.4][textureLodLevel] ?? 1;
-  const desiredSize = Math.max(width, height) * dpr * 2 * lodMultiplier;
-
-  if (desiredSize >= 6144 && maxTextureSize >= 8192) {
-    return 8192;
-  }
+  const desiredSize = Math.max(width, height) * dpr * 2;
 
   if (desiredSize >= 3072 && maxTextureSize >= 4096) {
     return 4096;
@@ -993,14 +971,14 @@ function drawSelectedCountryOverlay(args: {
   path(country as GeoPermissibleObjects);
   context.fillStyle = palette.selectedFill;
   context.strokeStyle = palette.countryStroke;
-  context.globalAlpha = 0.96;
-  context.lineWidth = 0.9;
+  context.globalAlpha = 0.99;
+  context.lineWidth = 0.45;
   context.fill();
   context.stroke();
   context.globalAlpha = 1;
 
   context.strokeStyle = palette.smallCountryCircle;
-  context.lineWidth = 1.4;
+  context.lineWidth = 1.1;
   for (const ringPath of ringPaths) {
     context.beginPath();
     path(ringPath);
@@ -1025,7 +1003,6 @@ export function WebGlGlobe({
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
   const drawCurrentFrameRef = useRef<(now?: number) => void>(() => undefined);
-  const textureLodLevelRef = useRef(0);
   const targetFeatureRef = useRef<CountryFeature>(country);
   const frameStateRef = useRef({
     currentRotation: rotation,
@@ -1036,7 +1013,6 @@ export function WebGlGlobe({
   const paletteRef = useRef(palette);
   const [atlasPaperImage, setAtlasPaperImage] = useState<HTMLImageElement | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [textureLodLevel, setTextureLodLevel] = useState(0);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
     [height, width],
@@ -1058,12 +1034,6 @@ export function WebGlGlobe({
         width,
         zoomScale: nextZoomScale,
       };
-
-      const nextTextureLodLevel = getTextureLodLevel(nextZoomScale);
-      if (textureLodLevelRef.current !== nextTextureLodLevel) {
-        textureLodLevelRef.current = nextTextureLodLevel;
-        setTextureLodLevel(nextTextureLodLevel);
-      }
       drawCurrentFrameRef.current();
     },
     pointerDirection: { x: 1, y: 1 },
@@ -1091,10 +1061,6 @@ export function WebGlGlobe({
   useEffect(() => {
     targetFeatureRef.current = targetFeature;
   }, [targetFeature]);
-
-  useEffect(() => {
-    textureLodLevelRef.current = textureLodLevel;
-  }, [textureLodLevel]);
 
   useEffect(() => {
     if (!isAtlas) {
@@ -1186,7 +1152,7 @@ export function WebGlGlobe({
     }
 
     const gl = resources.gl;
-    const textureResolution = getTextureResolution(gl, width, height, textureLodLevel);
+    const textureResolution = getTextureResolution(gl, width, height);
     const hasRaisedCountries = palette.countryElevation > 0;
     const baseTextureCanvas = hasRaisedCountries
       ? buildOceanTextureCanvas(
@@ -1274,14 +1240,13 @@ export function WebGlGlobe({
     height,
     isAtlas,
     palette,
-    textureLodLevel,
     width,
     world,
   ]);
 
   useEffect(() => {
     drawCurrentFrame();
-  }, [drawCurrentFrame, palette, targetFeature, textureLodLevel, height, width]);
+  }, [drawCurrentFrame, palette, targetFeature, height, width]);
 
   useEffect(() => {
     let cancelled = false;
