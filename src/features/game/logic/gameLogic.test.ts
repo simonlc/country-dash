@@ -123,6 +123,7 @@ describe('gameLogic', () => {
           continent: 'North America',
           subregion: 'Northern America',
         }),
+        'classic',
       ),
     ).toBe(true);
     expect(normalizeGuess('Côte d’Ivoire')).toBe('cote d ivoire');
@@ -227,7 +228,6 @@ describe('gameLogic', () => {
       calculateRoundScore({
         answerResult: 'incorrect',
         hintsUsed: 10,
-        mode: 'speedrun',
         roundElapsedMs: 90_000,
         streak: 0,
       }),
@@ -289,6 +289,7 @@ describe('gameLogic', () => {
       rounds: [
         {
           answerResult: 'correct',
+          capitalName: null,
           continent: 'Asia',
           countryId: 'JP',
           countryName: 'Japan',
@@ -302,6 +303,7 @@ describe('gameLogic', () => {
         },
         {
           answerResult: 'incorrect',
+          capitalName: null,
           continent: 'Asia',
           countryId: 'QA',
           countryName: 'Qatar',
@@ -315,6 +317,7 @@ describe('gameLogic', () => {
         },
         {
           answerResult: 'correct',
+          capitalName: null,
           continent: 'North America',
           countryId: 'BZ',
           countryName: 'Belize',

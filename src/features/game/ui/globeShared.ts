@@ -10,10 +10,15 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 import * as solar from 'solar-calculator';
-import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
+import type {
+  CountryFeature,
+  FeatureCollectionLike,
+  GameMode,
+} from '@/features/game/types';
 
 export interface GlobeViewProps {
   country: CountryFeature;
+  mode: GameMode;
   width: number;
   height: number;
   rotation: [number, number];

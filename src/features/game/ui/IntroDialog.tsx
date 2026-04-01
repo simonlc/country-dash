@@ -18,7 +18,6 @@ import {
   Map,
   MapPin,
   Triangle,
-  Zap,
 } from 'react-feather';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
@@ -66,9 +65,9 @@ const modeDetails: Array<{
     label: '3 Lives',
   },
   {
-    icon: Zap,
-    value: 'speedrun',
-    label: 'Speedrun',
+    icon: MapPin,
+    value: 'capitals',
+    label: 'Capitals',
   },
   {
     icon: Triangle,

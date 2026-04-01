@@ -163,7 +163,7 @@ describe('GamePage', () => {
     const introArgs = showModalMock.mock.calls[0]?.[1] as {
       onStartDaily: () => void;
       onStartRandom: (options: {
-        mode: 'classic' | 'threeLives' | 'speedrun' | 'streak';
+        mode: 'classic' | 'threeLives' | 'capitals' | 'streak';
         regionFilter:
           | 'africa'
           | 'asia'

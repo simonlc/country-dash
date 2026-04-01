@@ -6,7 +6,7 @@ import type {
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'veryHard';
 export type CountrySizeFilter = 'large' | 'mixed' | 'small';
-export type GameMode = 'classic' | 'threeLives' | 'speedrun' | 'streak';
+export type GameMode = 'classic' | 'threeLives' | 'capitals' | 'streak';
 export type SessionKind = 'random' | 'daily';
 export type GameStatus = 'intro' | 'playing' | 'reviewing' | 'gameOver';
 export type AnswerResult = 'correct' | 'incorrect';
@@ -37,6 +37,10 @@ export interface CountryProperties {
   nameAlt?: string | null;
   isocode: string;
   isocode3: string;
+  capitalName?: string | null;
+  capitalAliases?: string[];
+  capitalLongitude?: number | null;
+  capitalLatitude?: number | null;
   continent?: string | null;
   region?: string | null;
   subregion?: string | null;
@@ -80,6 +84,7 @@ export interface SessionPlan {
 export interface RoundRecord {
   countryId: string;
   countryName: string;
+  capitalName: string | null;
   continent: string | null;
   region: string | null;
   subregion: string | null;

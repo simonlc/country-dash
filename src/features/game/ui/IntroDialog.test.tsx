@@ -62,7 +62,7 @@ describe('IntroDialog', () => {
 
     await user.click(
       screen.getByRole('button', {
-        name: /^Speedrun$/i,
+        name: /^Capitals$/i,
       }),
     );
     await user.click(
@@ -75,7 +75,7 @@ describe('IntroDialog', () => {
     );
 
     expect(onStartRandom).toHaveBeenCalledWith({
-      mode: 'speedrun',
+      mode: 'capitals',
       regionFilter: 'microstates',
       countrySizeFilter: 'mixed',
     });
@@ -91,7 +91,7 @@ describe('IntroDialog', () => {
     );
 
     expect(onStartRandom).toHaveBeenLastCalledWith({
-      mode: 'speedrun',
+      mode: 'capitals',
       regionFilter: null,
       countrySizeFilter: 'small',
     });

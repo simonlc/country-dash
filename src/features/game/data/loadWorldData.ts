@@ -1,4 +1,6 @@
 import * as topojson from 'topojson-client';
+import { countries as countriesList } from 'countries-list';
+import { countryCapitals } from 'country-capitals';
 import worldSource from '../../../../world.json';
 import type {
   CountryProperties,
@@ -15,6 +17,8 @@ interface SourceCountryProperties {
   CONTINENT?: string;
   REGION_UN?: string;
   SUBREGION?: string;
+  LABEL_X?: number;
+  LABEL_Y?: number;
 }
 
 const microstateCodes = new Set([
@@ -145,6 +149,9 @@ const middleEastCodes = new Set([
   'YE',
 ]);
 
+const countriesByIso2 = countriesList as Record<string, { capital?: string }>;
+const capitalsByIso2 = countryCapitals as Record<string, string>;
+
 function buildCountryTags(isocode: string): CountryTag[] {
   const tags: CountryTag[] = [];
 
@@ -204,6 +211,8 @@ function buildMetadataMap() {
       }
 
       const metadata = {
+        capitalLatitude: feature.properties.LABEL_Y ?? null,
+        capitalLongitude: feature.properties.LABEL_X ?? null,
         continent: feature.properties.CONTINENT ?? null,
         region: feature.properties.REGION_UN ?? null,
         subregion: feature.properties.SUBREGION ?? null,
@@ -217,6 +226,48 @@ function buildMetadataMap() {
   );
 }
 
+function normalizeIso2Code(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const suffix = trimmed.split('-').at(-1);
+  if (suffix && /^[A-Z]{2}$/.test(suffix)) {
+    return suffix;
+  }
+
+  return null;
+}
+
+function normalizeCapitalName(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function getCapitalMetadata(country: { isocode: string; isocode3: string }) {
+  const normalizedIso2 = normalizeIso2Code(country.isocode);
+  const capitalFromList = normalizedIso2
+    ? normalizeCapitalName(countriesByIso2[normalizedIso2]?.capital)
+    : null;
+  const capitalFromCountryCapitals = normalizedIso2
+    ? normalizeCapitalName(capitalsByIso2[normalizedIso2])
+    : null;
+  const aliases = [capitalFromList, capitalFromCountryCapitals].filter(
+    (value): value is string => Boolean(value),
+  );
+  const uniqueAliases = Array.from(new Set(aliases));
+
+  return {
+    aliases: uniqueAliases,
+    name: uniqueAliases[0] ?? null,
+  };
+}
+
 function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectionLike {
   const metadataByCode = buildMetadataMap();
 
@@ -226,9 +277,14 @@ function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectio
       const metadata =
         metadataByCode.get(feature.properties.isocode) ??
         metadataByCode.get(feature.properties.isocode3);
+      const capitalMetadata = getCapitalMetadata(feature.properties);
       const tags = buildCountryTags(feature.properties.isocode);
       const properties: CountryProperties = {
         ...feature.properties,
+        capitalAliases: capitalMetadata.aliases,
+        capitalLatitude: metadata?.capitalLatitude ?? null,
+        capitalLongitude: metadata?.capitalLongitude ?? null,
+        capitalName: capitalMetadata.name,
         continent: metadata?.continent ?? null,
         region: metadata?.region ?? null,
         subregion: metadata?.subregion ?? null,

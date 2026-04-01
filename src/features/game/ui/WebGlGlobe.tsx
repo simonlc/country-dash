@@ -20,6 +20,7 @@ import type { AppThemeId, GlobePalette } from '@/app/theme';
 import type {
   CountryFeature,
   FeatureCollectionLike,
+  GameMode,
 } from '@/features/game/types';
 
 interface WebGlGlobeProps extends GlobeViewProps {
@@ -943,6 +944,8 @@ function drawSelectedCountryOverlay(args: {
   country: CountryFeature;
   currentRotation: [number, number];
   height: number;
+  mode: GameMode;
+  nowMs: number;
   palette: GlobePalette;
   width: number;
   zoomScale: number;
@@ -952,6 +955,8 @@ function drawSelectedCountryOverlay(args: {
     country,
     currentRotation,
     height,
+    mode,
+    nowMs,
     palette,
     width,
     zoomScale,
@@ -983,38 +988,79 @@ function drawSelectedCountryOverlay(args: {
     .translate([width / 2, height / 2])
     .rotate([currentRotation[0], currentRotation[1], 0]);
   const path = geoPath(projection, context);
-  const ringPaths = getCountryHighlightRings(country).map((ring) =>
-    geoCircle().center(ring.center).radius(ring.radius)(),
-  );
 
   context.save();
   context.beginPath();
   path({ type: 'Sphere' });
   context.clip();
 
-  context.beginPath();
-  path(country as GeoPermissibleObjects);
-  context.fillStyle = palette.selectedFill;
-  context.strokeStyle = palette.selectedFill;
-  context.globalAlpha = 0.9;
-  context.lineWidth = 0.18;
-  context.fill();
-  context.stroke();
-  context.globalAlpha = 1;
+  if (mode === 'capitals') {
+    if (
+      typeof country.properties.capitalLongitude === 'number' &&
+      typeof country.properties.capitalLatitude === 'number'
+    ) {
+      const capitalPoint = projection([
+        country.properties.capitalLongitude,
+        country.properties.capitalLatitude,
+      ]);
 
-  context.strokeStyle = palette.smallCountryCircle;
-  context.lineWidth = 1.7;
-  for (const ringPath of ringPaths) {
+      if (capitalPoint) {
+        const [capitalX, capitalY] = capitalPoint;
+        const cycleSeconds = 1.6;
+        const elapsedSeconds = nowMs * 0.001;
+        const waveProgress = (elapsedSeconds % cycleSeconds) / cycleSeconds;
+
+        context.fillStyle = palette.smallCountryCircle;
+        context.globalAlpha = 0.95;
+        context.beginPath();
+        context.arc(capitalX, capitalY, 3, 0, Math.PI * 2);
+        context.fill();
+
+        for (let wave = 0; wave < 2; wave += 1) {
+          const phase = (waveProgress + wave * 0.5) % 1;
+          const radius = 4 + phase * 28;
+          const alpha = Math.max(0, 0.6 * (1 - phase));
+
+          context.beginPath();
+          context.arc(capitalX, capitalY, radius, 0, Math.PI * 2);
+          context.strokeStyle = palette.smallCountryCircle;
+          context.globalAlpha = alpha;
+          context.lineWidth = 2 - phase * 0.8;
+          context.stroke();
+        }
+      }
+    }
+  } else {
+    const ringPaths = getCountryHighlightRings(country).map((ring) =>
+      geoCircle().center(ring.center).radius(ring.radius)(),
+    );
+
     context.beginPath();
-    path(ringPath);
+    path(country as GeoPermissibleObjects);
+    context.fillStyle = palette.selectedFill;
+    context.strokeStyle = palette.selectedFill;
+    context.globalAlpha = 0.9;
+    context.lineWidth = 0.18;
+    context.fill();
     context.stroke();
+    context.globalAlpha = 1;
+
+    context.strokeStyle = palette.smallCountryCircle;
+    context.lineWidth = 1.7;
+    for (const ringPath of ringPaths) {
+      context.beginPath();
+      path(ringPath);
+      context.stroke();
+    }
   }
 
+  context.globalAlpha = 1;
   context.restore();
 }
 
 export function WebGlGlobe({
   country,
+  mode,
   width,
   height,
   rotation,
@@ -1070,6 +1116,7 @@ export function WebGlGlobe({
     () => hasAmbientAnimation(palette),
     [palette],
   );
+  const hasCapitalBlipAnimation = mode === 'capitals';
 
   useEffect(() => {
     frameStateRef.current = {
@@ -1139,11 +1186,13 @@ export function WebGlGlobe({
       country: targetFeatureRef.current,
       currentRotation: frameState.currentRotation,
       height: frameState.height,
+      mode,
+      nowMs: now,
       palette: paletteRef.current,
       width: frameState.width,
       zoomScale: frameState.zoomScale,
     });
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     drawCurrentFrameRef.current = drawCurrentFrame;
@@ -1273,7 +1322,7 @@ export function WebGlGlobe({
         return;
       }
 
-      if (ambientAnimationEnabled) {
+      if (ambientAnimationEnabled || hasCapitalBlipAnimation) {
         timeoutId = window.setTimeout(() => {
           frameId = window.requestAnimationFrame(renderLoop);
         }, 1000 / ambientAnimationFps);
@@ -1304,7 +1353,12 @@ export function WebGlGlobe({
       window.clearTimeout(timeoutId);
       window.cancelAnimationFrame(frameId);
     };
-  }, [ambientAnimationEnabled, drawCurrentFrame, isAnimating]);
+  }, [
+    ambientAnimationEnabled,
+    drawCurrentFrame,
+    hasCapitalBlipAnimation,
+    isAnimating,
+  ]);
 
   return (
     <div

@@ -29,6 +29,8 @@
     "@tanstack/react-router": "^1.132.18",
     "@tanstack/react-router-devtools": "^1.166.11",
     "autosuggest-highlight": "^3.3.4",
+    "countries-list": "^3.3.0",
+    "country-capitals": "^1.0.2",
     "d3": "^7.9.0",
     "match-sorter": "^8.1.0",
     "react": "^19.2.0",

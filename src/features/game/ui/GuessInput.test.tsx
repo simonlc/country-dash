@@ -27,7 +27,13 @@ describe('GuessInput', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
 
-    renderWithProviders(<GuessInput onSubmit={onSubmit} options={options} />);
+    renderWithProviders(
+      <GuessInput
+        onSubmit={onSubmit}
+        options={options}
+        variant="country"
+      />,
+    );
 
     const input = screen.getByLabelText(/guess the country/i);
     await user.type(input, 'dom');

@@ -4,11 +4,13 @@ import { WebGlGlobe } from '@/features/game/ui/WebGlGlobe';
 import type {
   CountryFeature,
   FeatureCollectionLike,
+  GameMode,
   GlobeRenderer,
 } from '@/features/game/types';
 
 interface GlobeProps {
   country: CountryFeature;
+  mode: GameMode;
   width: number;
   height: number;
   rotation: [number, number];
@@ -20,9 +22,10 @@ interface GlobeProps {
 }
 
 function GlobeComponent({
-  renderer: _renderer,
+  renderer,
   ...props
 }: GlobeProps) {
+  void renderer;
   return <WebGlGlobe {...props} />;
 }
 

@@ -24,7 +24,6 @@ export const difficulties: Record<Difficulty, number> = {
 
 const difficultyOrder: Difficulty[] = ['easy', 'medium', 'hard', 'veryHard'];
 const dailyRoundCount = 5;
-const speedrunRoundCount = 10;
 const threeLivesCount = 3;
 const normalMode: GameMode = 'classic';
 const defaultDifficulty: Difficulty = 'hard';
@@ -109,6 +108,10 @@ export function buildCountryPool(
   return weightedShuffle(Object.entries(weights), random)
     .map(([countryCode]) => countriesByIso.get(countryCode))
     .filter((feature): feature is CountryFeature => feature !== undefined);
+}
+
+function hasCapitalMetadata(country: CountryFeature) {
+  return Boolean(country.properties.capitalName);
 }
 
 function getWeight(country: CountryFeature) {
@@ -212,6 +215,14 @@ export function buildCountrySizePool(
   return countriesBySize[countrySizeFilter];
 }
 
+function buildModeCountryPool(countries: CountryFeature[], mode: GameMode) {
+  if (mode === 'capitals') {
+    return countries.filter((country) => hasCapitalMetadata(country));
+  }
+
+  return countries;
+}
+
 export function getRandomRunCountryCount(
   totalCountries: number,
   countrySizeFilter: CountrySizeFilter,
@@ -242,9 +253,7 @@ export function createSessionConfig(args: {
     maxRounds:
       kind === 'daily'
         ? dailyRoundCount
-        : args.mode === 'speedrun'
-          ? speedrunRoundCount
-          : null,
+        : null,
     startingLives: args.mode === 'threeLives' ? threeLivesCount : null,
   };
 }
@@ -255,7 +264,8 @@ export function buildSessionPlan(
 ): SessionPlan {
   const random = createSeededRng(config.seed);
   const basePool = buildCountryPool(world, random);
-  const regionPool = buildRegionCountryPool(basePool, config.regionFilter);
+  const modePool = buildModeCountryPool(basePool, config.mode);
+  const regionPool = buildRegionCountryPool(modePool, config.regionFilter);
   const filteredPool = config.regionFilter
     ? regionPool
     : regionPool.slice(0, getRandomRunCountryCount(regionPool.length, config.countrySizeFilter));
@@ -373,10 +383,24 @@ function getCountryAliases(country: CountryFeature) {
     .map((value) => normalizeGuess(value));
 }
 
-export function isCorrectGuess(input: string, country: CountryFeature) {
-  const normalizedInput = normalizeGuess(input);
+function getCapitalAliases(country: CountryFeature) {
+  const capitalAliases = country.properties.capitalAliases ?? [];
 
-  return normalizedInput.length > 0 && getCountryAliases(country).includes(normalizedInput);
+  return capitalAliases
+    .filter((value): value is string => Boolean(value))
+    .map((value) => normalizeGuess(value));
+}
+
+export function isCorrectGuess(
+  input: string,
+  country: CountryFeature,
+  mode: GameMode,
+) {
+  const normalizedInput = normalizeGuess(input);
+  const answerAliases =
+    mode === 'capitals' ? getCapitalAliases(country) : getCountryAliases(country);
+
+  return normalizedInput.length > 0 && answerAliases.includes(normalizedInput);
 }
 
 export function calculateRoundScore(args: {
@@ -384,17 +408,13 @@ export function calculateRoundScore(args: {
   roundElapsedMs: number;
   streak: number;
   hintsUsed: number;
-  mode: GameMode;
 }) {
   if (args.answerResult === 'incorrect') {
     return 0;
   }
 
   const baseScore = 100;
-  const timeBonus =
-    args.mode === 'speedrun'
-      ? Math.max(0, 180 - Math.floor(args.roundElapsedMs / 250))
-      : Math.max(0, 90 - Math.floor(args.roundElapsedMs / 500));
+  const timeBonus = Math.max(0, 90 - Math.floor(args.roundElapsedMs / 500));
   const streakBonus = Math.max(0, args.streak - 1) * 15;
   const firstTryBonus = args.hintsUsed === 0 ? 25 : 0;
   const hintPenalty = args.hintsUsed * 15;
@@ -418,6 +438,7 @@ function buildRoundRecord(args: {
   return {
     countryId: args.country.id,
     countryName: args.country.properties.nameEn,
+    capitalName: args.country.properties.capitalName ?? null,
     continent: args.country.properties.continent ?? null,
     region: args.country.properties.region ?? null,
     subregion: args.country.properties.subregion ?? null,
@@ -580,7 +601,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.currentRoundElapsedMs,
         Math.floor(action.submittedAt - startedAt),
       );
-      const answerResult = isCorrectGuess(action.guess, action.country)
+      const answerResult = isCorrectGuess(
+        action.guess,
+        action.country,
+        state.sessionConfig.mode,
+      )
         ? 'correct'
         : 'incorrect';
       const nextStreak = answerResult === 'correct' ? state.streak + 1 : 0;
@@ -590,7 +615,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         roundElapsedMs,
         streak: nextStreak,
         hintsUsed: state.hintsUsedThisRound,
-        mode: state.sessionConfig.mode,
       });
       const roundRecord = buildRoundRecord({
         country: action.country,

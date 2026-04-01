@@ -1,5 +1,6 @@
 import {
   geoCircle,
+  geoDistance,
   geoGraticule10,
   geoOrthographic,
   geoPath,
@@ -24,6 +25,7 @@ interface SvgGlobeProps extends GlobeViewProps {
 
 export function SvgGlobe({
   country,
+  mode,
   width,
   height,
   rotation,
@@ -70,6 +72,44 @@ export function SvgGlobe({
         .filter((ringPath): ringPath is string => Boolean(ringPath)),
     [path, targetFeature],
   );
+  const capitalPoint = useMemo(() => {
+    if (
+      mode !== 'capitals' ||
+      typeof targetFeature.properties.capitalLongitude !== 'number' ||
+      typeof targetFeature.properties.capitalLatitude !== 'number'
+    ) {
+      return null;
+    }
+
+    const centerLongitude = -currentRotation[0];
+    const centerLatitude = -currentRotation[1];
+    const isVisible =
+      geoDistance(
+        [centerLongitude, centerLatitude],
+        [
+          targetFeature.properties.capitalLongitude,
+          targetFeature.properties.capitalLatitude,
+        ],
+      ) <=
+      Math.PI / 2;
+
+    if (!isVisible) {
+      return null;
+    }
+
+    const projected = projection([
+      targetFeature.properties.capitalLongitude,
+      targetFeature.properties.capitalLatitude,
+    ]);
+    if (!projected) {
+      return null;
+    }
+
+    return {
+      x: projected[0],
+      y: projected[1],
+    };
+  }, [currentRotation, mode, projection, targetFeature]);
   const gradientId = useId();
   const clipId = useId();
   const shadowFilterId = useId();
@@ -126,21 +166,47 @@ export function SvgGlobe({
         stroke={palette.countryStroke}
         strokeWidth={0.8}
       />
-      <path
-        d={targetPath}
-        fill={palette.selectedFill}
-        stroke={palette.countryStroke}
-        strokeWidth={1}
-      />
-      {selectedRingPaths.map((ringPath, index) => (
-        <path
-          key={`${targetFeature.id}-ring-${index}`}
-          d={ringPath}
-          fill="none"
-          stroke={palette.smallCountryCircle}
-          strokeWidth={2}
-        />
-      ))}
+      {mode === 'capitals' ? null : (
+        <>
+          <path
+            d={targetPath}
+            fill={palette.selectedFill}
+            stroke={palette.countryStroke}
+            strokeWidth={1}
+          />
+          {selectedRingPaths.map((ringPath, index) => (
+            <path
+              key={`${targetFeature.id}-ring-${index}`}
+              d={ringPath}
+              fill="none"
+              stroke={palette.smallCountryCircle}
+              strokeWidth={2}
+            />
+          ))}
+        </>
+      )}
+      {mode === 'capitals' && capitalPoint ? (
+        <g>
+          <circle
+            cx={capitalPoint.x}
+            cy={capitalPoint.y}
+            fill={palette.smallCountryCircle}
+            r={2.8}
+          />
+          {[10, 16].map((radius) => (
+            <circle
+              key={radius}
+              cx={capitalPoint.x}
+              cy={capitalPoint.y}
+              fill="none"
+              opacity={0.45}
+              r={radius}
+              stroke={palette.smallCountryCircle}
+              strokeWidth={1.2}
+            />
+          ))}
+        </g>
+      ) : null}
       <g clipPath={`url(#${clipId})`}>
         <path
           d={nightPath}

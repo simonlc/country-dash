@@ -58,7 +58,7 @@ const dailyDifficulty: Difficulty = 'medium';
 const modeLabels: Record<GameMode, string> = {
   classic: 'Classic',
   threeLives: '3 Lives',
-  speedrun: 'Speedrun',
+  capitals: 'Capitals',
   streak: 'Streak',
 };
 
@@ -215,12 +215,23 @@ export function GamePage() {
       null,
     [countryFeaturesById, countryPool, gameState.currentCountryId],
   );
+  const isCapitalMode = gameState.sessionConfig?.mode === 'capitals';
   const rotation = useMemo<[number, number]>(() => {
     if (!currentCountry) {
       return [0, 0];
     }
+    if (
+      isCapitalMode &&
+      typeof currentCountry.properties.capitalLongitude === 'number' &&
+      typeof currentCountry.properties.capitalLatitude === 'number'
+    ) {
+      return [
+        -currentCountry.properties.capitalLongitude,
+        -currentCountry.properties.capitalLatitude,
+      ];
+    }
     return getInitialRotation(currentCountry);
-  }, [currentCountry]);
+  }, [currentCountry, isCapitalMode]);
   const countryOptions = useMemo(
     () =>
       worldData?.world.features.map((feature) => feature.properties) ??
@@ -613,6 +624,7 @@ export function GamePage() {
       <Box sx={{ height: '100%' }}>
         <Globe
           country={currentCountry}
+          mode={gameState.sessionConfig?.mode ?? gameState.mode}
           focusRequest={focusRequest}
           height={size.height}
           palette={activeTheme.globe}
@@ -895,15 +907,19 @@ export function GamePage() {
                       ? 'Correct'
                       : 'Incorrect'}
                   </Alert>
-                  <Stack spacing={0.5}>
-                    <Typography variant="h4">
-                      {gameState.lastRound.countryName}
-                    </Typography>
-                    <Typography color="text.secondary" variant="body2">
-                      {[
-                        gameState.lastRound.continent,
-                        gameState.lastRound.subregion,
-                      ]
+                <Stack spacing={0.5}>
+                  <Typography variant="h4">
+                      {isCapitalMode
+                        ? gameState.lastRound.capitalName ??
+                          gameState.lastRound.countryName
+                        : gameState.lastRound.countryName}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {[
+                      isCapitalMode ? gameState.lastRound.countryName : null,
+                      gameState.lastRound.continent,
+                      gameState.lastRound.subregion,
+                    ]
                         .filter((value): value is string => Boolean(value))
                         .join(' • ')}
                     </Typography>
@@ -988,10 +1004,13 @@ export function GamePage() {
               ) : gameState.status === 'playing' ? (
                 <>
                   <Typography variant="h6">
-                    Guess the highlighted country.
+                    {isCapitalMode
+                      ? 'Guess the capital city.'
+                      : 'Guess the highlighted country.'}
                   </Typography>
                   <GuessInput
                     options={countryOptions}
+                    variant={isCapitalMode ? 'capital' : 'country'}
                     onSubmit={handleSubmit}
                   />
                 </>

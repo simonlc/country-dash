@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
 import { matchSorter } from 'match-sorter';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { normalizeGuess } from '@/features/game/logic/gameLogic';
 import type { CountryProperties } from '@/features/game/types';
@@ -17,30 +17,69 @@ interface HighlightPart {
 
 interface GuessInputProps {
   options: CountryProperties[];
+  variant: 'country' | 'capital';
   onSubmit: (term: string) => void;
 }
 
-const filterOptions = (options: CountryProperties[], inputValue: string) =>
+interface GuessChoice {
+  aliases: string[];
+  detail: string | null;
+  id: string;
+  label: string;
+}
+
+const filterOptions = (options: GuessChoice[], inputValue: string) =>
   matchSorter(options, inputValue, {
     keys: [
       (item) =>
-        `${item.nameEn}, ${item.name ?? ''}, ${item.abbr ?? ''}, ${
-          item.nameAlt ?? ''
-        }, ${item.formalName ?? ''}`,
-      { threshold: matchSorter.rankings.STARTS_WITH, key: 'isocode' },
-      { threshold: matchSorter.rankings.STARTS_WITH, key: 'isocode3' },
+        `${item.label}, ${item.aliases.join(', ')}, ${item.detail ?? ''}`,
     ],
   }).slice(0, 5);
 
-export function GuessInput({ options, onSubmit }: GuessInputProps) {
+export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
   const { activeTheme } = useAppearance();
   const hintRef = useRef('');
-  const [value, setValue] = useState<CountryProperties | undefined>(undefined);
+  const [value, setValue] = useState<GuessChoice | undefined>(undefined);
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
+  const choices = useMemo<GuessChoice[]>(
+    () =>
+      variant === 'capital'
+        ? options
+            .filter((option): option is CountryProperties & { capitalName: string } =>
+              Boolean(option.capitalName),
+            )
+            .map((option) => ({
+              aliases: option.capitalAliases ?? [option.capitalName],
+              detail: null,
+              id: `${option.isocode3}-${option.capitalName}`,
+              label: option.capitalName,
+            }))
+        : options.map((option) => ({
+            aliases: [
+              option.nameEn,
+              option.name ?? '',
+              option.abbr ?? '',
+              option.nameAlt ?? '',
+              option.formalName ?? '',
+              option.isocode,
+              option.isocode3,
+            ].filter((alias): alias is string => Boolean(alias)),
+            detail:
+              option.formalName && option.formalName !== option.nameEn
+                ? option.formalName
+                : null,
+            id:
+              option.isocode3 === '-99'
+                ? `${option.nameEn}-${option.isocode}`
+                : option.isocode3,
+            label: option.nameEn,
+          })),
+    [options, variant],
+  );
 
   function getFilteredOptions(nextValue: string) {
-    return filterOptions(options, nextValue);
+    return filterOptions(choices, nextValue);
   }
 
   function updateHint(nextValue: string) {
@@ -48,7 +87,7 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
 
     hintRef.current =
       nextValue && matchingOption
-        ? nextValue + matchingOption.nameEn.slice(nextValue.length)
+        ? nextValue + matchingOption.label.slice(nextValue.length)
         : '';
   }
 
@@ -58,7 +97,8 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
       onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const field = event.currentTarget.querySelector('input');
-        const submittedValue = value?.nameEn ?? field?.value.trim() ?? inputValue.trim();
+        const submittedValue =
+          value?.label ?? field?.value.trim() ?? inputValue.trim();
 
         if (submittedValue) {
           onSubmit(submittedValue);
@@ -71,7 +111,7 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         width: '100%',
       }}
     >
-      <Autocomplete<CountryProperties, false, true, false>
+      <Autocomplete<GuessChoice, false, true, false>
         autoHighlight
         disableClearable
         disablePortal
@@ -81,34 +121,35 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         noOptionsText="No matches"
         open={open}
         openOnFocus={false}
-        options={options}
+        options={choices}
         value={value}
         filterOptions={(allOptions, state) =>
           filterOptions(allOptions, state.inputValue)
         }
-        getOptionKey={(country) =>
-          country.isocode3 === '-99' ? country.nameEn : country.isocode3
-        }
-        getOptionLabel={(country) => country.nameEn}
+        getOptionKey={(choice) => choice.id}
+        getOptionLabel={(choice) => choice.label}
         onBlur={() => {
           hintRef.current = '';
         }}
         onChange={(_event, nextValue) => {
           setValue(nextValue);
           if (nextValue) {
-            setInputValue(nextValue.nameEn);
+            setInputValue(nextValue.label);
           }
           if (nextValue) {
-            hintRef.current = nextValue.nameEn;
+            hintRef.current = nextValue.label;
           }
         }}
         onClose={() => setOpen(false)}
         onInputChange={(_event, nextInputValue) => {
           setInputValue(nextInputValue);
           const exactMatch =
-            options.find(
+            choices.find(
               (option) =>
-                normalizeGuess(option.nameEn) === normalizeGuess(nextInputValue),
+                option.aliases.some(
+                  (alias) =>
+                    normalizeGuess(alias) === normalizeGuess(nextInputValue),
+                ),
             ) ?? undefined;
           setValue(exactMatch);
           updateHint(nextInputValue);
@@ -119,15 +160,15 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
             const [matchingOption] = getFilteredOptions(inputValue);
 
             if (matchingOption) {
-              setInputValue(matchingOption.nameEn);
+              setInputValue(matchingOption.label);
               setValue(matchingOption);
-              hintRef.current = matchingOption.nameEn;
+              hintRef.current = matchingOption.label;
               setOpen(false);
               event.preventDefault();
             }
           }
           if (event.key === 'Enter') {
-            const submittedValue = value?.nameEn ?? inputValue.trim();
+            const submittedValue = value?.label ?? inputValue.trim();
 
             if (submittedValue) {
               onSubmit(submittedValue);
@@ -140,8 +181,16 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
             <TextField
               {...params}
               autoFocus
-              label="Guess the country"
-              placeholder="France, Japan, Brazil..."
+              label={
+                variant === 'capital'
+                  ? 'Guess the capital city'
+                  : 'Guess the country'
+              }
+              placeholder={
+                variant === 'capital'
+                  ? 'Ottawa, Tokyo, Brasilia...'
+                  : 'France, Japan, Brazil...'
+              }
               sx={{
                 '& .MuiInputLabel-root': {
                   fontWeight: 700,
@@ -180,7 +229,7 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
-                  const submittedValue = value?.nameEn ?? inputValue.trim();
+                  const submittedValue = value?.label ?? inputValue.trim();
 
                   if (submittedValue) {
                     onSubmit(submittedValue);
@@ -212,10 +261,10 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         )}
         renderOption={(props, option, state) => {
           const { key, ...optionProps } = props;
-          const matches = match(option.nameEn, state.inputValue, {
+          const matches = match(option.label, state.inputValue, {
             insideWords: true,
           });
-          const parts = parse(option.nameEn, matches) as HighlightPart[];
+          const parts = parse(option.label, matches) as HighlightPart[];
 
           return (
             <Box
@@ -234,9 +283,9 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
                     {part.text}
                   </Box>
                 ))}
-                {option.formalName && option.formalName !== option.nameEn ? (
+                {option.detail ? (
                   <Typography color="text.secondary" variant="caption">
-                    {option.formalName}
+                    {option.detail}
                   </Typography>
                 ) : null}
               </Box>

@@ -17,8 +17,10 @@ test.beforeEach(async ({ page }) => {
 
 test('starts a random run and accepts a typed incorrect answer', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /Start run/i })).toBeVisible();
-  await page.getByRole('button', { name: /Start run/i }).click();
+  await expect(
+    page.getByRole('button', { name: /Start Standard Run/i }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: /Start Standard Run/i }).click();
   await expect(page.getByText(/Guess the highlighted country/i)).toBeVisible();
 
   const input = page.getByRole('combobox', { name: /Guess the country/i });
@@ -51,5 +53,5 @@ test('completes the daily challenge once and then locks it', async ({ page }) =>
     .poll(async () => page.evaluate(() => window.localStorage.getItem('copied-share-text')))
     .toContain('🧭 Country Guesser Daily');
   await page.getByRole('button', { name: /Main menu/i }).click();
-  await expect(page.getByText(/Today is already complete: 0\/5/i)).toBeVisible();
+  await expect(page.getByText(/Completed for today\./i)).toBeVisible();
 });
