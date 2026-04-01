@@ -135,6 +135,14 @@ function getSelectedPoolLabel(
   return countrySizeLabels[countrySizeFilter];
 }
 
+function formatCompletedDate(value: string) {
+  return new Date(value).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export const IntroDialog = NiceModal.create(
   ({ counts, dailyResult, onStartDaily, onStartRandom }: IntroDialogProps) => {
     const modal = useModal();
@@ -170,169 +178,285 @@ export const IntroDialog = NiceModal.create(
           <Stack spacing={3}>
             <Stack spacing={1}>
               <Typography color="primary.light" variant="overline">
-                Randomly Generated Countries
+                Country Guesser
               </Typography>
-              <Typography color="common.white" variant="h4">
-                Pick a pool
+              <Typography color="common.white" variant="h3">
+                Choose a way to play
               </Typography>
               <Typography color="rgba(232,242,255,0.72)" variant="body2">
-                Choose one preset or one category pool for the run.
+                Daily Challenge and Random Run are separate modes. Pick one path and start.
               </Typography>
             </Stack>
 
-            <Paper
-              elevation={0}
+            <Box
               sx={{
-                background:
-                  'linear-gradient(160deg, rgba(18,33,47,0.92), rgba(8,18,29,0.92))',
-                border: '1px solid rgba(146, 198, 255, 0.14)',
-                borderRadius: 4,
-                color: 'common.white',
-                p: 2.5,
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: {
+                  md: 'minmax(0, 1fr) minmax(0, 1fr)',
+                  xs: '1fr',
+                },
               }}
             >
-              <Stack spacing={2.5}>
-                <Stack
-                  direction={{ md: 'row', xs: 'column' }}
-                  justifyContent="space-between"
-                  spacing={1.5}
-                >
-                  <Stack spacing={0.5}>
-                    <Typography variant="h6">Start random run</Typography>
+              <Paper
+                elevation={0}
+                sx={{
+                  background:
+                    'radial-gradient(circle at top left, rgba(61,203,169,0.22), rgba(61,203,169,0) 34%), linear-gradient(165deg, rgba(14,39,48,0.98), rgba(8,22,30,0.98))',
+                  border: '1px solid rgba(102, 225, 195, 0.2)',
+                  borderRadius: 4,
+                  color: 'common.white',
+                  minHeight: 1,
+                  p: { md: 2.5, xs: 2 },
+                }}
+              >
+                <Stack height="100%" justifyContent="space-between" spacing={2}>
+                  <Stack spacing={1}>
+                    <Typography color="secondary.light" variant="overline">
+                      Daily Challenge
+                    </Typography>
+                    <Typography lineHeight={1.05} variant="h4">
+                      Today&apos;s
+                      <br />
+                      seeded route
+                    </Typography>
                     <Typography color="rgba(232,242,255,0.64)" variant="body2">
-                      {modeDetails.find((option) => option.value === mode)?.label}
-                      {' • '}
-                      {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
+                      One fixed 5-country run for today. Same countries for everyone.
                     </Typography>
                   </Stack>
-                  <Button
-                    size="large"
-                    sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
-                    variant="contained"
-                    onClick={() => {
-                      onStartRandom({
-                        mode,
-                        regionFilter,
-                        countrySizeFilter,
-                      });
-                      void modal.hide();
-                    }}
-                  >
-                    Play {getSelectedPoolLabel(countrySizeFilter, regionFilter).toLowerCase()}
-                  </Button>
-                </Stack>
 
-                <Stack spacing={1.5}>
-                  <Stack spacing={0.75}>
+                  {dailySummary ? (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        background:
+                          'linear-gradient(180deg, rgba(83,199,170,0.14), rgba(83,199,170,0.04))',
+                        border: '1px solid rgba(102, 225, 195, 0.24)',
+                        borderRadius: 3,
+                        p: 1.75,
+                      }}
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography color="rgba(213,255,246,0.82)" variant="caption">
+                          Completed
+                        </Typography>
+                        <Typography lineHeight={1} variant="h3">
+                          {dailySummary}
+                        </Typography>
+                        <Typography color="rgba(232,242,255,0.72)" variant="body2">
+                          Today&apos;s route has already been played.
+                        </Typography>
+                        <Typography color="rgba(232,242,255,0.58)" variant="caption">
+                          Finished on {formatCompletedDate(dailyResult.completedAt)}.
+                        </Typography>
+                      </Stack>
+                    </Paper>
+                  ) : (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        background:
+                          'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                        border: '1px solid rgba(102, 225, 195, 0.18)',
+                        borderRadius: 3,
+                        p: 1.75,
+                      }}
+                    >
+                      <Stack direction="row" justifyContent="space-between" spacing={1.5}>
+                        <Stack spacing={0.25}>
+                          <Typography color="rgba(213,255,246,0.82)" variant="caption">
+                            Route
+                          </Typography>
+                          <Typography lineHeight={1} variant="h3">
+                            5
+                          </Typography>
+                        </Stack>
+                        <Stack spacing={0.25}>
+                          <Typography color="rgba(232,242,255,0.78)" variant="body2">
+                            countries, one fixed seed, shared for the day
+                          </Typography>
+                          <Typography color="rgba(232,242,255,0.58)" variant="caption">
+                            One attempt. Fresh every day.
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  )}
+
+                  {dailySummary ? (
+                    <Typography color="rgba(232,242,255,0.6)" variant="body2">
+                      Daily challenge completed for today.
+                    </Typography>
+                  ) : (
+                    <Button
+                      size="large"
+                      sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                      variant="contained"
+                      onClick={() => {
+                        onStartDaily();
+                        void modal.hide();
+                      }}
+                    >
+                      Play today&apos;s daily
+                    </Button>
+                  )}
+                </Stack>
+              </Paper>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  background:
+                    'linear-gradient(160deg, rgba(18,33,47,0.92), rgba(8,18,29,0.92))',
+                  border: '1px solid rgba(146, 198, 255, 0.14)',
+                  borderRadius: 4,
+                  color: 'common.white',
+                  p: 2.5,
+                }}
+              >
+                <Stack spacing={2.5}>
+                  <Stack
+                    direction={{ md: 'row', xs: 'column' }}
+                    justifyContent="space-between"
+                    spacing={1.5}
+                  >
+                    <Stack spacing={0.5}>
+                      <Typography color="primary.light" variant="overline">
+                        Random Run
+                      </Typography>
+                      <Typography variant="h5">Build a custom run</Typography>
+                      <Typography color="rgba(232,242,255,0.64)" variant="body2">
+                        {modeDetails.find((option) => option.value === mode)?.label}
+                        {' • '}
+                        {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
+                      </Typography>
+                    </Stack>
+                    <Button
+                      size="large"
+                      sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                      variant="contained"
+                      onClick={() => {
+                        onStartRandom({
+                          mode,
+                          regionFilter,
+                          countrySizeFilter,
+                        });
+                        void modal.hide();
+                      }}
+                    >
+                      Play {getSelectedPoolLabel(countrySizeFilter, regionFilter).toLowerCase()}
+                    </Button>
+                  </Stack>
+
+                  <Stack spacing={1}>
                     <Typography color="rgba(232,242,255,0.72)" variant="body2">
                       Pool
                     </Typography>
                     <Typography color="rgba(232,242,255,0.56)" variant="caption">
                       One active choice at a time.
                     </Typography>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gap: 1.25,
+                        gridTemplateColumns: {
+                          md: 'repeat(12, minmax(0, 1fr))',
+                          sm: 'repeat(6, minmax(0, 1fr))',
+                          xs: '1fr',
+                        },
+                      }}
+                    >
+                      {[
+                        ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
+                          isSize: true,
+                          description: `${counts[key]} random countries with ${difficultyLabels[randomRunPresetDifficulties[key]].toLowerCase()}.`,
+                          label: countrySizeLabels[key],
+                          meta: `${counts[key]} countries`,
+                          selected: regionFilter === null && countrySizeFilter === key,
+                          value: key,
+                        })),
+                        ...categoryOptions.map((option) => ({
+                          isSize: false,
+                          description: option.description,
+                          label: option.label,
+                          meta: 'Category pool',
+                          selected: regionFilter === option.value,
+                          value: option.value,
+                        })),
+                      ].map((item) => (
+                        <Button
+                          key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
+                          sx={{
+                            alignItems: 'flex-start',
+                            background: item.isSize
+                              ? item.selected
+                                ? 'linear-gradient(180deg, rgba(73,151,255,0.34), rgba(14,35,54,0.98))'
+                                : 'linear-gradient(180deg, rgba(24,40,58,0.98), rgba(8,18,29,0.98))'
+                              : 'rgba(255,255,255,0.02)',
+                            borderColor: item.selected
+                              ? 'primary.main'
+                              : 'rgba(146, 198, 255, 0.16)',
+                            borderRadius: 3,
+                            boxShadow: item.isSize
+                              ? item.selected
+                                ? '0 16px 40px rgba(0, 0, 0, 0.24)'
+                                : '0 10px 24px rgba(0, 0, 0, 0.18)'
+                              : 'none',
+                            color: item.selected ? 'common.white' : 'rgba(232,242,255,0.78)',
+                            gridColumn: item.isSize
+                              ? {
+                                  md: 'span 4',
+                                  sm: 'span 2',
+                                  xs: 'auto',
+                                }
+                              : {
+                                  md: 'span 3',
+                                  sm: 'span 2',
+                                  xs: 'auto',
+                                },
+                            justifyContent: 'flex-start',
+                            minHeight: item.isSize ? 156 : 76,
+                            px: item.isSize ? 2 : 1.5,
+                            py: item.isSize ? 2 : 1.25,
+                            textAlign: 'left',
+                            textTransform: 'none',
+                          }}
+                          variant={item.selected ? 'contained' : 'outlined'}
+                          onClick={() => {
+                            if (item.isSize) {
+                              setCountrySizeFilter(item.value as CountrySizeFilter);
+                              setRegionFilter(null);
+                              return;
+                            }
+
+                            setRegionFilter(item.value as RegionFilter);
+                            setCountrySizeFilter('mixed');
+                          }}
+                        >
+                          <Stack spacing={item.isSize ? 0.75 : 0.25}>
+                            <Typography
+                              fontWeight={700}
+                              variant={item.isSize ? 'h4' : 'body2'}
+                            >
+                              {item.label}
+                            </Typography>
+                            <Typography
+                              color={item.selected ? 'inherit' : 'rgba(232,242,255,0.56)'}
+                              variant="caption"
+                            >
+                              {item.meta}
+                            </Typography>
+                            <Typography
+                              color={item.selected ? 'inherit' : 'rgba(232,242,255,0.66)'}
+                              variant="body2"
+                            >
+                              {item.description}
+                            </Typography>
+                          </Stack>
+                        </Button>
+                      ))}
+                    </Box>
                   </Stack>
-
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: 1.25,
-                      gridTemplateColumns: {
-                        md: 'repeat(12, minmax(0, 1fr))',
-                        sm: 'repeat(6, minmax(0, 1fr))',
-                        xs: '1fr',
-                      },
-                    }}
-                  >
-                    {[
-                      ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
-                        isSize: true,
-                        description: `${counts[key]} random countries with ${difficultyLabels[randomRunPresetDifficulties[key]].toLowerCase()}.`,
-                        label: countrySizeLabels[key],
-                        meta: `${counts[key]} countries`,
-                        selected: regionFilter === null && countrySizeFilter === key,
-                        value: key,
-                      })),
-                      ...categoryOptions.map((option) => ({
-                        isSize: false,
-                        description: option.description,
-                        label: option.label,
-                        meta: 'Category pool',
-                        selected: regionFilter === option.value,
-                        value: option.value,
-                      })),
-                    ].map((item) => (
-                      <Button
-                        key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
-                        sx={{
-                          alignItems: 'flex-start',
-                          background: item.isSize
-                            ? item.selected
-                              ? 'linear-gradient(180deg, rgba(73,151,255,0.34), rgba(14,35,54,0.98))'
-                              : 'linear-gradient(180deg, rgba(24,40,58,0.98), rgba(8,18,29,0.98))'
-                            : 'rgba(255,255,255,0.02)',
-                          borderColor: item.selected
-                            ? 'primary.main'
-                            : 'rgba(146, 198, 255, 0.16)',
-                          borderRadius: 3,
-                          boxShadow: item.isSize
-                            ? item.selected
-                              ? '0 16px 40px rgba(0, 0, 0, 0.24)'
-                              : '0 10px 24px rgba(0, 0, 0, 0.18)'
-                            : 'none',
-                          color: item.selected ? 'common.white' : 'rgba(232,242,255,0.78)',
-                          gridColumn: item.isSize
-                            ? {
-                                md: 'span 4',
-                                sm: 'span 2',
-                                xs: 'auto',
-                              }
-                            : {
-                                md: 'span 3',
-                                sm: 'span 2',
-                                xs: 'auto',
-                              },
-                          justifyContent: 'flex-start',
-                          minHeight: item.isSize ? 156 : 76,
-                          px: item.isSize ? 2 : 1.5,
-                          py: item.isSize ? 2 : 1.25,
-                          textAlign: 'left',
-                          textTransform: 'none',
-                        }}
-                        variant={item.selected ? 'contained' : 'outlined'}
-                        onClick={() => {
-                          if (item.isSize) {
-                            setCountrySizeFilter(item.value as CountrySizeFilter);
-                            setRegionFilter(null);
-                            return;
-                          }
-
-                          setRegionFilter(item.value as RegionFilter);
-                          setCountrySizeFilter('mixed');
-                        }}
-                      >
-                        <Stack spacing={item.isSize ? 0.75 : 0.25}>
-                          <Typography
-                            fontWeight={700}
-                            variant={item.isSize ? 'h4' : 'body2'}
-                          >
-                            {item.label}
-                          </Typography>
-                          <Typography
-                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.56)'}
-                            variant="caption"
-                          >
-                            {item.meta}
-                          </Typography>
-                          <Typography
-                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.66)'}
-                            variant="body2"
-                          >
-                            {item.description}
-                          </Typography>
-                        </Stack>
-                      </Button>
-                    ))}
-                  </Box>
 
                   <Stack spacing={1}>
                     <Typography color="rgba(232,242,255,0.72)" variant="body2">
@@ -365,31 +489,9 @@ export const IntroDialog = NiceModal.create(
                       ))}
                     </Box>
                   </Stack>
-
-                  <Stack
-                    direction={{ sm: 'row', xs: 'column' }}
-                    justifyContent="space-between"
-                    spacing={1}
-                  >
-                    <Typography color="rgba(232,242,255,0.6)" variant="body2">
-                      Daily challenge: {dailySummary ? `completed ${dailySummary}` : 'one seeded 5-country route for today'}
-                    </Typography>
-                    {dailySummary ? null : (
-                      <Button
-                        sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
-                        variant="text"
-                        onClick={() => {
-                          onStartDaily();
-                          void modal.hide();
-                        }}
-                      >
-                        Play today&apos;s daily
-                      </Button>
-                    )}
-                  </Stack>
                 </Stack>
-              </Stack>
-            </Paper>
+              </Paper>
+            </Box>
           </Stack>
         </DialogContent>
       </Dialog>

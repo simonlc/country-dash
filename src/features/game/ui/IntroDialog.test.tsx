@@ -37,8 +37,10 @@ describe('IntroDialog', () => {
       />,
     );
 
-    expect(screen.getByText(/Daily Challenge/i)).toBeVisible();
-    expect(screen.getByText(/Daily challenge: completed 4\/5/i)).toBeVisible();
+    expect(screen.getByText(/^Daily Challenge$/i)).toBeVisible();
+    expect(screen.getByText(/^Completed$/i)).toBeVisible();
+    expect(screen.getByText(/^4\/5$/i)).toBeVisible();
+    expect(screen.getByText(/already been played/i)).toBeVisible();
     expect(
       screen.queryByRole('button', { name: /play today's daily/i }),
     ).not.toBeInTheDocument();
@@ -78,7 +80,7 @@ describe('IntroDialog', () => {
       countrySizeFilter: 'mixed',
     });
 
-    expect(screen.getAllByText(/Pick a pool/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Choose a way to play/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
         name: /Quick Run 18 countries 18 random countries with lower difficulty\./i,

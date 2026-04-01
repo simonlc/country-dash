@@ -88,11 +88,7 @@ function getSessionSummaryLabel(gameState: GameState) {
   if (!gameState.sessionConfig) {
     return '';
   }
-  if (gameState.sessionConfig.kind === 'daily') {
-    return 'Daily challenge';
-  }
-
-  const parts = [modeLabels[gameState.sessionConfig.mode]];
+  const parts = [];
 
   if (gameState.regionFilter) {
     parts.push(regionLabels[gameState.regionFilter]);
@@ -101,6 +97,22 @@ function getSessionSummaryLabel(gameState: GameState) {
   }
 
   return parts.join(' • ');
+}
+
+function getSessionTypeLabel(gameState: GameState) {
+  if (!gameState.sessionConfig) {
+    return 'Menu';
+  }
+
+  return gameState.sessionConfig.kind === 'daily' ? 'Daily Challenge' : 'Random Run';
+}
+
+function getSessionModeLabel(gameState: GameState) {
+  if (!gameState.sessionConfig) {
+    return 'No mode selected';
+  }
+
+  return modeLabels[gameState.sessionConfig.mode];
 }
 
 export function GamePage() {
@@ -611,61 +623,162 @@ export function GamePage() {
           <Paper
             elevation={0}
             sx={{
-              backgroundColor: activeTheme.background.panel,
-              border: `1px solid ${activeTheme.background.panelBorder}`,
-              boxShadow: activeTheme.background.panelShadow,
-              borderRadius: isAtlas ? '8px 12px 10px 9px' : undefined,
+              backdropFilter: 'blur(18px)',
+              background:
+                'linear-gradient(180deg, rgba(8,18,30,0.86), rgba(7,14,24,0.74))',
+              border: '1px solid rgba(150, 201, 255, 0.22)',
+              boxShadow:
+                '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)',
+              borderRadius: isAtlas ? '8px 12px 10px 9px' : 4,
+              flex: 1,
               overflow: isAtlas ? 'hidden' : undefined,
-              p: 2,
+              p: { md: 2.25, xs: 1.75 },
               pointerEvents: 'auto',
               position: 'relative',
             }}
           >
-            <Stack spacing={1}>
-              <Typography variant="body2">
+            <Stack spacing={1.5}>
+              <Stack
+                alignItems={{ md: 'center', xs: 'flex-start' }}
+                direction={{ md: 'row', xs: 'column' }}
+                justifyContent="space-between"
+                spacing={1.25}
+              >
+                <Stack spacing={0.35}>
+                  <Typography
+                    color="rgba(164,208,255,0.82)"
+                    letterSpacing="0.12em"
+                    textTransform="uppercase"
+                    variant="caption"
+                  >
+                    {gameState.status === 'intro'
+                      ? 'Ready'
+                      : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
+                  </Typography>
+                  <Typography
+                    fontWeight={700}
+                    letterSpacing="-0.02em"
+                    variant="h5"
+                  >
+                    {gameState.status === 'intro'
+                      ? 'Country Guesser'
+                      : (currentCountry?.properties.nameEn ?? 'Country Guesser')}
+                  </Typography>
+                </Stack>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(150, 201, 255, 0.18)',
+                    borderRadius: 999,
+                    px: 1.5,
+                    py: 0.75,
+                  }}
+                >
+                  <GameTimer elapsedMs={displayElapsedMs} />
+                </Paper>
+              </Stack>
+
+              <Stack direction="row" flexWrap="wrap" gap={1}>
+                {[
+                  `Type: ${getSessionTypeLabel(gameState)}`,
+                  `Mode: ${getSessionModeLabel(gameState)}`,
+                  getSessionSummaryLabel(gameState)
+                    ? `Pool: ${getSessionSummaryLabel(gameState)}`
+                    : null,
+                ]
+                  .filter((value): value is string => Boolean(value))
+                  .map((label) => (
+                    <Box
+                      key={label}
+                      sx={{
+                        background: 'linear-gradient(180deg, rgba(71,147,255,0.18), rgba(71,147,255,0.06))',
+                        border: '1px solid rgba(141, 196, 255, 0.22)',
+                        borderRadius: 999,
+                        color: 'rgba(232,242,255,0.92)',
+                        px: 1.25,
+                        py: 0.75,
+                      }}
+                    >
+                      <Typography fontWeight={600} variant="caption">
+                        {label}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Stack>
+              <Typography color="rgba(232,242,255,0.62)" variant="body2">
                 {gameState.status === 'intro'
-                  ? 'Choose a run'
-                  : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
+                  ? 'Select a mode and drop into a run.'
+                  : 'Track your run state, score pressure, and pacing at a glance.'}
               </Typography>
-              <Typography variant="h3">Country Guesser</Typography>
-              <Typography color="text.secondary" variant="body2">
-                {getSessionSummaryLabel(gameState)}
-              </Typography>
-              <GameTimer elapsedMs={displayElapsedMs} />
             </Stack>
           </Paper>
           <Paper
             elevation={0}
             sx={{
-              backgroundColor: activeTheme.background.panel,
-              border: `1px solid ${activeTheme.background.panelBorder}`,
-              boxShadow: activeTheme.background.panelShadow,
-              borderRadius: isAtlas ? '11px 8px 12px 9px' : undefined,
+              backdropFilter: 'blur(18px)',
+              background:
+                'linear-gradient(180deg, rgba(8,18,30,0.84), rgba(7,14,24,0.72))',
+              border: '1px solid rgba(150, 201, 255, 0.2)',
+              boxShadow:
+                '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)',
+              borderRadius: isAtlas ? '11px 8px 12px 9px' : 4,
               overflow: isAtlas ? 'hidden' : undefined,
-              p: 2,
+              minWidth: { md: 320, xs: 'auto' },
+              p: { md: 2.25, xs: 1.75 },
               pointerEvents: 'auto',
               position: 'relative',
             }}
           >
-            <Stack spacing={1} textAlign={{ md: 'right', xs: 'left' }}>
-              <Typography variant="body2">Score: {gameState.score}</Typography>
-              <Typography variant="body2">Streak: {gameState.streak}</Typography>
-              <Typography variant="body2">
-                Correct: {gameState.correct}
-              </Typography>
-              <Typography variant="body2">
-                Incorrect: {gameState.incorrect}
-              </Typography>
-              {gameState.livesRemaining !== null ? (
-                <Typography variant="body2">
-                  Lives: {gameState.livesRemaining}
-                </Typography>
-              ) : null}
+            <Stack spacing={1.5}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1,
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                }}
+              >
+                {[
+                  { label: 'Score', value: gameState.score },
+                  { label: 'Streak', value: gameState.streak },
+                  { label: 'Correct', value: gameState.correct },
+                  { label: 'Misses', value: gameState.incorrect },
+                  ...(gameState.livesRemaining !== null
+                    ? [{ label: 'Lives', value: gameState.livesRemaining }]
+                    : []),
+                ].map((item) => (
+                  <Box
+                    key={item.label}
+                    sx={{
+                      background:
+                        'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+                      border: '1px solid rgba(150, 201, 255, 0.12)',
+                      borderRadius: 2.5,
+                      p: 1.15,
+                    }}
+                  >
+                    <Typography
+                      color="rgba(170,210,255,0.72)"
+                      textTransform="uppercase"
+                      variant="caption"
+                    >
+                      {item.label}
+                    </Typography>
+                    <Typography fontWeight={700} lineHeight={1.1} variant="h5">
+                      {item.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
               {gameState.status !== 'gameOver' && gameState.status !== 'intro' ? (
                 <Button
                   size="small"
-                  sx={{ alignSelf: { md: 'flex-end', xs: 'stretch' } }}
-                  variant="outlined"
+                  sx={{
+                    alignSelf: { md: 'stretch', xs: 'stretch' },
+                    borderColor: 'rgba(150, 201, 255, 0.22)',
+                    py: 0.85,
+                  }}
+                  variant="contained"
                   onClick={handleRefocus}
                 >
                   Refocus country
