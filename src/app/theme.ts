@@ -53,6 +53,7 @@ export interface GlobeQualityConfig {
   dayImageryEnabled: boolean;
   nightImageryEnabled: boolean;
   waterMaskEnabled: boolean;
+  umbraDarkness: number;
 }
 
 export interface ThemePreview {
@@ -160,6 +161,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: false,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(140deg, #edf7ff, #c7e1ff)',
@@ -232,6 +234,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: false,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #08131f, #15314e)',
@@ -304,6 +307,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: false,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #2a1614, #99563d)',
@@ -376,6 +380,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: true,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #f2e4c5, #c9a774)',
@@ -449,6 +454,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: false,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #020907, #0b3025)',
@@ -521,6 +527,7 @@ export const appThemes: AppThemeDefinition[] = [
       dayImageryEnabled: false,
       nightImageryEnabled: false,
       waterMaskEnabled: false,
+      umbraDarkness: 1,
     },
     preview: {
       sky: 'linear-gradient(145deg, #f6fbff, #cfe5fb)',

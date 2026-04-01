@@ -44,6 +44,12 @@ function sanitizeOverride(
   if (typeof value.waterMaskEnabled === 'boolean') {
     next.waterMaskEnabled = value.waterMaskEnabled;
   }
+  if (
+    typeof value.umbraDarkness === 'number' &&
+    Number.isFinite(value.umbraDarkness)
+  ) {
+    next.umbraDarkness = Math.max(0, Math.min(1, value.umbraDarkness));
+  }
 
   return next;
 }

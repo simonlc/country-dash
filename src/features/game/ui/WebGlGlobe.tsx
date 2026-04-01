@@ -81,6 +81,7 @@ interface WebGlResources {
     sunDirection: WebGLUniformLocation;
     texture: WebGLUniformLocation;
     time: WebGLUniformLocation;
+    umbraDarkness: WebGLUniformLocation;
     useDayImagery: WebGLUniformLocation;
     useNightImagery: WebGLUniformLocation;
     useWaterMask: WebGLUniformLocation;
@@ -129,6 +130,7 @@ const fragmentShaderSource = `
   uniform float u_scanlineDensity;
   uniform float u_scanlineStrength;
   uniform float u_reliefStrength;
+  uniform float u_umbraDarkness;
   uniform sampler2D u_reliefTexture;
   uniform vec2 u_reliefTexelSize;
   uniform float u_specularPower;
@@ -205,6 +207,7 @@ const fragmentShaderSource = `
     float twilight = smoothstep(u_penumbra, -u_penumbra, light) * u_nightAlpha;
     float nightSide = 1.0 - smoothstep(-u_penumbra, u_penumbra, light);
     float nightBlend = clamp(max(twilight, nightSide), 0.0, 1.0);
+    float umbraMix = nightBlend * u_umbraDarkness;
     float dayImageryMix = u_useDayImagery * 0.6 * imageryMask;
     vec3 dayColor = mix(baseColor.rgb, dayImagery, dayImageryMix);
     dayColor = mix(dayColor, dayImagery, u_useWaterMask * waterMask * 0.85);
@@ -214,28 +217,30 @@ const fragmentShaderSource = `
       nightImagery,
       u_useNightImagery * imageryMask
     );
-    vec3 shaded = mix(dayColor, nightTarget, nightBlend);
+    vec3 shaded = mix(dayColor, nightTarget, umbraMix);
     float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     float directLight = clamp(light, 0.0, 1.0);
-    float umbra = nightBlend;
+    float umbra = umbraMix;
+    float umbraShade = umbraMix;
     vec3 viewDirection = vec3(0.0, 0.0, 1.0);
 
     float paperFiber = fbm(v_uv * vec2(1100.0, 540.0));
     float paperTooth = fbm(v_uv * vec2(2800.0, 1360.0));
     normal = normalize(
       normal +
-      (paperTooth - 0.5) * (east * 0.065 + north * 0.045) * (1.0 - umbra * 0.7)
+      (paperTooth - 0.5) * (east * 0.065 + north * 0.045) * (1.0 - umbraShade * 0.7)
     );
     light = dot(normal, sunDirection);
     daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     directLight = clamp(light, 0.0, 1.0);
+    float sunVisibility = smoothstep(-u_penumbra * 0.2, u_penumbra * 0.6, light);
 
     float facing = clamp(normal.z, 0.0, 1.0);
-    float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48) * (1.0 - umbra * 0.66);
+    float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48) * sunVisibility;
     float specular = pow(
       max(dot(reflect(-sunDirection, normal), viewDirection), 0.0),
       u_specularPower
-    ) * u_specularStrength * directLight;
+    ) * u_specularStrength * directLight * sunVisibility;
     vec3 halfVector = normalize(sunDirection + viewDirection);
     float vellumSheen = pow(max(dot(normal, halfVector), 0.0), 26.0);
     float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.2);
@@ -247,31 +252,34 @@ const fragmentShaderSource = `
     float grid = max(lonLine, latLine) * u_gridStrength * facing * directLight;
 
     float scanlineWave = sin(v_uv.y * u_scanlineDensity + u_time * 5.0 + v_uv.x * 12.0);
-    float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight * (1.0 - umbra);
+    float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight * (1.0 - umbraShade);
 
     float auroraWave = sin(v_uv.y * 18.0 - u_time * 0.9 + normal.x * 3.5);
     float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
 
-    float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength * (0.75 - umbra * 0.45);
+    float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength * (0.75 - umbraShade * 0.45);
     float parchmentSpeckle = (paperFiber - 0.5) * (0.06 + u_noiseStrength * 1.3);
     float reliefLight =
       (dot(reliefNormal, sunDirection) - dot(normalize(v_normal), sunDirection)) * reliefMask;
-    float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18);
+    float reliefHighlight = max(reliefLight, 0.0);
+    float reliefShadow = min(reliefLight, 0.0);
+    float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18) * sunVisibility;
 
     vec3 color = shaded;
     color *= reliefOcclusion;
     float colorLuma = dot(color, vec3(0.299, 0.587, 0.114));
     vec3 desaturatedUmbra = mix(vec3(colorLuma), u_nightColor, 0.2);
-    color = mix(color, desaturatedUmbra, umbra * 0.75);
-    color *= 1.0 - umbra * 0.12;
+    color = mix(color, desaturatedUmbra, umbraShade * 0.75);
+    color *= 1.0 - umbraShade * 0.12;
     color += u_atmosphereTint * atmosphere;
     color += u_gridColor * (grid + scanline * 0.12);
     color += u_rimLightColor * (rim + aurora);
-    color += u_specularColor * specular * (1.0 - umbra);
-    color += u_atmosphereTint * vellumSheen * (0.13 + fresnel * 0.22) * (1.0 - umbra);
-    color += vec3(0.08, 0.06, 0.03) * fresnel * (0.08 + daylight * 0.12) * (1.0 - umbra * 0.7);
-    color += vec3(reliefLight) * (0.34 * (1.0 - umbra));
-    color += parchmentSpeckle * (1.0 - umbra * 0.55);
+    color += u_specularColor * specular;
+    color += u_atmosphereTint * vellumSheen * (0.13 + fresnel * 0.22) * sunVisibility;
+    color += vec3(0.08, 0.06, 0.03) * fresnel * (0.08 + daylight * 0.12) * sunVisibility;
+    color += vec3(reliefHighlight) * (0.34 * sunVisibility);
+    color += vec3(reliefShadow) * 0.24;
+    color += parchmentSpeckle * (1.0 - umbraShade * 0.55);
     color += grain;
 
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), baseColor.a);
@@ -1497,6 +1505,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
       texture: getUniformLocation(gl, program, 'u_texture'),
       time: getUniformLocation(gl, program, 'u_time'),
+      umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
       useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
       useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
       useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
@@ -1603,6 +1612,7 @@ function drawGlobe(
   gl.uniform1i(uniforms.nightTexture, 3);
   gl.uniform1i(uniforms.waterMaskTexture, 4);
   gl.uniform1f(uniforms.reliefStrength, reliefStrength);
+  gl.uniform1f(uniforms.umbraDarkness, quality.umbraDarkness);
   gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
   gl.uniform1f(uniforms.useDayImagery, quality.dayImageryEnabled ? 1 : 0);
   gl.uniform1f(uniforms.useNightImagery, quality.nightImageryEnabled ? 1 : 0);

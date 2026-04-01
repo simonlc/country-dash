@@ -8,6 +8,7 @@ const defaults: GlobeQualityConfig = {
   nightImageryEnabled: false,
   reliefHeight: 1,
   reliefMapEnabled: true,
+  umbraDarkness: 1,
   waterMaskEnabled: false,
 };
 
@@ -118,6 +119,31 @@ describe('useGlobeAdminTuning', () => {
     });
 
     expect(result.current.effectiveQuality.reliefHeight).toBe(0);
+  });
+
+  it('clamps umbraDarkness patch values to supported range', () => {
+    const { result } = renderHook(() =>
+      useGlobeAdminTuning({
+        defaults,
+        themeId: 'cipher',
+      }),
+    );
+
+    act(() => {
+      result.current.setAdminOverridePatch({
+        umbraDarkness: 9,
+      });
+    });
+
+    expect(result.current.effectiveQuality.umbraDarkness).toBe(1);
+
+    act(() => {
+      result.current.setAdminOverridePatch({
+        umbraDarkness: -2,
+      });
+    });
+
+    expect(result.current.effectiveQuality.umbraDarkness).toBe(0);
   });
 
   it('resets active theme override and clears storage', () => {

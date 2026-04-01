@@ -36,6 +36,12 @@ export function GlobeAdminPanel({
       waterMaskEnabled: {
         value: quality.waterMaskEnabled,
       },
+      umbraDarkness: {
+        max: 1,
+        min: 0,
+        step: 0.05,
+        value: quality.umbraDarkness,
+      },
       reset: button(() => {
         onReset();
       }),
@@ -46,6 +52,7 @@ export function GlobeAdminPanel({
       quality.reliefHeight,
       quality.reliefMapEnabled,
       quality.waterMaskEnabled,
+      quality.umbraDarkness,
       themeLabel,
     ],
   );
@@ -68,6 +75,9 @@ export function GlobeAdminPanel({
     if (controls.waterMaskEnabled !== quality.waterMaskEnabled) {
       patch.waterMaskEnabled = controls.waterMaskEnabled;
     }
+    if (controls.umbraDarkness !== quality.umbraDarkness) {
+      patch.umbraDarkness = controls.umbraDarkness;
+    }
 
     if (Object.keys(patch).length > 0) {
       setQualityPatch(patch);
@@ -78,11 +88,13 @@ export function GlobeAdminPanel({
     controls.reliefHeight,
     controls.reliefMapEnabled,
     controls.waterMaskEnabled,
+    controls.umbraDarkness,
     quality.dayImageryEnabled,
     quality.nightImageryEnabled,
     quality.reliefHeight,
     quality.reliefMapEnabled,
     quality.waterMaskEnabled,
+    quality.umbraDarkness,
     setQualityPatch,
   ]);
 
