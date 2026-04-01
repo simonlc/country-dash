@@ -50,6 +50,36 @@ function sanitizeOverride(
   ) {
     next.umbraDarkness = Math.max(0, Math.min(1, value.umbraDarkness));
   }
+  if (typeof value.showLakes === 'boolean') {
+    next.showLakes = value.showLakes;
+  }
+  if (typeof value.showRivers === 'boolean') {
+    next.showRivers = value.showRivers;
+  }
+  if (
+    typeof value.lakesOpacity === 'number' &&
+    Number.isFinite(value.lakesOpacity)
+  ) {
+    next.lakesOpacity = Math.max(0, Math.min(1, value.lakesOpacity));
+  }
+  if (
+    typeof value.riversOpacity === 'number' &&
+    Number.isFinite(value.riversOpacity)
+  ) {
+    next.riversOpacity = Math.max(0, Math.min(1, value.riversOpacity));
+  }
+  if (
+    typeof value.riversWidth === 'number' &&
+    Number.isFinite(value.riversWidth)
+  ) {
+    next.riversWidth = Math.max(0.1, Math.min(5, value.riversWidth));
+  }
+  if (typeof value.lakesColor === 'string' && value.lakesColor.length > 0) {
+    next.lakesColor = value.lakesColor;
+  }
+  if (typeof value.riversColor === 'string' && value.riversColor.length > 0) {
+    next.riversColor = value.riversColor;
+  }
 
   return next;
 }

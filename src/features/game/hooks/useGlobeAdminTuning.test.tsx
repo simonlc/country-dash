@@ -10,6 +10,13 @@ const defaults: GlobeQualityConfig = {
   reliefMapEnabled: true,
   umbraDarkness: 1,
   waterMaskEnabled: false,
+  showLakes: true,
+  showRivers: true,
+  lakesOpacity: 0.35,
+  riversOpacity: 0.55,
+  riversWidth: 0.9,
+  lakesColor: '#5aaee8',
+  riversColor: '#4a96d6',
 };
 
 function createStorage() {

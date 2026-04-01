@@ -36,6 +36,36 @@ export function GlobeAdminPanel({
       waterMaskEnabled: {
         value: quality.waterMaskEnabled,
       },
+      showLakes: {
+        value: quality.showLakes,
+      },
+      showRivers: {
+        value: quality.showRivers,
+      },
+      lakesOpacity: {
+        max: 1,
+        min: 0,
+        step: 0.01,
+        value: quality.lakesOpacity,
+      },
+      riversOpacity: {
+        max: 1,
+        min: 0,
+        step: 0.01,
+        value: quality.riversOpacity,
+      },
+      riversWidth: {
+        max: 5,
+        min: 0.1,
+        step: 0.05,
+        value: quality.riversWidth,
+      },
+      lakesColor: {
+        value: quality.lakesColor,
+      },
+      riversColor: {
+        value: quality.riversColor,
+      },
       umbraDarkness: {
         max: 1,
         min: 0,
@@ -52,6 +82,13 @@ export function GlobeAdminPanel({
       quality.reliefHeight,
       quality.reliefMapEnabled,
       quality.waterMaskEnabled,
+      quality.showLakes,
+      quality.showRivers,
+      quality.lakesOpacity,
+      quality.riversOpacity,
+      quality.riversWidth,
+      quality.lakesColor,
+      quality.riversColor,
       quality.umbraDarkness,
       themeLabel,
     ],
@@ -75,6 +112,27 @@ export function GlobeAdminPanel({
     if (controls.waterMaskEnabled !== quality.waterMaskEnabled) {
       patch.waterMaskEnabled = controls.waterMaskEnabled;
     }
+    if (controls.showLakes !== quality.showLakes) {
+      patch.showLakes = controls.showLakes;
+    }
+    if (controls.showRivers !== quality.showRivers) {
+      patch.showRivers = controls.showRivers;
+    }
+    if (controls.lakesOpacity !== quality.lakesOpacity) {
+      patch.lakesOpacity = controls.lakesOpacity;
+    }
+    if (controls.riversOpacity !== quality.riversOpacity) {
+      patch.riversOpacity = controls.riversOpacity;
+    }
+    if (controls.riversWidth !== quality.riversWidth) {
+      patch.riversWidth = controls.riversWidth;
+    }
+    if (controls.lakesColor !== quality.lakesColor) {
+      patch.lakesColor = controls.lakesColor;
+    }
+    if (controls.riversColor !== quality.riversColor) {
+      patch.riversColor = controls.riversColor;
+    }
     if (controls.umbraDarkness !== quality.umbraDarkness) {
       patch.umbraDarkness = controls.umbraDarkness;
     }
@@ -88,12 +146,26 @@ export function GlobeAdminPanel({
     controls.reliefHeight,
     controls.reliefMapEnabled,
     controls.waterMaskEnabled,
+    controls.showLakes,
+    controls.showRivers,
+    controls.lakesOpacity,
+    controls.riversOpacity,
+    controls.riversWidth,
+    controls.lakesColor,
+    controls.riversColor,
     controls.umbraDarkness,
     quality.dayImageryEnabled,
     quality.nightImageryEnabled,
     quality.reliefHeight,
     quality.reliefMapEnabled,
     quality.waterMaskEnabled,
+    quality.showLakes,
+    quality.showRivers,
+    quality.lakesOpacity,
+    quality.riversOpacity,
+    quality.riversWidth,
+    quality.lakesColor,
+    quality.riversColor,
     quality.umbraDarkness,
     setQualityPatch,
   ]);

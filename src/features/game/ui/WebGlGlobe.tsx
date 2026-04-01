@@ -15,6 +15,7 @@ import {
   geoRotation,
   type GeoPermissibleObjects,
 } from 'd3';
+import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppThemeId,
@@ -91,6 +92,7 @@ interface WebGlResources {
 
 const ambientAnimationFps = 12;
 const selectedOverlayInsetPx = 0.35;
+type HydroFeatureCollection = FeatureCollection<Geometry, GeoJsonProperties>;
 
 const vertexShaderSource = `
   attribute vec3 a_position;
@@ -185,6 +187,7 @@ const fragmentShaderSource = `
     float imageryMask = mix(1.0, waterMask, u_useWaterMask);
     vec3 normal = normalize(v_normal);
     vec3 sunDirection = normalize(u_sunDirection);
+    float reliefEnabled = step(0.0001, u_reliefStrength);
 
     float lon = (v_uv.x - 0.5) * 6.28318530718;
     float lat = (0.5 - v_uv.y) * 3.14159265359;
@@ -200,7 +203,7 @@ const fragmentShaderSource = `
       normal - east * slopeEast * u_reliefStrength - north * slopeNorth * u_reliefStrength
     );
 
-    float reliefMask = smoothstep(0.08, 0.38, sampleRelief(v_uv));
+    float reliefMask = smoothstep(0.08, 0.38, sampleRelief(v_uv)) * reliefEnabled;
     normal = normalize(mix(normal, reliefNormal, reliefMask));
 
     float light = dot(normal, sunDirection);
@@ -245,7 +248,11 @@ const fragmentShaderSource = `
     float vellumSheen = pow(max(dot(normal, halfVector), 0.0), 26.0);
     float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.2);
     float reliefSlope = length(vec2(slopeEast, slopeNorth));
-    float reliefOcclusion = clamp(1.0 - reliefSlope * 8.5, 0.62, 1.0);
+    float reliefOcclusion = mix(
+      1.0,
+      clamp(1.0 - reliefSlope * 8.5, 0.62, 1.0),
+      reliefEnabled
+    );
 
     float lonLine = 1.0 - smoothstep(0.02, 0.055, abs(fract(v_uv.x * 24.0 + u_time * 0.015) - 0.5));
     float latLine = 1.0 - smoothstep(0.02, 0.06, abs(fract(v_uv.y * 12.0) - 0.5));
@@ -419,6 +426,38 @@ function parseCssColor(color: string) {
       parseInt(fullHex.slice(4, 6), 16),
     ] as [number, number, number],
   };
+}
+
+function withOpacity(color: string, opacity: number) {
+  const parsed = parseCssColor(color);
+  const alpha = Math.max(0, Math.min(1, opacity));
+  return `rgba(${parsed.rgb[0]}, ${parsed.rgb[1]}, ${parsed.rgb[2]}, ${alpha})`;
+}
+
+function isHydroFeatureCollection(value: unknown): value is HydroFeatureCollection {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as {
+    features?: unknown;
+    type?: unknown;
+  };
+  return candidate.type === 'FeatureCollection' && Array.isArray(candidate.features);
+}
+
+async function loadHydroFeatureCollection(path: string) {
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw new Error(`Failed to load hydro layer: ${path}`);
+  }
+
+  const data: unknown = await response.json();
+  if (!isHydroFeatureCollection(data)) {
+    throw new Error(`Invalid hydro layer: ${path}`);
+  }
+
+  return data;
 }
 
 function drawFeatureCollection(
@@ -1703,9 +1742,12 @@ function drawSelectedCountryOverlay(args: {
   country: CountryFeature;
   currentRotation: [number, number];
   height: number;
+  lakesData: HydroFeatureCollection | null;
   mode: GameMode;
   nowMs: number;
   palette: GlobePalette;
+  quality: GlobeQualityConfig;
+  riversData: HydroFeatureCollection | null;
   width: number;
   zoomScale: number;
 }) {
@@ -1714,9 +1756,12 @@ function drawSelectedCountryOverlay(args: {
     country,
     currentRotation,
     height,
+    lakesData,
     mode,
     nowMs,
     palette,
+    quality,
+    riversData,
     width,
     zoomScale,
   } = args;
@@ -1752,6 +1797,29 @@ function drawSelectedCountryOverlay(args: {
   context.beginPath();
   path({ type: 'Sphere' });
   context.clip();
+
+  if (quality.showLakes && lakesData) {
+    context.fillStyle = withOpacity(quality.lakesColor, quality.lakesOpacity);
+    for (const feature of lakesData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.fill();
+    }
+  }
+
+  if (quality.showRivers && riversData) {
+    context.globalAlpha = Math.max(0, Math.min(1, quality.riversOpacity));
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = quality.riversWidth;
+    context.strokeStyle = quality.riversColor;
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+    context.globalAlpha = 1;
+  }
 
   if (mode === 'capitals') {
     if (
@@ -1835,6 +1903,8 @@ export function WebGlGlobe({
   const resourcesRef = useRef<WebGlResources | null>(null);
   const drawCurrentFrameRef = useRef<(now?: number) => void>(() => undefined);
   const targetFeatureRef = useRef<CountryFeature>(country);
+  const lakesDataRef = useRef<HydroFeatureCollection | null>(null);
+  const riversDataRef = useRef<HydroFeatureCollection | null>(null);
   const frameStateRef = useRef({
     currentRotation: rotation,
     height,
@@ -1855,6 +1925,8 @@ export function WebGlGlobe({
   const [waterMaskImage, setWaterMaskImage] = useState<HTMLImageElement | null>(
     null,
   );
+  const [lakesData, setLakesData] = useState<HydroFeatureCollection | null>(null);
+  const [riversData, setRiversData] = useState<HydroFeatureCollection | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -1909,6 +1981,14 @@ export function WebGlGlobe({
   useEffect(() => {
     targetFeatureRef.current = targetFeature;
   }, [targetFeature]);
+
+  useEffect(() => {
+    lakesDataRef.current = lakesData;
+  }, [lakesData]);
+
+  useEffect(() => {
+    riversDataRef.current = riversData;
+  }, [riversData]);
 
   useEffect(() => {
     if (!quality.reliefMapEnabled) {
@@ -2060,6 +2140,52 @@ export function WebGlGlobe({
     };
   }, [quality.waterMaskEnabled]);
 
+  useEffect(() => {
+    if (!quality.showLakes || lakesDataRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    void loadHydroFeatureCollection('/data/ne-110m-lakes.geojson')
+      .then((data) => {
+        if (!cancelled) {
+          setLakesData(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLakesData(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.showLakes]);
+
+  useEffect(() => {
+    if (!quality.showRivers || riversDataRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    void loadHydroFeatureCollection('/data/ne-110m-rivers.geojson')
+      .then((data) => {
+        if (!cancelled) {
+          setRiversData(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRiversData(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.showRivers]);
+
   const drawCurrentFrame = useCallback((now = performance.now()) => {
     const canvas = canvasRef.current;
     const overlayCanvas = overlayCanvasRef.current;
@@ -2097,9 +2223,12 @@ export function WebGlGlobe({
       country: targetFeatureRef.current,
       currentRotation: frameState.currentRotation,
       height: frameState.height,
+      lakesData: lakesDataRef.current,
       mode,
       nowMs: now,
       palette: paletteRef.current,
+      quality: currentQuality,
+      riversData: riversDataRef.current,
       width: frameState.width,
       zoomScale: frameState.zoomScale,
     });
