@@ -196,7 +196,7 @@ describe('GamePage', () => {
     });
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByText(/Classic • Asia • Mixed countries/i)).toBeVisible();
+    expect(screen.getByText(/Classic • Asia/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: /refocus country/i }));
   });
 

@@ -9,10 +9,15 @@ import {
   Typography,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
-import { countrySizeLabels, regionLabels } from '@/features/game/logic/gameLogic';
+import {
+  countrySizeLabels,
+  randomRunPresetDifficulties,
+  regionLabels,
+} from '@/features/game/logic/gameLogic';
 import type {
   CountrySizeFilter,
   DailyChallengeResult,
+  Difficulty,
   GameMode,
   RegionFilter,
 } from '@/features/game/types';
@@ -55,28 +60,18 @@ const modeDetails: Array<{
   },
 ];
 
-const sizeDescriptions: Record<CountrySizeFilter, string> = {
-  large: 'Big shapes and broad landmasses.',
-  mixed: 'Mid-sized countries with balanced silhouettes.',
-  small: 'Compact countries and tighter targets.',
-};
-
-const sizeDisplayLabels: Record<CountrySizeFilter, string> = {
-  large: 'Large',
-  mixed: 'Medium',
-  small: 'Small',
+const difficultyLabels: Record<Difficulty, string> = {
+  easy: 'Lower difficulty',
+  medium: 'Medium difficulty',
+  hard: 'Higher difficulty',
+  veryHard: 'Very hard',
 };
 
 const categoryOptions: Array<{
   description: string;
   label: string;
-  value: RegionFilter | null;
+  value: RegionFilter;
 }> = [
-  {
-    value: null,
-    label: 'World',
-    description: 'No region filter. Full globe coverage.',
-  },
   {
     value: 'microstates',
     label: 'Micro Countries',
@@ -137,7 +132,7 @@ function getSelectedPoolLabel(
     return regionLabels[regionFilter];
   }
 
-  return `${sizeDisplayLabels[countrySizeFilter]} countries`;
+  return countrySizeLabels[countrySizeFilter];
 }
 
 export const IntroDialog = NiceModal.create(
@@ -178,10 +173,10 @@ export const IntroDialog = NiceModal.create(
                 Randomly Generated Countries
               </Typography>
               <Typography color="common.white" variant="h4">
-                Pick a size group first
+                Pick a pool
               </Typography>
               <Typography color="rgba(232,242,255,0.72)" variant="body2">
-                The main flow is small, medium, or large. Everything else is optional.
+                Choose one preset or one category pool for the run.
               </Typography>
             </Stack>
 
@@ -233,7 +228,7 @@ export const IntroDialog = NiceModal.create(
                       Pool
                     </Typography>
                     <Typography color="rgba(232,242,255,0.56)" variant="caption">
-                      Choose one pool. Size and category now use the same selector.
+                      One active choice at a time.
                     </Typography>
                   </Stack>
 
@@ -251,27 +246,23 @@ export const IntroDialog = NiceModal.create(
                     {[
                       ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
                         isSize: true,
-                        description: sizeDescriptions[key],
-                        label: sizeDisplayLabels[key],
+                        description: `${counts[key]} random countries with ${difficultyLabels[randomRunPresetDifficulties[key]].toLowerCase()}.`,
+                        label: countrySizeLabels[key],
                         meta: `${counts[key]} countries`,
                         selected: regionFilter === null && countrySizeFilter === key,
                         value: key,
                       })),
                       ...categoryOptions.map((option) => ({
                         isSize: false,
-                        description:
-                          option.value === null ? 'No region filter.' : option.description,
+                        description: option.description,
                         label: option.label,
-                        meta:
-                          option.value === null
-                            ? `${sizeDisplayLabels[countrySizeFilter]} countries`
-                            : 'Category pool',
+                        meta: 'Category pool',
                         selected: regionFilter === option.value,
                         value: option.value,
                       })),
                     ].map((item) => (
                       <Button
-                        key={`${item.isSize ? 'size' : 'region'}-${String(item.value ?? 'world')}`}
+                        key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
                         sx={{
                           alignItems: 'flex-start',
                           background: item.isSize
@@ -315,10 +306,8 @@ export const IntroDialog = NiceModal.create(
                             return;
                           }
 
-                          setRegionFilter(item.value as RegionFilter | null);
-                          if (item.value !== null) {
-                            setCountrySizeFilter('mixed');
-                          }
+                          setRegionFilter(item.value as RegionFilter);
+                          setCountrySizeFilter('mixed');
                         }}
                       >
                         <Stack spacing={item.isSize ? 0.75 : 0.25}>

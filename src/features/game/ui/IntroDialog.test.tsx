@@ -78,14 +78,14 @@ describe('IntroDialog', () => {
       countrySizeFilter: 'mixed',
     });
 
-    expect(screen.getAllByText(/Pick a size group first/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Pick a pool/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
-        name: /Small 18 countries Compact countries and tighter targets\./i,
+        name: /Quick Run 18 countries 18 random countries with lower difficulty\./i,
       }),
     );
     await user.click(
-      screen.getByRole('button', { name: /play small countries/i }),
+      screen.getByRole('button', { name: /play quick run/i }),
     );
 
     expect(onStartRandom).toHaveBeenLastCalledWith({

@@ -14,7 +14,6 @@ import { useAppearance } from '@/app/appearance';
 import { Globe } from '@/Globe';
 import { loadWorldData } from '@/features/game/data/loadWorldData';
 import {
-  buildCountriesBySize,
   buildDailyShareText,
   buildSessionPlan,
   countrySizeLabels,
@@ -24,8 +23,10 @@ import {
   formatDailyStorageKey,
   formatElapsed,
   gameReducer,
+  getRandomRunCountryCount,
   getInitialRotation,
   getTodayDateKey,
+  randomRunPresetDifficulties,
   regionLabels,
 } from '@/features/game/logic/gameLogic';
 import { useWindowSize } from '@/features/game/hooks/useWindowSize';
@@ -95,9 +96,9 @@ function getSessionSummaryLabel(gameState: GameState) {
 
   if (gameState.regionFilter) {
     parts.push(regionLabels[gameState.regionFilter]);
+  } else {
+    parts.push(countrySizeLabels[gameState.countrySizeFilter]);
   }
-
-  parts.push(`${countrySizeLabels[gameState.countrySizeFilter]} countries`);
 
   return parts.join(' • ');
 }
@@ -169,15 +170,14 @@ export function GamePage() {
     () => new Map(countryPool.map((country) => [country.id, country] as const)),
     [countryPool],
   );
-  const sizeCounts = useMemo(() => {
-    const countriesBySize = buildCountriesBySize(countryPool);
-
-    return {
-      large: countriesBySize.large.length,
-      mixed: countryPool.length,
-      small: countriesBySize.small.length,
-    };
-  }, [countryPool]);
+  const sizeCounts = useMemo(
+    () => ({
+      large: getRandomRunCountryCount(countryPool.length, 'large'),
+      mixed: getRandomRunCountryCount(countryPool.length, 'mixed'),
+      small: getRandomRunCountryCount(countryPool.length, 'small'),
+    }),
+    [countryPool.length],
+  );
   const currentCountry = useMemo(
     () =>
       (gameState.currentCountryId
@@ -302,6 +302,9 @@ export function GamePage() {
       countrySizeFilter: CountrySizeFilter;
     }) => {
       const config = createSessionConfig({
+        difficulty: options.regionFilter
+          ? 'medium'
+          : randomRunPresetDifficulties[options.countrySizeFilter],
         kind: 'random',
         mode: options.mode,
         regionFilter: options.regionFilter,

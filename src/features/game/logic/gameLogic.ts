@@ -43,9 +43,21 @@ export const regionLabels: Record<RegionFilter, string> = {
 };
 
 export const countrySizeLabels: Record<CountrySizeFilter, string> = {
-  large: 'Large',
-  mixed: 'Mixed',
-  small: 'Small',
+  large: 'Long Run',
+  mixed: 'Standard Run',
+  small: 'Quick Run',
+};
+
+export const randomRunPresetCounts: Record<CountrySizeFilter, number> = {
+  small: 10,
+  mixed: 20,
+  large: 40,
+};
+
+export const randomRunPresetDifficulties: Record<CountrySizeFilter, Difficulty> = {
+  small: 'easy',
+  mixed: 'medium',
+  large: 'hard',
 };
 
 export function formatDailyStorageKey(dateKey: string) {
@@ -200,6 +212,13 @@ export function buildCountrySizePool(
   return countriesBySize[countrySizeFilter];
 }
 
+export function getRandomRunCountryCount(
+  totalCountries: number,
+  countrySizeFilter: CountrySizeFilter,
+) {
+  return Math.min(totalCountries, randomRunPresetCounts[countrySizeFilter]);
+}
+
 export function createSessionConfig(args: {
   difficulty?: Difficulty;
   kind?: SessionKind;
@@ -237,7 +256,9 @@ export function buildSessionPlan(
   const random = createSeededRng(config.seed);
   const basePool = buildCountryPool(world, random);
   const regionPool = buildRegionCountryPool(basePool, config.regionFilter);
-  const filteredPool = buildCountrySizePool(regionPool, config.countrySizeFilter);
+  const filteredPool = config.regionFilter
+    ? regionPool
+    : regionPool.slice(0, getRandomRunCountryCount(regionPool.length, config.countrySizeFilter));
   const countriesByDifficulty = buildCountriesByDifficulty(filteredPool);
   const totalRounds = Math.min(
     config.maxRounds ?? filteredPool.length,

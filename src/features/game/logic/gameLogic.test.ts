@@ -13,6 +13,7 @@ import {
   deriveDailyResult,
   formatDailyStorageKey,
   gameReducer,
+  getRandomRunCountryCount,
   getTodayDateKey,
   isCorrectGuess,
   nextRoundIndex,
@@ -176,6 +177,19 @@ describe('gameLogic', () => {
 
     expect(firstPlan).toEqual(secondPlan);
     expect(firstPlan.totalRounds).toBe(5);
+  });
+
+  it('uses a fixed random-run group size when no category pool is selected', () => {
+    const config = createSessionConfig({
+      difficulty: 'easy',
+      kind: 'random',
+      mode: 'classic',
+      countrySizeFilter: 'small',
+      seed: 'group-seed',
+    });
+    const plan = buildSessionPlan(world, config);
+
+    expect(plan.totalRounds).toBe(getRandomRunCountryCount(world.features.length, 'small'));
   });
 
   it('filters countries by region tags', () => {
