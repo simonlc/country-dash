@@ -40,7 +40,7 @@ describe('IntroDialog', () => {
     expect(screen.getByText(/^Daily Challenge$/i)).toBeVisible();
     expect(screen.getByText(/^Completed$/i)).toBeVisible();
     expect(screen.getByText(/^4\/5$/i)).toBeVisible();
-    expect(screen.getByText(/already been played/i)).toBeVisible();
+    expect(screen.getByText(/Completed for today/i)).toBeVisible();
     expect(
       screen.queryByRole('button', { name: /play today's daily/i }),
     ).not.toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('IntroDialog', () => {
       }),
     );
     await user.click(
-      screen.getByRole('button', { name: /play micro countries/i }),
+      screen.getByRole('button', { name: /start micro countries/i }),
     );
 
     expect(onStartRandom).toHaveBeenCalledWith({
@@ -80,14 +80,14 @@ describe('IntroDialog', () => {
       countrySizeFilter: 'mixed',
     });
 
-    expect(screen.getAllByText(/Choose a way to play/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Country Guesser/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
         name: /Quick Run 18 countries 18 random countries with lower difficulty\./i,
       }),
     );
     await user.click(
-      screen.getByRole('button', { name: /play quick run/i }),
+      screen.getByRole('button', { name: /start quick run/i }),
     );
 
     expect(onStartRandom).toHaveBeenLastCalledWith({

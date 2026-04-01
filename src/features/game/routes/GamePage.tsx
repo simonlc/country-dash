@@ -401,7 +401,7 @@ export function GamePage() {
   const handlePlayAgain = useCallback(() => {
     const config = gameState.sessionConfig;
 
-    if (!config || config.kind === 'daily') {
+    if (!config) {
       return;
     }
 
@@ -416,6 +416,10 @@ export function GamePage() {
       }),
     );
   }, [beginSession, gameState.sessionConfig]);
+
+  const handleQuitToMenu = useCallback(() => {
+    dispatch({ type: 'RETURN_TO_MENU' });
+  }, []);
 
   const handleCopyDailyShare = useCallback(async () => {
     if (!dailyShareText || typeof navigator === 'undefined' || !navigator.clipboard) {
@@ -601,8 +605,10 @@ export function GamePage() {
         onAbout={() => {
           void NiceModal.show(AboutDialog);
         }}
+        onQuit={handleQuitToMenu}
         onRendererChange={setRenderer}
         onRefocus={handleRefocus}
+        onRestart={handlePlayAgain}
         renderer={renderer}
       />
       <Container
@@ -629,7 +635,7 @@ export function GamePage() {
               border: '1px solid rgba(150, 201, 255, 0.22)',
               boxShadow:
                 '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)',
-              borderRadius: isAtlas ? '8px 12px 10px 9px' : 4,
+              borderRadius: isAtlas ? '6px 9px 7px 8px' : 3,
               flex: 1,
               overflow: isAtlas ? 'hidden' : undefined,
               p: { md: 2.25, xs: 1.75 },
@@ -660,9 +666,7 @@ export function GamePage() {
                     letterSpacing="-0.02em"
                     variant="h5"
                   >
-                    {gameState.status === 'intro'
-                      ? 'Country Guesser'
-                      : (currentCountry?.properties.nameEn ?? 'Country Guesser')}
+                    Country Guesser
                   </Typography>
                 </Stack>
                 <Paper
@@ -670,7 +674,7 @@ export function GamePage() {
                   sx={{
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(150, 201, 255, 0.18)',
-                    borderRadius: 999,
+                    borderRadius: 2,
                     px: 1.5,
                     py: 0.75,
                   }}
@@ -692,25 +696,27 @@ export function GamePage() {
                     <Box
                       key={label}
                       sx={{
-                        background: 'linear-gradient(180deg, rgba(71,147,255,0.18), rgba(71,147,255,0.06))',
+                        background:
+                          'linear-gradient(180deg, rgba(71,147,255,0.2), rgba(33,78,168,0.12))',
                         border: '1px solid rgba(141, 196, 255, 0.22)',
-                        borderRadius: 999,
+                        borderRadius: 1,
                         color: 'rgba(232,242,255,0.92)',
-                        px: 1.25,
-                        py: 0.75,
+                        minWidth: 112,
+                        px: 1.15,
+                        py: 0.7,
                       }}
                     >
-                      <Typography fontWeight={600} variant="caption">
+                      <Typography
+                        fontWeight={700}
+                        letterSpacing="0.04em"
+                        textTransform="uppercase"
+                        variant="caption"
+                      >
                         {label}
                       </Typography>
                     </Box>
                   ))}
               </Stack>
-              <Typography color="rgba(232,242,255,0.62)" variant="body2">
-                {gameState.status === 'intro'
-                  ? 'Select a mode and drop into a run.'
-                  : 'Track your run state, score pressure, and pacing at a glance.'}
-              </Typography>
             </Stack>
           </Paper>
           <Paper
@@ -722,7 +728,7 @@ export function GamePage() {
               border: '1px solid rgba(150, 201, 255, 0.2)',
               boxShadow:
                 '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)',
-              borderRadius: isAtlas ? '11px 8px 12px 9px' : 4,
+              borderRadius: isAtlas ? '8px 6px 9px 7px' : 3,
               overflow: isAtlas ? 'hidden' : undefined,
               minWidth: { md: 320, xs: 'auto' },
               p: { md: 2.25, xs: 1.75 },
@@ -753,7 +759,7 @@ export function GamePage() {
                       background:
                         'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
                       border: '1px solid rgba(150, 201, 255, 0.12)',
-                      borderRadius: 2.5,
+                      borderRadius: 1.75,
                       p: 1.15,
                     }}
                   >
@@ -806,7 +812,7 @@ export function GamePage() {
               backgroundColor: activeTheme.background.mutedPanel,
               border: `1px solid ${activeTheme.background.panelBorder}`,
               boxShadow: activeTheme.background.panelShadow,
-              borderRadius: isAtlas ? '10px 14px 11px 8px' : undefined,
+              borderRadius: isAtlas ? '8px 10px 8px 7px' : 3,
               maxWidth: 460,
               overflow: isAtlas ? 'hidden' : undefined,
               p: 3,

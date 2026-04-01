@@ -14,6 +14,8 @@ import type { GlobeRenderer } from '@/features/game/types';
 interface ThemeMenuProps {
   onAbout: () => void;
   onRefocus: () => void;
+  onRestart: () => void;
+  onQuit: () => void;
   renderer: GlobeRenderer;
   onRendererChange: (renderer: GlobeRenderer) => void;
 }
@@ -115,7 +117,9 @@ function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
 
 export function ThemeMenu({
   onAbout,
+  onQuit,
   onRefocus,
+  onRestart,
   renderer,
   onRendererChange,
 }: ThemeMenuProps) {
@@ -164,6 +168,12 @@ export function ThemeMenu({
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 <Button size="small" variant="contained" onClick={onRefocus}>
                   Refocus
+                </Button>
+                <Button size="small" variant="outlined" onClick={onRestart}>
+                  Retry
+                </Button>
+                <Button size="small" variant="outlined" onClick={onQuit}>
+                  Quit
                 </Button>
                 <Button size="small" variant="outlined" onClick={onAbout}>
                   About

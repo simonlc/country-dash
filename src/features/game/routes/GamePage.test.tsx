@@ -222,6 +222,31 @@ describe('GamePage', () => {
     expect(screen.getByText(/You guessed: Atlantis/i)).toBeVisible();
   });
 
+  it('supports retry and quit from the menu', async () => {
+    const user = userEvent.setup();
+    const intro = await getIntroHandlers();
+
+    await act(async () => {
+      intro.onStartRandom({
+        mode: 'classic',
+        regionFilter: 'asia',
+        countrySizeFilter: 'mixed',
+      });
+    });
+
+    expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /^menu$/i }));
+    await user.click(screen.getByRole('button', { name: /^retry$/i }));
+
+    expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
+    expect(screen.getByText(/Type: Random Run/i)).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: /^quit$/i }));
+    await waitFor(() => {
+      expect(showModalMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('stores and locks the daily challenge after completion', async () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
