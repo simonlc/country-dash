@@ -68,7 +68,6 @@ const sizeDisplayLabels: Record<CountrySizeFilter, string> = {
 };
 
 const categoryOptions: Array<{
-  accent: string;
   description: string;
   label: string;
   value: RegionFilter | null;
@@ -77,69 +76,69 @@ const categoryOptions: Array<{
     value: null,
     label: 'World',
     description: 'No region filter. Full globe coverage.',
-    accent: '◎',
   },
   {
     value: 'microstates',
     label: 'Micro Countries',
     description: 'Tiny targets and high-precision geography.',
-    accent: '◌',
   },
   {
     value: 'islandNations',
     label: 'Island Nations',
     description: 'Ocean-heavy runs with distinct coastlines.',
-    accent: '◠',
   },
   {
     value: 'caribbean',
     label: 'Caribbean',
     description: 'Clustered islands and coastal memory checks.',
-    accent: '≈',
   },
   {
     value: 'middleEast',
     label: 'Middle East',
     description: 'Dense borders and strong regional similarity.',
-    accent: '◇',
   },
   {
     value: 'africa',
     label: 'Africa',
     description: 'Every African country in one complete regional pool.',
-    accent: '◐',
   },
   {
     value: 'asia',
     label: 'Asia',
     description: 'The full Asian region, from the Gulf to the Pacific.',
-    accent: '◓',
   },
   {
     value: 'europe',
     label: 'Europe',
     description: 'The full European region as one complete set.',
-    accent: '◑',
   },
   {
     value: 'northAmerica',
     label: 'North America',
     description: 'All North American countries in a single pool.',
-    accent: '⬓',
   },
   {
     value: 'southAmerica',
     label: 'South America',
     description: 'The complete South American region.',
-    accent: '⬒',
   },
   {
     value: 'oceania',
     label: 'Oceania',
     description: 'The full Oceania region, islands included.',
-    accent: '◒',
   },
 ];
+
+function getSelectedPoolLabel(
+  countrySizeFilter: CountrySizeFilter,
+  regionFilter: RegionFilter | null,
+) {
+  if (regionFilter) {
+    return regionLabels[regionFilter];
+  }
+
+  return `${sizeDisplayLabels[countrySizeFilter]} countries`;
+}
 
 export const IntroDialog = NiceModal.create(
   ({ counts, dailyResult, onStartDaily, onStartRandom }: IntroDialogProps) => {
@@ -208,9 +207,7 @@ export const IntroDialog = NiceModal.create(
                     <Typography color="rgba(232,242,255,0.64)" variant="body2">
                       {modeDetails.find((option) => option.value === mode)?.label}
                       {' • '}
-                      {regionFilter ? regionLabels[regionFilter] : 'World'}
-                      {' • '}
-                      {sizeDisplayLabels[countrySizeFilter]} countries
+                      {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
                     </Typography>
                   </Stack>
                   <Button
@@ -226,7 +223,7 @@ export const IntroDialog = NiceModal.create(
                       void modal.hide();
                     }}
                   >
-                    Play {sizeDisplayLabels[countrySizeFilter].toLowerCase()} countries
+                    Play {getSelectedPoolLabel(countrySizeFilter, regionFilter).toLowerCase()}
                   </Button>
                 </Stack>
 
@@ -236,7 +233,7 @@ export const IntroDialog = NiceModal.create(
                       Pool
                     </Typography>
                     <Typography color="rgba(232,242,255,0.56)" variant="caption">
-                      Size and category live together here.
+                      Choose one pool. Size and category now use the same selector.
                     </Typography>
                   </Stack>
 
@@ -257,7 +254,7 @@ export const IntroDialog = NiceModal.create(
                         description: sizeDescriptions[key],
                         label: sizeDisplayLabels[key],
                         meta: `${counts[key]} countries`,
-                        selected: countrySizeFilter === key,
+                        selected: regionFilter === null && countrySizeFilter === key,
                         value: key,
                       })),
                       ...categoryOptions.map((option) => ({
@@ -268,7 +265,7 @@ export const IntroDialog = NiceModal.create(
                         meta:
                           option.value === null
                             ? `${sizeDisplayLabels[countrySizeFilter]} countries`
-                            : 'Category',
+                            : 'Category pool',
                         selected: regionFilter === option.value,
                         value: option.value,
                       })),
@@ -314,10 +311,14 @@ export const IntroDialog = NiceModal.create(
                         onClick={() => {
                           if (item.isSize) {
                             setCountrySizeFilter(item.value as CountrySizeFilter);
+                            setRegionFilter(null);
                             return;
                           }
 
                           setRegionFilter(item.value as RegionFilter | null);
+                          if (item.value !== null) {
+                            setCountrySizeFilter('mixed');
+                          }
                         }}
                       >
                         <Stack spacing={item.isSize ? 0.75 : 0.25}>

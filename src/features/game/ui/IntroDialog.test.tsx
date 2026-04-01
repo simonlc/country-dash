@@ -44,7 +44,7 @@ describe('IntroDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('starts a run with the size cards as the primary control', async () => {
+  it('treats size and category as a single pool selector', async () => {
     const user = userEvent.setup();
     const onStartRandom = vi.fn();
 
@@ -65,9 +65,20 @@ describe('IntroDialog', () => {
     );
     await user.click(
       screen.getByRole('button', {
-        name: /Micro Countries Category Tiny targets and high-precision geography\./i,
+        name: /Micro Countries Category pool Tiny targets and high-precision geography\./i,
       }),
     );
+    await user.click(
+      screen.getByRole('button', { name: /play micro countries/i }),
+    );
+
+    expect(onStartRandom).toHaveBeenCalledWith({
+      mode: 'speedrun',
+      regionFilter: 'microstates',
+      countrySizeFilter: 'mixed',
+    });
+
+    expect(screen.getAllByText(/Pick a size group first/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
         name: /Small 18 countries Compact countries and tighter targets\./i,
@@ -77,26 +88,9 @@ describe('IntroDialog', () => {
       screen.getByRole('button', { name: /play small countries/i }),
     );
 
-    expect(onStartRandom).toHaveBeenCalledWith({
-      mode: 'speedrun',
-      regionFilter: 'microstates',
-      countrySizeFilter: 'small',
-    });
-
-    expect(screen.getAllByText(/Pick a size group first/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Region filter/i).length).toBeGreaterThan(0);
-    await user.click(
-      screen.getByRole('button', {
-        name: /Asia Category The full Asian region, from the Gulf to the Pacific\./i,
-      }),
-    );
-    await user.click(
-      screen.getByRole('button', { name: /play small countries/i }),
-    );
-
     expect(onStartRandom).toHaveBeenLastCalledWith({
       mode: 'speedrun',
-      regionFilter: 'asia',
+      regionFilter: null,
       countrySizeFilter: 'small',
     });
   });
