@@ -1,6 +1,6 @@
 import {
-  createNightCircle,
   geoToSpherePosition,
+  getTerminatorHalfAngleRadians,
   getCountryHighlightRings,
   getRotatedSunDirection,
   useGlobeInteraction,
@@ -44,7 +44,6 @@ interface WebGlResources {
   overlayTexture: WebGLTexture;
   positionBuffer: WebGLBuffer;
   program: WebGLProgram;
-  shadowTexture: WebGLTexture;
   texture: WebGLTexture;
   uniforms: {
     atmosphereOpacity: WebGLUniformLocation;
@@ -52,6 +51,8 @@ interface WebGlResources {
     auroraStrength: WebGLUniformLocation;
     gridColor: WebGLUniformLocation;
     gridStrength: WebGLUniformLocation;
+    nightAlpha: WebGLUniformLocation;
+    nightColor: WebGLUniformLocation;
     noiseStrength: WebGLUniformLocation;
     penumbra: WebGLUniformLocation;
     rimLightColor: WebGLUniformLocation;
@@ -63,14 +64,13 @@ interface WebGlResources {
     specularPower: WebGLUniformLocation;
     specularStrength: WebGLUniformLocation;
     sunDirection: WebGLUniformLocation;
-    shadowTexture: WebGLUniformLocation;
     texture: WebGLUniformLocation;
     time: WebGLUniformLocation;
   };
 }
 
 const ambientAnimationFps = 12;
-const selectedOverlayInsetPx = 0.2;
+const selectedOverlayInsetPx = 0.35;
 
 const vertexShaderSource = `
   attribute vec3 a_position;
@@ -98,9 +98,10 @@ const fragmentShaderSource = `
   uniform float u_atmosphereOpacity;
   uniform float u_auroraStrength;
   uniform float u_gridStrength;
+  uniform float u_nightAlpha;
   uniform float u_noiseStrength;
+  uniform vec3 u_nightColor;
   uniform sampler2D u_texture;
-  uniform sampler2D u_shadowTexture;
   uniform float u_penumbra;
   uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
@@ -119,13 +120,11 @@ const fragmentShaderSource = `
 
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
-    vec4 shadow = texture2D(u_shadowTexture, v_uv);
     vec3 normal = normalize(v_normal);
     vec3 sunDirection = normalize(u_sunDirection);
     float light = dot(normal, sunDirection);
-    float softShadow = smoothstep(u_penumbra, -u_penumbra, light) * shadow.a;
-    float alpha = max(shadow.a, softShadow);
-    vec3 shaded = mix(baseColor.rgb, shadow.rgb, clamp(alpha, 0.0, 1.0));
+    float twilight = smoothstep(u_penumbra, -u_penumbra, light) * u_nightAlpha;
+    vec3 shaded = mix(baseColor.rgb, u_nightColor, clamp(twilight, 0.0, 1.0));
     float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     float directLight = clamp(light, 0.0, 1.0);
 
@@ -647,30 +646,6 @@ function buildCountryTextureCanvas(
   return textureCanvas;
 }
 
-function buildShadowTextureCanvas(palette: GlobePalette, textureSize: number) {
-  const textureCanvas = document.createElement('canvas');
-  textureCanvas.width = textureSize;
-  textureCanvas.height = textureSize / 2;
-  const shadow = parseCssColor(palette.nightShade);
-
-  withTextureContext(textureCanvas, (context) => {
-    const projection = geoEquirectangular()
-      .translate([textureCanvas.width / 2, textureCanvas.height / 2])
-      .scale(textureCanvas.width / (2 * Math.PI));
-    const path = geoPath(projection, context);
-    const nightCircle = createNightCircle();
-    const umbraFill = `rgba(${shadow.rgb[0]}, ${shadow.rgb[1]}, ${shadow.rgb[2]}, ${shadow.alpha})`;
-
-    context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
-    context.beginPath();
-    path(nightCircle);
-    context.fillStyle = umbraFill;
-    context.fill();
-  });
-
-  return textureCanvas;
-}
-
 function getUniformLocation(
   gl: WebGLRenderingContext,
   program: WebGLProgram,
@@ -746,17 +721,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const indexBuffer = gl.createBuffer();
   const texture = gl.createTexture();
   const overlayTexture = gl.createTexture();
-  const shadowTexture = gl.createTexture();
-
-  if (
-    !positionBuffer ||
-    !overlayPositionBuffer ||
-    !uvBuffer ||
-    !indexBuffer ||
-    !texture ||
-    !overlayTexture ||
-    !shadowTexture
-  ) {
+  if (!positionBuffer || !overlayPositionBuffer || !uvBuffer || !indexBuffer || !texture || !overlayTexture) {
     throw new Error('Failed to allocate WebGL buffers.');
   }
 
@@ -782,7 +747,6 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
 
   configureTexture(gl, texture);
   configureTexture(gl, overlayTexture);
-  configureTexture(gl, shadowTexture);
 
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
@@ -798,7 +762,6 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     overlayTexture,
     positionBuffer,
     program,
-    shadowTexture,
     texture,
     uniforms: {
       atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
@@ -806,6 +769,8 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
       gridColor: getUniformLocation(gl, program, 'u_gridColor'),
       gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
+      nightAlpha: getUniformLocation(gl, program, 'u_nightAlpha'),
+      nightColor: getUniformLocation(gl, program, 'u_nightColor'),
       noiseStrength: getUniformLocation(gl, program, 'u_noiseStrength'),
       penumbra: getUniformLocation(gl, program, 'u_penumbra'),
       rimLightColor: getUniformLocation(gl, program, 'u_rimLightColor'),
@@ -817,7 +782,6 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       specularPower: getUniformLocation(gl, program, 'u_specularPower'),
       specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
-      shadowTexture: getUniformLocation(gl, program, 'u_shadowTexture'),
       texture: getUniformLocation(gl, program, 'u_texture'),
       time: getUniformLocation(gl, program, 'u_time'),
     },
@@ -865,6 +829,7 @@ function drawGlobe(
     palette.atmosphereTint,
   );
   const [gridRed, gridGreen, gridBlue] = cssColorToVec3(palette.gridColor);
+  const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(palette.nightShade);
   const [rimRed, rimGreen, rimBlue] = cssColorToVec3(palette.rimLightColor);
   const [specularRed, specularGreen, specularBlue] = cssColorToVec3(
     palette.specularColor,
@@ -910,7 +875,6 @@ function drawGlobe(
     0,
   );
   gl.uniform1i(uniforms.texture, 0);
-  gl.uniform1i(uniforms.shadowTexture, 1);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
   gl.uniform3f(
     uniforms.atmosphereTint,
@@ -921,9 +885,16 @@ function drawGlobe(
   gl.uniform1f(uniforms.auroraStrength, palette.auroraStrength);
   gl.uniform3f(uniforms.gridColor, gridRed, gridGreen, gridBlue);
   gl.uniform1f(uniforms.gridStrength, palette.gridStrength);
+  gl.uniform1f(uniforms.nightAlpha, nightAlpha);
+  gl.uniform3f(
+    uniforms.nightColor,
+    nightRgb[0] / 255,
+    nightRgb[1] / 255,
+    nightRgb[2] / 255,
+  );
   gl.uniform1f(uniforms.noiseStrength, palette.noiseStrength);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
-  gl.uniform1f(uniforms.penumbra, 100 / 6371);
+  gl.uniform1f(uniforms.penumbra, getTerminatorHalfAngleRadians());
   gl.uniform3f(uniforms.rimLightColor, rimRed, rimGreen, rimBlue);
   gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
@@ -1005,9 +976,9 @@ function drawSelectedCountryOverlay(args: {
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.scale(dpr, dpr);
 
-  const baseScale = Math.max(Math.min(width, height) / 2 - 10, 1);
+  const globeRadius = Math.max(Math.min(width, height) * 0.45 * zoomScale, 1);
   const projection = geoOrthographic()
-    .scale(Math.max(baseScale * zoomScale - selectedOverlayInsetPx, 1))
+    .scale(Math.max(globeRadius - selectedOverlayInsetPx, 1))
     .center([0, 0])
     .translate([width / 2, height / 2])
     .rotate([currentRotation[0], currentRotation[1], 0]);
@@ -1237,11 +1208,6 @@ export function WebGlGlobe({
           isAtlas ? atlasPaperImage : null,
         )
       : null;
-    const shadowCanvas = buildShadowTextureCanvas(
-      palette,
-      textureResolution >= 4096 ? 4096 : 2048,
-    );
-
     gl.activeTexture(gl.TEXTURE0);
     configureTexture(gl, resources.texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
@@ -1267,18 +1233,6 @@ export function WebGlGlobe({
         countryTextureCanvas,
       );
     }
-
-    gl.activeTexture(gl.TEXTURE1);
-    configureTexture(gl, resources.shadowTexture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      shadowCanvas,
-    );
 
     window.setTimeout(() => {
       if (!cancelled) {

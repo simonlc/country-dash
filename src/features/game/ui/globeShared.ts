@@ -22,6 +22,20 @@ export interface GlobeViewProps {
 }
 
 export const tau = 2 * Math.PI;
+export const earthRadiusKm = 6371;
+export const standardSunriseSunsetCorrectionDegrees = 0.833;
+
+export function getTerminatorHalfAngleRadians() {
+  return (standardSunriseSunsetCorrectionDegrees * Math.PI) / 180;
+}
+
+export function getTerminatorHalfWidthKilometers() {
+  return earthRadiusKm * getTerminatorHalfAngleRadians();
+}
+
+export function getProjectedTerminatorHalfWidthPx(globeRadiusPx: number) {
+  return globeRadiusPx * getTerminatorHalfAngleRadians();
+}
 
 export function clampScale(value: number) {
   return Math.min(20, Math.max(0.35, value));

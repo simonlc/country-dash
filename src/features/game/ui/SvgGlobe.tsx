@@ -9,6 +9,7 @@ import { useId, useMemo } from 'react';
 import type { AppThemeId, GlobePalette } from '@/app/theme';
 import {
   createNightCircle,
+  getProjectedTerminatorHalfWidthPx,
   getCountryHighlightRings,
   useGlobeInteraction,
   type GlobeViewProps,
@@ -56,6 +57,7 @@ export function SvgGlobe({
     [baseScale, currentRotation, height, width, zoomScale],
   );
   const path = useMemo(() => geoPath(projection), [projection]);
+  const projectedGlobeRadius = baseScale * zoomScale;
   const spherePath = path(sphere) ?? '';
   const worldPath = path(world as GeoPermissibleObjects) ?? '';
   const targetPath = path(targetFeature as GeoPermissibleObjects) ?? '';
@@ -70,6 +72,11 @@ export function SvgGlobe({
   );
   const gradientId = useId();
   const clipId = useId();
+  const shadowFilterId = useId();
+  const terminatorBlurPx = useMemo(
+    () => Math.max(getProjectedTerminatorHalfWidthPx(projectedGlobeRadius) * 0.5, 0.75),
+    [projectedGlobeRadius],
+  );
 
   return (
     <svg
@@ -86,6 +93,16 @@ export function SvgGlobe({
         <clipPath id={clipId}>
           <path d={spherePath} />
         </clipPath>
+        <filter
+          filterUnits="userSpaceOnUse"
+          height={height * 3}
+          id={shadowFilterId}
+          width={width * 3}
+          x={-width}
+          y={-height}
+        >
+          <feGaussianBlur stdDeviation={terminatorBlurPx} />
+        </filter>
       </defs>
       <rect fill={palette.hazeOuter} height={height} width={width} x={0} y={0} />
       <rect
@@ -127,6 +144,7 @@ export function SvgGlobe({
       <g clipPath={`url(#${clipId})`}>
         <path
           d={nightPath}
+          filter={`url(#${shadowFilterId})`}
           fill={palette.nightShade}
           opacity={0.92}
         />
