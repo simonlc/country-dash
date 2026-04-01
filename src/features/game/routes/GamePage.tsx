@@ -9,17 +9,24 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { Globe } from '@/Globe';
 import { loadWorldData } from '@/features/game/data/loadWorldData';
 import {
-  buildCountriesByDifficulty,
-  buildCountryPool,
+  buildCountriesBySize,
+  buildDailyShareText,
+  buildSessionPlan,
+  countrySizeLabels,
   createInitialGameState,
+  createRandomSeed,
+  createSessionConfig,
+  formatDailyStorageKey,
+  formatElapsed,
+  gameReducer,
   getInitialRotation,
-  isCorrectGuess,
-  nextRoundIndex,
+  getTodayDateKey,
+  regionLabels,
 } from '@/features/game/logic/gameLogic';
 import { useWindowSize } from '@/features/game/hooks/useWindowSize';
 import { GuessInput } from '@/features/game/ui/GuessInput';
@@ -28,15 +35,27 @@ import { GameTimer } from '@/features/game/ui/GameTimer';
 import { AboutDialog } from '@/features/game/ui/AboutDialog';
 import { ThemeMenu } from '@/features/game/ui/ThemeMenu';
 import type {
-  AnswerResult,
+  CountrySizeFilter,
   CountryProperties,
+  DailyChallengeResult,
   Difficulty,
+  GameMode,
   GameState,
   GlobeRenderer,
+  RegionFilter,
+  SessionConfig,
   WorldData,
 } from '@/features/game/types';
 
 const rendererStorageKey = 'country-guesser-renderer';
+const dailyDifficulty: Difficulty = 'medium';
+
+const modeLabels: Record<GameMode, string> = {
+  classic: 'Classic',
+  threeLives: '3 Lives',
+  speedrun: 'Speedrun',
+  streak: 'Streak',
+};
 
 function getStoredRenderer(): GlobeRenderer {
   if (typeof window === 'undefined') {
@@ -51,16 +70,52 @@ function getStoredRenderer(): GlobeRenderer {
   return storedValue === 'webgl' ? 'webgl' : 'svg';
 }
 
+function getStoredDailyResult(dateKey: string) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(formatDailyStorageKey(dateKey));
+  if (!rawValue) {
+    return null;
+  }
+
+  return JSON.parse(rawValue) as DailyChallengeResult;
+}
+
+function getSessionSummaryLabel(gameState: GameState) {
+  if (!gameState.sessionConfig) {
+    return '';
+  }
+  if (gameState.sessionConfig.kind === 'daily') {
+    return 'Daily challenge';
+  }
+
+  const parts = [modeLabels[gameState.sessionConfig.mode]];
+
+  if (gameState.regionFilter) {
+    parts.push(regionLabels[gameState.regionFilter]);
+  }
+
+  parts.push(`${countrySizeLabels[gameState.countrySizeFilter]} countries`);
+
+  return parts.join(' • ');
+}
+
 export function GamePage() {
   const size = useWindowSize();
   const { activeTheme } = useAppearance();
   const isAtlas = activeTheme.id === 'atlas';
+  const todayDateKey = useMemo(() => getTodayDateKey(), []);
   const [worldData, setWorldData] = useState<WorldData | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [gameState, setGameState] = useState<GameState>(createInitialGameState());
-  const [sessionKey, setSessionKey] = useState(0);
+  const [gameState, dispatch] = useReducer(gameReducer, undefined, createInitialGameState);
+  const [storedDailyResult, setStoredDailyResult] = useState<DailyChallengeResult | null>(
+    () => getStoredDailyResult(todayDateKey),
+  );
   const [focusRequest, setFocusRequest] = useState(0);
   const [renderer, setRenderer] = useState<GlobeRenderer>(getStoredRenderer);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
     let cancelled = false;
@@ -89,17 +144,47 @@ export function GamePage() {
     }
   }, [renderer]);
 
+  useEffect(() => {
+    if (gameState.status !== 'playing') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      dispatch({
+        type: 'TICK_TIMER',
+        now: performance.now(),
+      });
+    }, 50);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [gameState.status]);
+
   const countryPool = useMemo(
-    () => (worldData ? buildCountryPool(worldData.world) : []),
+    () => (worldData ? worldData.world.features : []),
     [worldData],
   );
-  const countriesByDifficulty = useMemo(
-    () => buildCountriesByDifficulty(countryPool),
+  const countryFeaturesById = useMemo(
+    () => new Map(countryPool.map((country) => [country.id, country] as const)),
     [countryPool],
   );
+  const sizeCounts = useMemo(() => {
+    const countriesBySize = buildCountriesBySize(countryPool);
 
-  const currentCountries = countriesByDifficulty[gameState.difficulty];
-  const currentCountry = currentCountries[gameState.roundIndex] ?? null;
+    return {
+      large: countriesBySize.large.length,
+      mixed: countryPool.length,
+      small: countriesBySize.small.length,
+    };
+  }, [countryPool]);
+  const currentCountry = useMemo(
+    () =>
+      (gameState.currentCountryId
+        ? countryFeaturesById.get(gameState.currentCountryId)
+        : null) ?? countryPool[0] ?? null,
+    [countryFeaturesById, countryPool, gameState.currentCountryId],
+  );
   const rotation = useMemo<[number, number]>(() => {
     if (!currentCountry) {
       return [0, 0];
@@ -112,32 +197,138 @@ export function GamePage() {
       ([] as CountryProperties[]),
     [worldData],
   );
+  const totalRounds = gameState.sessionPlan?.totalRounds ?? 0;
+  const displayElapsedMs =
+    gameState.totalElapsedMs +
+    (gameState.status === 'playing' ? gameState.currentRoundElapsedMs : 0);
+  const isDailyRun = gameState.sessionConfig?.kind === 'daily';
+  const completedDailyResult = useMemo(() => {
+    if (gameState.dailyResult) {
+      return gameState.dailyResult;
+    }
+    if (
+      isDailyRun &&
+      gameState.status === 'gameOver' &&
+      gameState.rounds.length > 0
+    ) {
+      return {
+        date: gameState.sessionConfig?.dateKey ?? todayDateKey,
+        seed: gameState.sessionConfig?.seed ?? todayDateKey,
+        completedAt: new Date().toISOString(),
+        correctCount: gameState.correct,
+        totalCount: gameState.rounds.length,
+        rounds: gameState.rounds,
+      };
+    }
+    return storedDailyResult;
+  }, [
+    gameState.correct,
+    gameState.dailyResult,
+    gameState.rounds,
+    gameState.sessionConfig,
+    gameState.status,
+    isDailyRun,
+    storedDailyResult,
+    todayDateKey,
+  ]);
+  const dailyShareText = useMemo(() => {
+    if (!isDailyRun || gameState.status !== 'gameOver') {
+      return null;
+    }
+    if (completedDailyResult) {
+      return buildDailyShareText(completedDailyResult);
+    }
 
-  const difficultyCounts = useMemo(
-    () => ({
-      easy: countriesByDifficulty.easy.length,
-      medium: countriesByDifficulty.medium.length,
-      hard: countriesByDifficulty.hard.length,
-      veryHard: countriesByDifficulty.veryHard.length,
-    }),
-    [countriesByDifficulty],
-  );
+    const summary = [
+      `🧭 Country Guesser Daily ${todayDateKey}`,
+      `🌍 Score: ${gameState.correct}/${totalRounds}`,
+    ].join('\n');
+    const emojiLine = gameState.rounds
+      .map((round) => (round.answerResult === 'correct' ? '🟢' : '⚫'))
+      .join('');
 
-  const startGame = useCallback(
-    (difficulty: Difficulty) => {
-      const startingCountry = countriesByDifficulty[difficulty][0];
-      if (!startingCountry) {
+    return emojiLine ? `${summary}\n${emojiLine}` : summary;
+  }, [
+    completedDailyResult,
+    gameState.correct,
+    gameState.rounds,
+    gameState.status,
+    isDailyRun,
+    todayDateKey,
+    totalRounds,
+  ]);
+  const isReviewComplete =
+    gameState.status === 'reviewing' &&
+    ((gameState.sessionConfig?.mode === 'streak' &&
+      gameState.lastRound?.answerResult === 'incorrect') ||
+      (gameState.sessionConfig?.mode === 'threeLives' &&
+        (gameState.livesRemaining ?? 1) <= 0) ||
+      gameState.roundIndex + 1 >= totalRounds);
+
+  useEffect(() => {
+    if (!gameState.dailyResult) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      formatDailyStorageKey(gameState.dailyResult.date),
+      JSON.stringify(gameState.dailyResult),
+    );
+    setStoredDailyResult(gameState.dailyResult);
+  }, [gameState.dailyResult]);
+
+  const beginSession = useCallback(
+    (config: SessionConfig) => {
+      if (!worldData) {
         return;
       }
 
-      setGameState({
-        ...createInitialGameState(difficulty),
-        status: 'playing',
+      const plan = buildSessionPlan(worldData.world, config);
+      dispatch({
+        type: 'START_SESSION',
+        config,
+        plan,
+        startedAt: performance.now(),
       });
-      setSessionKey((value) => value + 1);
+      setFocusRequest((value) => value + 1);
     },
-    [countriesByDifficulty],
+    [worldData],
   );
+
+  const startRandomGame = useCallback(
+    (options: {
+      mode: GameMode;
+      regionFilter: RegionFilter | null;
+      countrySizeFilter: CountrySizeFilter;
+    }) => {
+      const config = createSessionConfig({
+        kind: 'random',
+        mode: options.mode,
+        regionFilter: options.regionFilter,
+        countrySizeFilter: options.countrySizeFilter,
+        seed: createRandomSeed(),
+      });
+
+      beginSession(config);
+    },
+    [beginSession],
+  );
+
+  const startDailyGame = useCallback(() => {
+    if (storedDailyResult) {
+      return;
+    }
+
+    const config = createSessionConfig({
+      dateKey: todayDateKey,
+      difficulty: dailyDifficulty,
+      kind: 'daily',
+      mode: 'classic',
+      seed: todayDateKey,
+    });
+
+    beginSession(config);
+  }, [beginSession, storedDailyResult, todayDateKey]);
 
   useEffect(() => {
     if (!worldData || gameState.status !== 'intro') {
@@ -145,60 +336,99 @@ export function GamePage() {
     }
 
     void NiceModal.show(IntroDialog, {
-      counts: difficultyCounts,
-      onStart: startGame,
+      counts: sizeCounts,
+      dailyResult: storedDailyResult,
+      onStartDaily: startDailyGame,
+      onStartRandom: startRandomGame,
     });
-  }, [difficultyCounts, gameState.status, startGame, worldData]);
+  }, [
+    sizeCounts,
+    gameState.status,
+    startDailyGame,
+    startRandomGame,
+    storedDailyResult,
+    worldData,
+  ]);
 
   const handleSubmit = useCallback(
     (term: string) => {
-      if (!currentCountry) {
+      if (!currentCountry || gameState.status !== 'playing') {
         return;
       }
 
-      const answerResult: AnswerResult = isCorrectGuess(
-        term,
-        currentCountry.properties.nameEn,
-      )
-        ? 'correct'
-        : 'incorrect';
-
-      setGameState((previousState) => ({
-        ...previousState,
-        correct:
-          previousState.correct + (answerResult === 'correct' ? 1 : 0),
-        incorrect:
-          previousState.incorrect + (answerResult === 'incorrect' ? 1 : 0),
-        streak: answerResult === 'correct' ? previousState.streak + 1 : 0,
-        status: 'answered',
-        answerResult,
-      }));
+      dispatch({
+        type: 'SUBMIT_GUESS',
+        country: currentCountry,
+        guess: term,
+        submittedAt: performance.now(),
+      });
     },
-    [currentCountry],
+    [currentCountry, gameState.status],
   );
 
   const handleNextRound = useCallback(() => {
-    const nextIndex = nextRoundIndex(
-      gameState.roundIndex,
-      currentCountries.length,
-    );
+    dispatch({
+      type: 'ADVANCE_ROUND',
+      startedAt: performance.now(),
+    });
+  }, []);
 
-    if (nextIndex === null) {
-      setGameState((previousState) => ({
-        ...previousState,
-        status: 'gameOver',
-        answerResult: null,
-      }));
+  const handleRefocus = useCallback(() => {
+    if (gameState.status === 'playing') {
+      dispatch({
+        type: 'USE_HINT',
+        hintType: 'refocus',
+      });
+    }
+    setFocusRequest((value) => value + 1);
+  }, [gameState.status]);
+
+  const handlePlayAgain = useCallback(() => {
+    const config = gameState.sessionConfig;
+
+    if (!config || config.kind === 'daily') {
       return;
     }
 
-    setGameState((previousState) => ({
-      ...previousState,
-      roundIndex: nextIndex,
-      status: 'playing',
-      answerResult: null,
-    }));
-  }, [currentCountries.length, gameState.roundIndex]);
+    beginSession(
+      createSessionConfig({
+        difficulty: config.selectedDifficulty,
+        kind: 'random',
+        mode: config.mode,
+        regionFilter: config.regionFilter,
+        countrySizeFilter: config.countrySizeFilter,
+        seed: createRandomSeed(),
+      }),
+    );
+  }, [beginSession, gameState.sessionConfig]);
+
+  const handleCopyDailyShare = useCallback(async () => {
+    if (!dailyShareText || typeof navigator === 'undefined' || !navigator.clipboard) {
+      setCopyState('failed');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(dailyShareText);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+  }, [dailyShareText]);
+
+  useEffect(() => {
+    if (copyState === 'idle') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyState('idle');
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [copyState]);
 
   if (loadingError) {
     return (
@@ -357,7 +587,7 @@ export function GamePage() {
           void NiceModal.show(AboutDialog);
         }}
         onRendererChange={setRenderer}
-        onRefocus={() => setFocusRequest((value) => value + 1)}
+        onRefocus={handleRefocus}
         renderer={renderer}
       />
       <Container
@@ -386,31 +616,19 @@ export function GamePage() {
               p: 2,
               pointerEvents: 'auto',
               position: 'relative',
-              '&::after': isAtlas
-                ? {
-                    background:
-                      'linear-gradient(90deg, transparent, rgba(116, 74, 31, 0.12), transparent)',
-                    content: '""',
-                    height: 1,
-                    left: 18,
-                    opacity: 0.8,
-                    position: 'absolute',
-                    right: 18,
-                    top: 14,
-                    borderRadius: 'inherit',
-                  }
-                : undefined,
             }}
           >
             <Stack spacing={1}>
               <Typography variant="body2">
-                Round {gameState.roundIndex + 1}/{currentCountries.length}
+                {gameState.status === 'intro'
+                  ? 'Choose a run'
+                  : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
               </Typography>
               <Typography variant="h3">Country Guesser</Typography>
-              <GameTimer
-                key={sessionKey}
-                isRunning={gameState.status === 'playing'}
-              />
+              <Typography color="text.secondary" variant="body2">
+                {getSessionSummaryLabel(gameState)}
+              </Typography>
+              <GameTimer elapsedMs={displayElapsedMs} />
             </Stack>
           </Paper>
           <Paper
@@ -424,23 +642,10 @@ export function GamePage() {
               p: 2,
               pointerEvents: 'auto',
               position: 'relative',
-              '&::before': isAtlas
-                ? {
-                    background:
-                      'radial-gradient(circle, rgba(122, 74, 29, 0.12) 0, rgba(122, 74, 29, 0) 70%)',
-                    content: '""',
-                    height: 84,
-                    opacity: 0.75,
-                    position: 'absolute',
-                    right: -18,
-                    top: -20,
-                    width: 84,
-                    borderRadius: '50%',
-                  }
-                : undefined,
             }}
           >
             <Stack spacing={1} textAlign={{ md: 'right', xs: 'left' }}>
+              <Typography variant="body2">Score: {gameState.score}</Typography>
               <Typography variant="body2">Streak: {gameState.streak}</Typography>
               <Typography variant="body2">
                 Correct: {gameState.correct}
@@ -448,12 +653,17 @@ export function GamePage() {
               <Typography variant="body2">
                 Incorrect: {gameState.incorrect}
               </Typography>
-              {gameState.status !== 'gameOver' ? (
+              {gameState.livesRemaining !== null ? (
+                <Typography variant="body2">
+                  Lives: {gameState.livesRemaining}
+                </Typography>
+              ) : null}
+              {gameState.status !== 'gameOver' && gameState.status !== 'intro' ? (
                 <Button
                   size="small"
                   sx={{ alignSelf: { md: 'flex-end', xs: 'stretch' } }}
                   variant="outlined"
-                  onClick={() => setFocusRequest((value) => value + 1)}
+                  onClick={handleRefocus}
                 >
                   Refocus country
                 </Button>
@@ -481,7 +691,7 @@ export function GamePage() {
               border: `1px solid ${activeTheme.background.panelBorder}`,
               boxShadow: activeTheme.background.panelShadow,
               borderRadius: isAtlas ? '10px 14px 11px 8px' : undefined,
-              maxWidth: 420,
+              maxWidth: 460,
               overflow: isAtlas ? 'hidden' : undefined,
               p: 3,
               pointerEvents: 'auto',
@@ -490,51 +700,136 @@ export function GamePage() {
               width: '100%',
               alignSelf: 'end',
               mb: { md: 4, xs: 2 },
-              '&::before': isAtlas
-                ? {
-                    background:
-                      'radial-gradient(circle at top left, rgba(255,249,232,0.66), rgba(255,249,232,0) 56%)',
-                    content: '""',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    position: 'absolute',
-                    borderRadius: 'inherit',
-                  }
-                : undefined,
             }}
           >
             <Stack spacing={2}>
               {gameState.status === 'gameOver' ? (
                 <>
-                  <Typography variant="h4">Game over</Typography>
-                  <Typography>
-                    Final score: {gameState.correct} correct, {gameState.incorrect}{' '}
-                    incorrect.
+                  <Typography variant="h4">
+                    {isDailyRun ? 'Daily complete' : 'Run complete'}
                   </Typography>
-                  <Button variant="contained" onClick={() => startGame(gameState.difficulty)}>
-                    Play again
-                  </Button>
+                  {isDailyRun ? (
+                    <>
+                      <Typography variant="body1">
+                        Today&apos;s score: {gameState.correct}/{totalRounds}
+                      </Typography>
+                      {dailyShareText ? (
+                        <>
+                          <Typography
+                            component="pre"
+                            sx={{
+                              fontFamily: 'inherit',
+                              fontSize: '0.95rem',
+                              m: 0,
+                              whiteSpace: 'pre-wrap',
+                            }}
+                          >
+                            {dailyShareText}
+                          </Typography>
+                          <Button variant="outlined" onClick={handleCopyDailyShare}>
+                            {copyState === 'copied'
+                              ? 'Copied'
+                              : copyState === 'failed'
+                                ? 'Copy failed'
+                                : 'Copy results'}
+                          </Button>
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    <Typography variant="body1">
+                      Final score: {gameState.score} with {gameState.correct} correct
+                      out of {totalRounds}.
+                    </Typography>
+                  )}
+                  <Typography color="text.secondary" variant="body2">
+                    Best streak: {gameState.bestStreak} • Total time:{' '}
+                    {formatElapsed(gameState.totalElapsedMs)}
+                  </Typography>
+                  <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+                    {!isDailyRun ? (
+                      <Button variant="contained" onClick={handlePlayAgain}>
+                        Play again
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant={!isDailyRun ? 'outlined' : 'contained'}
+                      onClick={() => dispatch({ type: 'RETURN_TO_MENU' })}
+                    >
+                      Main menu
+                    </Button>
+                  </Stack>
                 </>
-              ) : gameState.status === 'answered' ? (
+              ) : gameState.status === 'reviewing' && gameState.lastRound ? (
                 <>
-                  <Alert severity={gameState.answerResult === 'correct' ? 'success' : 'error'}>
-                    {gameState.answerResult === 'correct'
+                  <Alert
+                    severity={
+                      gameState.lastRound.answerResult === 'correct'
+                        ? 'success'
+                        : 'error'
+                    }
+                  >
+                    {gameState.lastRound.answerResult === 'correct'
                       ? 'Correct'
                       : 'Incorrect'}
                   </Alert>
                   <Typography variant="h4">
-                    {currentCountry.properties.nameEn}
+                    {gameState.lastRound.countryName}
                   </Typography>
+                  <Typography variant="body2">
+                    You guessed:{' '}
+                    {gameState.lastRound.playerGuess.trim() || 'No answer'}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {[
+                      gameState.lastRound.continent,
+                      gameState.lastRound.subregion,
+                    ]
+                      .filter((value): value is string => Boolean(value))
+                      .join(' • ')}
+                  </Typography>
+                  <Typography variant="body2">
+                    Round time: {formatElapsed(gameState.lastRound.roundElapsedMs)}
+                  </Typography>
+                  <Typography variant="body2">
+                    Score change: +{gameState.lastRound.scoreDelta}
+                  </Typography>
+                  {gameState.lastRound.hintsUsed > 0 ? (
+                    <Typography color="text.secondary" variant="body2">
+                      Hint penalty applied for {gameState.lastRound.hintsUsed}{' '}
+                      refocus
+                      {gameState.lastRound.hintsUsed > 1 ? 'es' : ''}.
+                    </Typography>
+                  ) : null}
                   <Button autoFocus variant="contained" onClick={handleNextRound}>
-                    Next
+                    {isReviewComplete ? 'Finish' : 'Next'}
                   </Button>
                 </>
-              ) : (
+              ) : gameState.status === 'playing' ? (
                 <>
                   <Typography variant="body1">
                     Guess the highlighted country.
                   </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    Type a country name directly or use autocomplete.
+                  </Typography>
                   <GuessInput options={countryOptions} onSubmit={handleSubmit} />
+                </>
+              ) : (
+                <>
+                  <Typography variant="body1">
+                    Select a mode to begin.
+                  </Typography>
+                  {storedDailyResult ? (
+                    <Typography color="text.secondary" variant="body2">
+                      Today&apos;s daily is already complete: {storedDailyResult.correctCount}/
+                      {storedDailyResult.totalCount}
+                    </Typography>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">
+                      Daily challenge is available in the menu.
+                    </Typography>
+                  )}
                 </>
               )}
             </Stack>

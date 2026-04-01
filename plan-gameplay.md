@@ -1,5 +1,7 @@
 # Gameplay Expansion Plan
 
+Implementation status: Completed
+
 ## Goal
 
 Evolve the current single-loop country identification game into a replayable system with:
@@ -331,6 +333,8 @@ This will make game modes and alternative end conditions much easier to reason a
 
 ## Phase 1. Tests First
 
+Status: Completed
+
 Goal:
 
 - lock down the existing loop before broadening it
@@ -356,6 +360,8 @@ Exit criteria:
 
 ## Phase 2. Domain Model Upgrade
 
+Status: Completed
+
 Goal:
 
 - create the state and logic structure needed for new mechanics
@@ -373,6 +379,8 @@ Exit criteria:
 - scoring and timing are stored canonically in state
 
 ## Phase 3. Scoring and Answer Review
+
+Status: Completed
 
 Goal:
 
@@ -393,6 +401,8 @@ Exit criteria:
 - player sees more than just correct/incorrect
 
 ## Phase 4. Session Variety
+
+Status: Completed
 
 Goal:
 
@@ -417,6 +427,8 @@ Exit criteria:
 
 ## Phase 5. Adaptive Difficulty
 
+Status: Completed
+
 Goal:
 
 - make sessions feel paced instead of flat
@@ -433,6 +445,8 @@ Exit criteria:
 - difficulty changes can be observed in state and tested deterministically
 
 ## Phase 6. Additional Modes
+
+Status: Completed
 
 Goal:
 
@@ -567,6 +581,8 @@ Cover only the critical happy paths at first:
 - Too many modes too early can slow tuning and weaken the main loop.
 
 ## Recommended Immediate Next Steps
+
+Status: Completed
 
 1. Add route-level tests for the current loop, especially exact typed submit and game-over progression.
 2. Expand `types.ts` and `gameLogic.ts` for `GameMode`, scoring, daily state, region filters, and round records.

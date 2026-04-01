@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import { GameTimer } from '@/features/game/ui/GameTimer';
 
-it('renders the initial timer value', () => {
-  render(<GameTimer isRunning={false} />);
+it('renders the formatted timer value', () => {
+  render(<GameTimer elapsedMs={12_345} />);
 
-  expect(screen.getByText('0:00:00.000')).toBeVisible();
+  expect(screen.getByText('0:00:12.345')).toBeVisible();
 });

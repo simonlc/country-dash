@@ -6,6 +6,7 @@ import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
 import { matchSorter } from 'match-sorter';
 import { useRef, useState } from 'react';
+import { normalizeGuess } from '@/features/game/logic/gameLogic';
 import type { CountryProperties } from '@/features/game/types';
 
 interface HighlightPart {
@@ -32,7 +33,7 @@ const filterOptions = (options: CountryProperties[], inputValue: string) =>
 
 export function GuessInput({ options, onSubmit }: GuessInputProps) {
   const hintRef = useRef('');
-  const [value, setValue] = useState<CountryProperties | null>(null);
+  const [value, setValue] = useState<CountryProperties | undefined>(undefined);
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -54,8 +55,11 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
       component="form"
       onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (value) {
-          onSubmit(value.nameEn);
+        const field = event.currentTarget.querySelector('input');
+        const submittedValue = value?.nameEn ?? field?.value.trim() ?? inputValue.trim();
+
+        if (submittedValue) {
+          onSubmit(submittedValue);
         }
       }}
       sx={{ display: 'grid', gap: 2, width: '100%', maxWidth: 360 }}
@@ -71,7 +75,7 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         open={open}
         openOnFocus={false}
         options={options}
-        value={value ?? undefined}
+        value={value}
         filterOptions={(allOptions, state) =>
           filterOptions(allOptions, state.inputValue)
         }
@@ -85,12 +89,21 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
         onChange={(_event, nextValue) => {
           setValue(nextValue);
           if (nextValue) {
+            setInputValue(nextValue.nameEn);
+          }
+          if (nextValue) {
             hintRef.current = nextValue.nameEn;
           }
         }}
         onClose={() => setOpen(false)}
         onInputChange={(_event, nextInputValue) => {
           setInputValue(nextInputValue);
+          const exactMatch =
+            options.find(
+              (option) =>
+                normalizeGuess(option.nameEn) === normalizeGuess(nextInputValue),
+            ) ?? undefined;
+          setValue(exactMatch);
           updateHint(nextInputValue);
           setOpen(nextInputValue.trim().length > 0);
         }}
@@ -106,6 +119,14 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
               event.preventDefault();
             }
           }
+          if (event.key === 'Enter') {
+            const submittedValue = value?.nameEn ?? inputValue.trim();
+
+            if (submittedValue) {
+              onSubmit(submittedValue);
+              event.preventDefault();
+            }
+          }
         }}
         renderInput={(params) => (
           <Box sx={{ position: 'relative' }}>
@@ -117,6 +138,16 @@ export function GuessInput({ options, onSubmit }: GuessInputProps) {
                 const nextValue = event.target.value;
                 setInputValue(nextValue);
                 updateHint(nextValue);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  const submittedValue = value?.nameEn ?? inputValue.trim();
+
+                  if (submittedValue) {
+                    onSubmit(submittedValue);
+                    event.preventDefault();
+                  }
+                }
               }}
             />
             <Typography

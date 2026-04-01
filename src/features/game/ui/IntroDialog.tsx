@@ -1,72 +1,390 @@
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import {
+  Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
+  Paper,
   Stack,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
-import type { Difficulty } from '@/features/game/types';
+import { useMemo, useState } from 'react';
+import { countrySizeLabels, regionLabels } from '@/features/game/logic/gameLogic';
+import type {
+  CountrySizeFilter,
+  DailyChallengeResult,
+  GameMode,
+  RegionFilter,
+} from '@/features/game/types';
 
 interface IntroDialogProps {
-  counts: Record<Difficulty, number>;
-  onStart: (difficulty: Difficulty) => void;
+  counts: Record<CountrySizeFilter, number>;
+  dailyResult: DailyChallengeResult | null;
+  onStartDaily: () => void;
+  onStartRandom: (options: {
+    mode: GameMode;
+    regionFilter: RegionFilter | null;
+    countrySizeFilter: CountrySizeFilter;
+  }) => void;
 }
 
-const difficultyLabels: Record<Difficulty, string> = {
-  easy: 'American',
-  medium: 'Tourist',
-  hard: 'GeoGuessr enjoyer',
-  veryHard: 'Impossible',
+const modeDetails: Array<{
+  description: string;
+  label: string;
+  value: GameMode;
+}> = [
+  {
+    value: 'classic',
+    label: 'Classic',
+    description: 'Open-ended rounds with the full scoring loop.',
+  },
+  {
+    value: 'threeLives',
+    label: '3 Lives',
+    description: 'Push accuracy before the run collapses.',
+  },
+  {
+    value: 'speedrun',
+    label: 'Speedrun',
+    description: 'Ten fast rounds with timing pressure.',
+  },
+  {
+    value: 'streak',
+    label: 'Streak',
+    description: 'One miss ends the run.',
+  },
+];
+
+const sizeDescriptions: Record<CountrySizeFilter, string> = {
+  large: 'Big shapes and broad landmasses.',
+  mixed: 'Mid-sized countries with balanced silhouettes.',
+  small: 'Compact countries and tighter targets.',
 };
 
+const sizeDisplayLabels: Record<CountrySizeFilter, string> = {
+  large: 'Large',
+  mixed: 'Medium',
+  small: 'Small',
+};
+
+const categoryOptions: Array<{
+  accent: string;
+  description: string;
+  label: string;
+  value: RegionFilter | null;
+}> = [
+  {
+    value: null,
+    label: 'World',
+    description: 'No region filter. Full globe coverage.',
+    accent: '◎',
+  },
+  {
+    value: 'microstates',
+    label: 'Micro Countries',
+    description: 'Tiny targets and high-precision geography.',
+    accent: '◌',
+  },
+  {
+    value: 'islandNations',
+    label: 'Island Nations',
+    description: 'Ocean-heavy runs with distinct coastlines.',
+    accent: '◠',
+  },
+  {
+    value: 'caribbean',
+    label: 'Caribbean',
+    description: 'Clustered islands and coastal memory checks.',
+    accent: '≈',
+  },
+  {
+    value: 'middleEast',
+    label: 'Middle East',
+    description: 'Dense borders and strong regional similarity.',
+    accent: '◇',
+  },
+  {
+    value: 'africa',
+    label: 'Africa',
+    description: 'Every African country in one complete regional pool.',
+    accent: '◐',
+  },
+  {
+    value: 'asia',
+    label: 'Asia',
+    description: 'The full Asian region, from the Gulf to the Pacific.',
+    accent: '◓',
+  },
+  {
+    value: 'europe',
+    label: 'Europe',
+    description: 'The full European region as one complete set.',
+    accent: '◑',
+  },
+  {
+    value: 'northAmerica',
+    label: 'North America',
+    description: 'All North American countries in a single pool.',
+    accent: '⬓',
+  },
+  {
+    value: 'southAmerica',
+    label: 'South America',
+    description: 'The complete South American region.',
+    accent: '⬒',
+  },
+  {
+    value: 'oceania',
+    label: 'Oceania',
+    description: 'The full Oceania region, islands included.',
+    accent: '◒',
+  },
+];
+
 export const IntroDialog = NiceModal.create(
-  ({ counts, onStart }: IntroDialogProps) => {
+  ({ counts, dailyResult, onStartDaily, onStartRandom }: IntroDialogProps) => {
     const modal = useModal();
-    const [difficulty, setDifficulty] = useState<Difficulty>('hard');
+    const [mode, setMode] = useState<GameMode>('classic');
+    const [countrySizeFilter, setCountrySizeFilter] =
+      useState<CountrySizeFilter>('mixed');
+    const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
+
+    const dailySummary = useMemo(() => {
+      if (!dailyResult) {
+        return null;
+      }
+
+      return `${dailyResult.correctCount}/${dailyResult.totalCount}`;
+    }, [dailyResult]);
 
     return (
-      <Dialog fullWidth maxWidth="sm" open={modal.visible}>
-        <DialogTitle>Country Guesser</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ pt: 1 }}>
-            <Typography>
-              Type the name of the highlighted country on the globe.
-            </Typography>
-            <RadioGroup
-              value={difficulty}
-              onChange={(event) =>
-                setDifficulty(event.target.value as Difficulty)
-              }
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        open={modal.visible}
+        PaperProps={{
+          sx: {
+            background:
+              'radial-gradient(circle at top left, rgba(68,156,255,0.18), rgba(68,156,255,0) 26%), radial-gradient(circle at bottom right, rgba(39,218,181,0.14), rgba(39,218,181,0) 24%), linear-gradient(180deg, rgba(8,26,43,0.99), rgba(10,30,46,0.99))',
+            border: '1px solid rgba(146, 198, 255, 0.22)',
+            borderRadius: 6,
+            overflow: 'hidden',
+          },
+        }}
+      >
+        <DialogContent sx={{ p: { md: 4, xs: 2.5 } }}>
+          <Stack spacing={3}>
+            <Stack spacing={1}>
+              <Typography color="primary.light" variant="overline">
+                Randomly Generated Countries
+              </Typography>
+              <Typography color="common.white" variant="h4">
+                Pick a size group first
+              </Typography>
+              <Typography color="rgba(232,242,255,0.72)" variant="body2">
+                The main flow is small, medium, or large. Everything else is optional.
+              </Typography>
+            </Stack>
+
+            <Paper
+              elevation={0}
+              sx={{
+                background:
+                  'linear-gradient(160deg, rgba(18,33,47,0.92), rgba(8,18,29,0.92))',
+                border: '1px solid rgba(146, 198, 255, 0.14)',
+                borderRadius: 4,
+                color: 'common.white',
+                p: 2.5,
+              }}
             >
-              {(Object.keys(difficultyLabels) as Difficulty[]).map((key) => (
-                <FormControlLabel
-                  key={key}
-                  control={<Radio />}
-                  label={`${difficultyLabels[key]} (${counts[key]} countries)`}
-                  value={key}
-                />
-              ))}
-            </RadioGroup>
+              <Stack spacing={2.5}>
+                <Stack
+                  direction={{ md: 'row', xs: 'column' }}
+                  justifyContent="space-between"
+                  spacing={1.5}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="h6">Start random run</Typography>
+                    <Typography color="rgba(232,242,255,0.64)" variant="body2">
+                      {modeDetails.find((option) => option.value === mode)?.label}
+                      {' • '}
+                      {regionFilter ? regionLabels[regionFilter] : 'World'}
+                      {' • '}
+                      {sizeDisplayLabels[countrySizeFilter]} countries
+                    </Typography>
+                  </Stack>
+                  <Button
+                    size="large"
+                    sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                    variant="contained"
+                    onClick={() => {
+                      onStartRandom({
+                        mode,
+                        regionFilter,
+                        countrySizeFilter,
+                      });
+                      void modal.hide();
+                    }}
+                  >
+                    Play {sizeDisplayLabels[countrySizeFilter].toLowerCase()} countries
+                  </Button>
+                </Stack>
+
+                <Stack spacing={1.5}>
+                  <Stack spacing={0.75}>
+                    <Typography color="rgba(232,242,255,0.72)" variant="body2">
+                      Pool
+                    </Typography>
+                    <Typography color="rgba(232,242,255,0.56)" variant="caption">
+                      Size and category live together here.
+                    </Typography>
+                  </Stack>
+
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1.25,
+                      gridTemplateColumns: {
+                        md: 'repeat(3, minmax(0, 1fr))',
+                        xs: '1fr',
+                      },
+                    }}
+                  >
+                    {[
+                      ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
+                        isSize: true,
+                        description: sizeDescriptions[key],
+                        label: sizeDisplayLabels[key],
+                        meta: `${counts[key]} countries`,
+                        selected: countrySizeFilter === key,
+                        value: key,
+                      })),
+                      ...categoryOptions.map((option) => ({
+                        isSize: false,
+                        description:
+                          option.value === null ? 'No region filter.' : option.description,
+                        label: option.label,
+                        meta:
+                          option.value === null
+                            ? `${sizeDisplayLabels[countrySizeFilter]} countries`
+                            : 'Category',
+                        selected: regionFilter === option.value,
+                        value: option.value,
+                      })),
+                    ].map((item) => (
+                      <Button
+                        key={`${item.isSize ? 'size' : 'region'}-${String(item.value ?? 'world')}`}
+                        sx={{
+                          alignItems: 'flex-start',
+                          background: item.isSize
+                            ? item.selected
+                              ? 'linear-gradient(180deg, rgba(73,151,255,0.26), rgba(14,35,54,0.98))'
+                              : 'linear-gradient(180deg, rgba(20,34,49,0.96), rgba(8,18,29,0.98))'
+                            : 'transparent',
+                          borderColor: item.selected
+                            ? 'primary.main'
+                            : 'rgba(146, 198, 255, 0.16)',
+                          borderRadius: 3,
+                          color: item.selected ? 'common.white' : 'rgba(232,242,255,0.78)',
+                          justifyContent: 'flex-start',
+                          minHeight: item.isSize ? 132 : 72,
+                          px: item.isSize ? 2 : 1.5,
+                          py: item.isSize ? 1.75 : 1.25,
+                          textAlign: 'left',
+                          textTransform: 'none',
+                        }}
+                        variant={item.selected ? 'contained' : 'outlined'}
+                        onClick={() => {
+                          if (item.isSize) {
+                            setCountrySizeFilter(item.value as CountrySizeFilter);
+                            return;
+                          }
+
+                          setRegionFilter(item.value as RegionFilter | null);
+                        }}
+                      >
+                        <Stack spacing={item.isSize ? 0.75 : 0.25}>
+                          <Typography
+                            fontWeight={700}
+                            variant={item.isSize ? 'h5' : 'body2'}
+                          >
+                            {item.label}
+                          </Typography>
+                          <Typography
+                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.56)'}
+                            variant="caption"
+                          >
+                            {item.meta}
+                          </Typography>
+                          <Typography
+                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.66)'}
+                            variant="body2"
+                          >
+                            {item.description}
+                          </Typography>
+                        </Stack>
+                      </Button>
+                    ))}
+                  </Box>
+
+                  <Stack spacing={1}>
+                    <Typography color="rgba(232,242,255,0.72)" variant="body2">
+                      Mode
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                      }}
+                    >
+                      {modeDetails.map((option) => (
+                        <Button
+                          key={option.value}
+                          sx={{
+                            borderColor:
+                              mode === option.value ? 'primary.main' : 'rgba(146, 198, 255, 0.16)',
+                            borderRadius: '999px',
+                            color:
+                              mode === option.value ? 'common.white' : 'rgba(232,242,255,0.78)',
+                            px: 1.5,
+                            textTransform: 'none',
+                          }}
+                          variant={mode === option.value ? 'contained' : 'outlined'}
+                          onClick={() => setMode(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Stack>
+
+                  <Stack
+                    direction={{ sm: 'row', xs: 'column' }}
+                    justifyContent="space-between"
+                    spacing={1}
+                  >
+                    <Typography color="rgba(232,242,255,0.6)" variant="body2">
+                      Daily challenge: {dailySummary ? `completed ${dailySummary}` : 'one seeded 5-country route for today'}
+                    </Typography>
+                    {dailySummary ? null : (
+                      <Button
+                        sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                        variant="text"
+                        onClick={() => {
+                          onStartDaily();
+                          void modal.hide();
+                        }}
+                      >
+                        Play today&apos;s daily
+                      </Button>
+                    )}
+                  </Stack>
+                </Stack>
+              </Stack>
+            </Paper>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button
-            variant="contained"
-            onClick={() => {
-              onStart(difficulty);
-              void modal.hide();
-            }}
-          >
-            Start
-          </Button>
-        </DialogActions>
       </Dialog>
     );
   },
