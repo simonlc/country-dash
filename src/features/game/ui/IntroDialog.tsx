@@ -8,7 +8,24 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import {
+  Circle,
+  Clock,
+  Compass,
+  Crop,
+  Globe,
+  Heart,
+  Map,
+  MapPin,
+  Triangle,
+  Zap,
+} from 'react-feather';
 import { useMemo, useState } from 'react';
+import { useAppearance } from '@/app/appearance';
+import {
+  getThemeAccentSurfaceStyles,
+  getThemeSurfaceStyles,
+} from '@/app/theme';
 import {
   countrySizeLabels,
   randomRunPresetDifficulties,
@@ -34,93 +51,93 @@ interface IntroDialogProps {
 }
 
 const modeDetails: Array<{
-  description: string;
+  icon: typeof Circle;
   label: string;
   value: GameMode;
 }> = [
   {
+    icon: Circle,
     value: 'classic',
     label: 'Classic',
-    description: 'Open-ended rounds with the full scoring loop.',
   },
   {
+    icon: Heart,
     value: 'threeLives',
     label: '3 Lives',
-    description: 'Push accuracy before the run collapses.',
   },
   {
+    icon: Zap,
     value: 'speedrun',
     label: 'Speedrun',
-    description: 'Ten fast rounds with timing pressure.',
   },
   {
+    icon: Triangle,
     value: 'streak',
     label: 'Streak',
-    description: 'One miss ends the run.',
   },
 ];
 
 const difficultyLabels: Record<Difficulty, string> = {
-  easy: 'Lower difficulty',
-  medium: 'Medium difficulty',
-  hard: 'Higher difficulty',
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
   veryHard: 'Very hard',
 };
 
 const categoryOptions: Array<{
-  description: string;
+  icon: typeof Globe;
   label: string;
   value: RegionFilter;
 }> = [
   {
+    icon: MapPin,
     value: 'microstates',
     label: 'Micro Countries',
-    description: 'Tiny targets and high-precision geography.',
   },
   {
+    icon: Compass,
     value: 'islandNations',
     label: 'Island Nations',
-    description: 'Ocean-heavy runs with distinct coastlines.',
   },
   {
+    icon: Map,
     value: 'caribbean',
     label: 'Caribbean',
-    description: 'Clustered islands and coastal memory checks.',
   },
   {
+    icon: Crop,
     value: 'middleEast',
     label: 'Middle East',
-    description: 'Dense borders and strong regional similarity.',
   },
   {
+    icon: Globe,
     value: 'africa',
     label: 'Africa',
-    description: 'Every African country in one complete regional pool.',
   },
   {
+    icon: Globe,
     value: 'asia',
     label: 'Asia',
-    description: 'The full Asian region, from the Gulf to the Pacific.',
   },
   {
+    icon: Globe,
     value: 'europe',
     label: 'Europe',
-    description: 'The full European region as one complete set.',
   },
   {
+    icon: Globe,
     value: 'northAmerica',
     label: 'North America',
-    description: 'All North American countries in a single pool.',
   },
   {
+    icon: Globe,
     value: 'southAmerica',
     label: 'South America',
-    description: 'The complete South American region.',
   },
   {
+    icon: Globe,
     value: 'oceania',
     label: 'Oceania',
-    description: 'The full Oceania region, islands included.',
   },
 ];
 
@@ -146,10 +163,15 @@ function formatCompletedDate(value: string) {
 export const IntroDialog = NiceModal.create(
   ({ counts, dailyResult, onStartDaily, onStartRandom }: IntroDialogProps) => {
     const modal = useModal();
+    const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
     const [countrySizeFilter, setCountrySizeFilter] =
       useState<CountrySizeFilter>('mixed');
     const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
+    const accentSurface = getThemeAccentSurfaceStyles(activeTheme);
+    const strongAccentSurface = getThemeAccentSurfaceStyles(activeTheme, 'strong');
+    const panelSurface = getThemeSurfaceStyles(activeTheme);
+    const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
 
     const dailySummary = useMemo(() => {
       if (!dailyResult) {
@@ -164,21 +186,15 @@ export const IntroDialog = NiceModal.create(
         fullWidth
         maxWidth="md"
         open={modal.visible}
-        PaperProps={{
-          sx: {
-            background:
-              'radial-gradient(circle at top left, rgba(68,156,255,0.18), rgba(68,156,255,0) 26%), radial-gradient(circle at bottom right, rgba(39,218,181,0.14), rgba(39,218,181,0) 24%), linear-gradient(180deg, rgba(8,26,43,0.99), rgba(10,30,46,0.99))',
-            border: '1px solid rgba(146, 198, 255, 0.22)',
-            borderRadius: 6,
-            overflow: 'hidden',
-          },
-        }}
       >
         <DialogContent sx={{ p: { md: 4, xs: 2.5 } }}>
-          <Stack spacing={2.5}>
-            <Stack spacing={0.25}>
-              <Typography color="common.white" lineHeight={0.95} variant="h2">
+          <Stack spacing={3}>
+            <Stack spacing={1}>
+              <Typography lineHeight={0.95} variant="h2">
                 Country Guesser
+              </Typography>
+              <Typography color="text.secondary" maxWidth={520} variant="body2">
+                Pick a run and start.
               </Typography>
             </Stack>
 
@@ -195,21 +211,18 @@ export const IntroDialog = NiceModal.create(
               <Paper
                 elevation={0}
                 sx={{
-                  background:
-                    'radial-gradient(circle at top left, rgba(61,203,169,0.22), rgba(61,203,169,0) 34%), linear-gradient(165deg, rgba(14,39,48,0.98), rgba(8,22,30,0.98))',
-                  border: '1px solid rgba(102, 225, 195, 0.2)',
-                  borderRadius: 3,
-                  color: 'common.white',
-                  minHeight: 1,
-                  p: { md: 2.5, xs: 2 },
+                  ...panelSurface,
+                  ...strongAccentSurface,
+                  borderRadius: 5,
+                  p: { md: 2.25, xs: 2 },
                 }}
               >
-                <Stack height="100%" justifyContent="space-between" spacing={2}>
-                  <Stack spacing={0.75}>
-                    <Typography color="secondary.light" variant="overline">
+                <Stack spacing={1.5}>
+                  <Stack spacing={0.35}>
+                    <Typography variant="overline">
                       Daily Challenge
                     </Typography>
-                    <Typography lineHeight={1.05} variant="h4">
+                    <Typography lineHeight={1.05} variant="h5">
                       Today&apos;s route
                     </Typography>
                   </Stack>
@@ -218,22 +231,29 @@ export const IntroDialog = NiceModal.create(
                     <Paper
                       elevation={0}
                       sx={{
-                        background:
-                          'linear-gradient(180deg, rgba(83,199,170,0.14), rgba(83,199,170,0.04))',
-                        border: '1px solid rgba(102, 225, 195, 0.24)',
-                        borderRadius: 2,
+                        ...accentSurface,
+                        borderRadius: 3,
                         p: 1.75,
                       }}
                     >
-                      <Stack spacing={0.5}>
-                        <Typography color="rgba(213,255,246,0.82)" variant="caption">
-                          Completed
-                        </Typography>
-                        <Typography lineHeight={1} variant="h3">
-                          {dailySummary}
-                        </Typography>
-                        <Typography color="rgba(232,242,255,0.58)" variant="caption">
-                          Finished on {formatCompletedDate(dailyResult.completedAt)}.
+                      <Stack
+                        alignItems="center"
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={2}
+                      >
+                        <Box>
+                          <Typography color="text.secondary" variant="caption">
+                            Completed
+                          </Typography>
+                          <Typography lineHeight={1} variant="h4">
+                            {dailySummary}
+                          </Typography>
+                        </Box>
+                        <Typography color="text.secondary" variant="caption">
+                          {dailyResult
+                            ? formatCompletedDate(dailyResult.completedAt)
+                            : ''}
                         </Typography>
                       </Stack>
                     </Paper>
@@ -241,47 +261,37 @@ export const IntroDialog = NiceModal.create(
                     <Paper
                       elevation={0}
                       sx={{
-                        background:
-                          'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                        border: '1px solid rgba(102, 225, 195, 0.18)',
-                        borderRadius: 2,
+                        ...mutedSurface,
+                        borderRadius: 3,
                         p: 1.75,
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between" spacing={1.5}>
-                        <Stack spacing={0.25}>
-                          <Typography color="rgba(213,255,246,0.82)" variant="caption">
-                            Route
-                          </Typography>
-                          <Typography lineHeight={1} variant="h3">
-                            5
-                          </Typography>
-                        </Stack>
-                        <Stack spacing={0.25}>
-                          <Typography color="rgba(232,242,255,0.78)" variant="body2">
-                            countries, fixed seed
-                          </Typography>
-                        </Stack>
+                      <Stack
+                        alignItems="center"
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={1.5}
+                      >
+                        <Typography lineHeight={1} variant="h4">
+                          5
+                        </Typography>
+                        <Typography color="text.secondary" variant="body2">
+                          countries
+                        </Typography>
                       </Stack>
                     </Paper>
                   )}
 
                   {dailySummary ? (
-                    <Typography color="rgba(232,242,255,0.6)" variant="body2">
+                    <Typography color="text.secondary" variant="body2">
                       Completed for today.
                     </Typography>
                   ) : (
                     <Button
+                      fullWidth
                       size="large"
                       sx={{
-                        alignSelf: 'stretch',
-                        background:
-                          'linear-gradient(180deg, rgba(91,224,188,1), rgba(44,174,143,1))',
-                        boxShadow: '0 18px 40px rgba(27, 123, 102, 0.34)',
-                        color: '#05211b',
-                        fontWeight: 700,
                         py: 1.25,
-                        textTransform: 'none',
                       }}
                       variant="contained"
                       onClick={() => {
@@ -298,58 +308,65 @@ export const IntroDialog = NiceModal.create(
               <Paper
                 elevation={0}
                 sx={{
-                  background:
-                    'linear-gradient(160deg, rgba(18,33,47,0.92), rgba(8,18,29,0.92))',
-                  border: '1px solid rgba(146, 198, 255, 0.14)',
-                  borderRadius: 3,
-                  color: 'common.white',
+                  ...panelSurface,
+                  borderRadius: 5,
                   p: 2.5,
                 }}
               >
                 <Stack spacing={2.25}>
-                  <Stack spacing={0.5}>
-                    <Typography color="primary.light" variant="overline">
-                      Random Run
+                  <Stack spacing={0.35}>
+                    <Typography variant="overline">
+                      Random
                     </Typography>
                     <Typography variant="h5">Custom run</Typography>
-                  </Stack>
-
-                  <Stack spacing={1}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 1,
-                      }}
-                    >
-                      {modeDetails.map((option) => (
-                        <Button
-                          key={option.value}
-                          sx={{
-                            borderColor:
-                              mode === option.value ? 'primary.main' : 'rgba(146, 198, 255, 0.16)',
-                            borderRadius: '999px',
-                            color:
-                              mode === option.value ? 'common.white' : 'rgba(232,242,255,0.78)',
-                            px: 1.5,
-                            textTransform: 'none',
-                          }}
-                          variant={mode === option.value ? 'contained' : 'outlined'}
-                          onClick={() => setMode(option.value)}
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </Box>
                   </Stack>
 
                   <Box
                     sx={{
                       display: 'grid',
-                      gap: 1.25,
+                      gap: 1,
+                      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                    }}
+                  >
+                    {modeDetails.map((option) => {
+                      const ModeIcon = option.icon;
+
+                      return (
+                      <Button
+                        aria-label={option.label}
+                        key={option.value}
+                        sx={{
+                          ...(mode === option.value ? strongAccentSurface : mutedSurface),
+                          borderColor: mode === option.value ? 'primary.main' : undefined,
+                          borderRadius: 3,
+                          display: 'grid',
+                          gap: 0.4,
+                          minHeight: 84,
+                          minWidth: 0,
+                          p: 1,
+                        }}
+                        variant="outlined"
+                        onClick={() => setMode(option.value)}
+                      >
+                        <Box
+                          aria-hidden
+                          sx={{ display: 'grid', lineHeight: 0, placeItems: 'center' }}
+                        >
+                          <ModeIcon size={16} strokeWidth={2} />
+                        </Box>
+                        <Typography variant="caption">{option.label}</Typography>
+                      </Button>
+                      );
+                    })}
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1,
                       gridTemplateColumns: {
-                        md: 'repeat(12, minmax(0, 1fr))',
-                        sm: 'repeat(6, minmax(0, 1fr))',
+                        md: 'repeat(3, minmax(0, 1fr))',
+                        sm: 'repeat(3, minmax(0, 1fr))',
                         xs: '1fr',
                       },
                     }}
@@ -357,59 +374,81 @@ export const IntroDialog = NiceModal.create(
                     {[
                       ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
                         isSize: true,
-                        description: `${counts[key]} random countries with ${difficultyLabels[randomRunPresetDifficulties[key]].toLowerCase()}.`,
+                        icon:
+                          key === 'large'
+                            ? Globe
+                            : key === 'mixed'
+                              ? Map
+                              : Clock,
+                        description:
+                          key === 'large'
+                            ? `${counts[key]} random countries with higher difficulty.`
+                            : key === 'mixed'
+                              ? `${counts[key]} random countries with medium difficulty.`
+                              : `${counts[key]} random countries with lower difficulty.`,
+                        detail: difficultyLabels[randomRunPresetDifficulties[key]],
                         label: countrySizeLabels[key],
                         meta: `${counts[key]} countries`,
                         selected: regionFilter === null && countrySizeFilter === key,
                         value: key,
                       })),
                       ...categoryOptions.map((option) => ({
+                        icon: option.icon,
                         isSize: false,
-                        description: option.description,
+                        description:
+                          option.value === 'microstates'
+                            ? 'Tiny targets and high-precision geography.'
+                            : option.value === 'islandNations'
+                              ? 'Ocean-heavy runs with distinct coastlines.'
+                              : option.value === 'caribbean'
+                                ? 'Clustered islands and coastal memory checks.'
+                                : option.value === 'middleEast'
+                                  ? 'Dense borders and strong regional similarity.'
+                                  : option.value === 'africa'
+                                    ? 'Every African country in one complete regional pool.'
+                                    : option.value === 'asia'
+                                      ? 'The full Asian region, from the Gulf to the Pacific.'
+                                      : option.value === 'europe'
+                                        ? 'The full European region as one complete set.'
+                                        : option.value === 'northAmerica'
+                                          ? 'All North American countries in a single pool.'
+                                          : option.value === 'southAmerica'
+                                            ? 'The complete South American region.'
+                                            : 'The full Oceania region, islands included.',
+                        detail: '',
                         label: option.label,
                         meta: 'Category pool',
                         selected: regionFilter === option.value,
                         value: option.value,
                       })),
-                    ].map((item) => (
+                    ].map((item) => {
+                      const ItemIcon = item.icon;
+
+                      return (
                       <Button
+                        aria-label={
+                          item.isSize
+                            ? `${item.label} ${item.meta} ${item.description}`
+                            : `${item.label} ${item.meta} ${item.description}`
+                        }
                         key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
                         sx={{
                           alignItems: 'flex-start',
-                          background: item.isSize
-                            ? item.selected
-                              ? 'linear-gradient(180deg, rgba(73,151,255,0.34), rgba(14,35,54,0.98))'
-                              : 'linear-gradient(180deg, rgba(24,40,58,0.98), rgba(8,18,29,0.98))'
-                            : 'rgba(255,255,255,0.02)',
-                          borderColor: item.selected
-                            ? 'primary.main'
-                            : 'rgba(146, 198, 255, 0.16)',
-                          borderRadius: 2,
-                          boxShadow: item.isSize
-                            ? item.selected
-                              ? '0 16px 40px rgba(0, 0, 0, 0.24)'
-                              : '0 10px 24px rgba(0, 0, 0, 0.18)'
-                            : 'none',
-                          color: item.selected ? 'common.white' : 'rgba(232,242,255,0.78)',
-                          gridColumn: item.isSize
-                            ? {
-                                md: 'span 4',
-                                sm: 'span 2',
-                                xs: 'auto',
-                              }
-                            : {
-                                md: 'span 3',
-                                sm: 'span 2',
-                                xs: 'auto',
-                              },
+                          ...(item.selected
+                            ? strongAccentSurface
+                            : item.isSize
+                              ? panelSurface
+                              : mutedSurface),
+                          borderColor: item.selected ? 'primary.main' : undefined,
+                          borderRadius: 3,
                           justifyContent: 'flex-start',
-                          minHeight: item.isSize ? 148 : 72,
-                          px: item.isSize ? 2 : 1.5,
-                          py: item.isSize ? 1.75 : 1.1,
+                          minHeight: item.isSize ? 118 : 64,
+                          minWidth: 0,
+                          px: item.isSize ? 1.5 : 1.25,
+                          py: item.isSize ? 1.5 : 1,
                           textAlign: 'left',
-                          textTransform: 'none',
                         }}
-                        variant={item.selected ? 'contained' : 'outlined'}
+                        variant="outlined"
                         onClick={() => {
                           if (item.isSize) {
                             setCountrySizeFilter(item.value as CountrySizeFilter);
@@ -421,40 +460,45 @@ export const IntroDialog = NiceModal.create(
                           setCountrySizeFilter('mixed');
                         }}
                       >
-                        <Stack spacing={item.isSize ? 0.55 : 0.2}>
+                        <Stack spacing={item.isSize ? 0.45 : 0.15}>
+                          <ItemIcon
+                            aria-hidden
+                            size={item.isSize ? 18 : 16}
+                            strokeWidth={2}
+                          />
                           <Typography
                             fontWeight={700}
-                            variant={item.isSize ? 'h4' : 'body2'}
+                            variant={item.isSize ? 'h6' : 'body2'}
                           >
                             {item.label}
                           </Typography>
-                          <Typography
-                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.56)'}
-                            variant="caption"
-                          >
-                            {item.meta}
-                          </Typography>
-                          <Typography
-                            color={item.selected ? 'inherit' : 'rgba(232,242,255,0.66)'}
-                            variant="body2"
-                          >
-                            {item.description}
-                          </Typography>
+                          {item.meta ? (
+                            <Typography
+                              color={item.selected ? 'inherit' : 'text.secondary'}
+                              variant="caption"
+                            >
+                              {item.meta}
+                            </Typography>
+                          ) : null}
+                          {item.detail ? (
+                            <Typography
+                              color={item.selected ? 'inherit' : 'text.secondary'}
+                              variant="caption"
+                            >
+                              {item.detail}
+                            </Typography>
+                          ) : null}
                         </Stack>
                       </Button>
-                    ))}
+                      );
+                    })}
                   </Box>
 
                   <Button
                     size="large"
                     sx={{
                       alignSelf: 'stretch',
-                      background:
-                        'linear-gradient(180deg, rgba(86,161,255,1), rgba(44,106,225,1))',
-                      boxShadow: '0 18px 40px rgba(31, 72, 171, 0.34)',
-                      fontWeight: 700,
                       py: 1.25,
-                      textTransform: 'none',
                     }}
                     variant="contained"
                     onClick={() => {

@@ -11,6 +11,10 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
+import {
+  getThemeAccentSurfaceStyles,
+  getThemeSurfaceStyles,
+} from '@/app/theme';
 import { Globe } from '@/Globe';
 import { loadWorldData } from '@/features/game/data/loadWorldData';
 import {
@@ -110,6 +114,18 @@ export function GamePage() {
   const size = useWindowSize();
   const { activeTheme } = useAppearance();
   const isAtlas = activeTheme.id === 'atlas';
+  const panelSurface = useMemo(
+    () => getThemeSurfaceStyles(activeTheme, 'elevated'),
+    [activeTheme],
+  );
+  const mutedSurface = useMemo(
+    () => getThemeSurfaceStyles(activeTheme, 'muted'),
+    [activeTheme],
+  );
+  const accentSurface = useMemo(
+    () => getThemeAccentSurfaceStyles(activeTheme),
+    [activeTheme],
+  );
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
   const [worldData, setWorldData] = useState<WorldData | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -613,173 +629,127 @@ export function GamePage() {
         <Stack
           direction={{ md: 'row', xs: 'column' }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={1.25}
         >
           <Paper
             elevation={0}
             sx={{
-              backdropFilter: 'blur(18px)',
-              background:
-                'linear-gradient(180deg, rgba(8,18,30,0.86), rgba(7,14,24,0.74))',
-              border: '1px solid rgba(150, 201, 255, 0.22)',
-              boxShadow:
-                '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)',
+              ...panelSurface,
               borderRadius: isAtlas ? '6px 9px 7px 8px' : 3,
               flex: 1,
-              overflow: isAtlas ? 'hidden' : undefined,
-              p: { md: 2.25, xs: 1.75 },
+              p: { md: 1.3, xs: 1.1 },
               pointerEvents: 'auto',
-              position: 'relative',
             }}
           >
-            <Stack spacing={1.5}>
-              <Stack
-                alignItems={{ md: 'center', xs: 'flex-start' }}
-                direction={{ md: 'row', xs: 'column' }}
-                justifyContent="space-between"
-                spacing={1.25}
-              >
-                <Stack spacing={0.35}>
-                  <Typography
-                    color="rgba(164,208,255,0.82)"
-                    letterSpacing="0.12em"
-                    textTransform="uppercase"
-                    variant="caption"
-                  >
-                    {gameState.status === 'intro'
-                      ? 'Ready'
-                      : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
-                  </Typography>
-                  <Typography
-                    fontWeight={700}
-                    letterSpacing="-0.02em"
-                    variant="h5"
-                  >
-                    Country Guesser
-                  </Typography>
-                </Stack>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(150, 201, 255, 0.18)',
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 0.75,
-                  }}
+            <Box
+              sx={{
+                alignItems: 'center',
+                display: 'grid',
+                gap: 1,
+                gridTemplateColumns: {
+                  md: 'minmax(0, 1.3fr) auto auto auto auto auto auto',
+                  xs: 'repeat(4, minmax(0, 1fr))',
+                },
+              }}
+            >
+              <Stack spacing={0.15} sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
+                <Typography
+                  color="text.secondary"
+                  letterSpacing="0.12em"
+                  textTransform="uppercase"
+                  variant="caption"
                 >
-                  <GameTimer elapsedMs={displayElapsedMs} />
-                </Paper>
-              </Stack>
-
-              <Stack direction="row" flexWrap="wrap" gap={1}>
-                {[
-                  `Type: ${getSessionTypeLabel(gameState)}`,
-                  `Mode: ${getSessionModeLabel(gameState)}`,
-                  getSessionSummaryLabel(gameState)
-                    ? `Pool: ${getSessionSummaryLabel(gameState)}`
-                    : null,
-                ]
-                  .filter((value): value is string => Boolean(value))
-                  .map((label) => (
-                    <Box
-                      key={label}
-                      sx={{
-                        background:
-                          'linear-gradient(180deg, rgba(71,147,255,0.2), rgba(33,78,168,0.12))',
-                        border: '1px solid rgba(141, 196, 255, 0.22)',
-                        borderRadius: 1,
-                        color: 'rgba(232,242,255,0.92)',
-                        minWidth: 112,
-                        px: 1.15,
-                        py: 0.7,
-                      }}
-                    >
-                      <Typography
-                        fontWeight={700}
-                        letterSpacing="0.04em"
-                        textTransform="uppercase"
-                        variant="caption"
-                      >
+                  {gameState.status === 'intro'
+                    ? 'Ready'
+                    : `Round ${gameState.roundIndex + 1}/${totalRounds}`}
+                </Typography>
+                <Stack direction="row" flexWrap="wrap" gap={0.75}>
+                  <Typography fontWeight={700} lineHeight={1} variant="h6">
+                    {getSessionModeLabel(gameState)}
+                  </Typography>
+                  {getSessionSummaryLabel(gameState) ? (
+                    <Typography color="text.secondary" lineHeight={1.3} variant="body2">
+                      {getSessionSummaryLabel(gameState)}
+                    </Typography>
+                  ) : null}
+                </Stack>
+                <Stack direction="row" flexWrap="wrap" gap={0.6}>
+                  {[
+                    `Type: ${getSessionTypeLabel(gameState)}`,
+                    `Mode: ${getSessionModeLabel(gameState)}`,
+                    getSessionSummaryLabel(gameState)
+                      ? `Pool: ${getSessionSummaryLabel(gameState)}`
+                      : null,
+                  ]
+                    .filter((value): value is string => Boolean(value))
+                    .map((label) => (
+                      <Typography key={label} color="text.secondary" variant="caption">
                         {label}
                       </Typography>
-                    </Box>
-                  ))}
+                    ))}
+                </Stack>
               </Stack>
-            </Stack>
-          </Paper>
-          <Paper
-            elevation={0}
-            sx={{
-              backdropFilter: 'blur(18px)',
-              background:
-                'linear-gradient(180deg, rgba(8,18,30,0.84), rgba(7,14,24,0.72))',
-              border: '1px solid rgba(150, 201, 255, 0.2)',
-              boxShadow:
-                '0 24px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)',
-              borderRadius: isAtlas ? '8px 6px 9px 7px' : 3,
-              overflow: isAtlas ? 'hidden' : undefined,
-              minWidth: { md: 320, xs: 'auto' },
-              p: { md: 2.25, xs: 1.75 },
-              pointerEvents: 'auto',
-              position: 'relative',
-            }}
-          >
-            <Stack spacing={1.5}>
-              <Box
+              {[
+                { label: 'Score', value: gameState.score },
+                { label: 'Streak', value: gameState.streak },
+                { label: 'Hit', value: gameState.correct },
+                { label: 'Miss', value: gameState.incorrect },
+                ...(gameState.livesRemaining !== null
+                  ? [{ label: 'Lives', value: gameState.livesRemaining }]
+                  : []),
+              ].map((item) => (
+                <Box
+                  key={item.label}
+                  sx={{
+                    ...mutedSurface,
+                    borderRadius: 999,
+                    minWidth: { md: 74, xs: 0 },
+                    px: 1.2,
+                    py: 0.85,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography color="text.secondary" lineHeight={1} variant="caption">
+                    {item.label}
+                  </Typography>
+                  <Typography
+                    lineHeight={1.05}
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    variant="subtitle1"
+                  >
+                    {item.value}
+                  </Typography>
+                </Box>
+              ))}
+              <Paper
+                elevation={0}
                 sx={{
-                  display: 'grid',
-                  gap: 1,
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  ...accentSurface,
+                  borderRadius: 999,
+                  px: 1.2,
+                  py: 0.85,
+                  justifySelf: { md: 'end', xs: 'stretch' },
+                  gridColumn: { xs: 'span 2', md: 'auto' },
                 }}
               >
-                {[
-                  { label: 'Score', value: gameState.score },
-                  { label: 'Streak', value: gameState.streak },
-                  { label: 'Correct', value: gameState.correct },
-                  { label: 'Misses', value: gameState.incorrect },
-                  ...(gameState.livesRemaining !== null
-                    ? [{ label: 'Lives', value: gameState.livesRemaining }]
-                    : []),
-                ].map((item) => (
-                  <Box
-                    key={item.label}
-                    sx={{
-                      background:
-                        'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                      border: '1px solid rgba(150, 201, 255, 0.12)',
-                      borderRadius: 1.75,
-                      p: 1.15,
-                    }}
-                  >
-                    <Typography
-                      color="rgba(170,210,255,0.72)"
-                      textTransform="uppercase"
-                      variant="caption"
-                    >
-                      {item.label}
-                    </Typography>
-                    <Typography fontWeight={700} lineHeight={1.1} variant="h5">
-                      {item.value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
+                <GameTimer elapsedMs={displayElapsedMs} />
+              </Paper>
               {gameState.status !== 'gameOver' && gameState.status !== 'intro' ? (
                 <Button
+                  aria-label="Refocus country"
                   size="small"
                   sx={{
-                    alignSelf: { md: 'stretch', xs: 'stretch' },
                     borderColor: 'rgba(150, 201, 255, 0.22)',
+                    gridColumn: { xs: 'span 2', md: 'auto' },
                     py: 0.85,
                   }}
                   variant="contained"
                   onClick={handleRefocus}
                 >
-                  Refocus country
+                  Refocus
                 </Button>
               ) : null}
-            </Stack>
+            </Box>
           </Paper>
         </Stack>
 
@@ -798,15 +768,11 @@ export function GamePage() {
           <Paper
             elevation={0}
             sx={{
-              backgroundColor: activeTheme.background.mutedPanel,
-              border: `1px solid ${activeTheme.background.panelBorder}`,
-              boxShadow: activeTheme.background.panelShadow,
+              ...panelSurface,
               borderRadius: isAtlas ? '8px 10px 8px 7px' : 3,
-              maxWidth: 460,
-              overflow: isAtlas ? 'hidden' : undefined,
-              p: 3,
+              maxWidth: 560,
+              p: { md: 2.4, xs: 2 },
               pointerEvents: 'auto',
-              position: 'relative',
               textAlign: 'center',
               width: '100%',
               alignSelf: 'end',
@@ -826,17 +792,26 @@ export function GamePage() {
                       </Typography>
                       {dailyShareText ? (
                         <>
-                          <Typography
-                            component="pre"
+                          <Paper
+                            elevation={0}
                             sx={{
-                              fontFamily: 'inherit',
-                              fontSize: '0.95rem',
-                              m: 0,
-                              whiteSpace: 'pre-wrap',
+                              ...mutedSurface,
+                              borderRadius: 3,
+                              p: 1.5,
                             }}
                           >
-                            {dailyShareText}
-                          </Typography>
+                            <Typography
+                              component="pre"
+                              sx={{
+                                fontFamily: 'inherit',
+                                fontSize: '0.95rem',
+                                m: 0,
+                                whiteSpace: 'pre-wrap',
+                              }}
+                            >
+                              {dailyShareText}
+                            </Typography>
+                          </Paper>
                           <Button variant="outlined" onClick={handleCopyDailyShare}>
                             {copyState === 'copied'
                               ? 'Copied'
@@ -879,37 +854,91 @@ export function GamePage() {
                         ? 'success'
                         : 'error'
                     }
+                    sx={{ alignSelf: 'center', minWidth: 140 }}
+                    variant="standard"
                   >
                     {gameState.lastRound.answerResult === 'correct'
                       ? 'Correct'
                       : 'Incorrect'}
                   </Alert>
-                  <Typography variant="h4">
-                    {gameState.lastRound.countryName}
-                  </Typography>
-                  <Typography variant="body2">
-                    You guessed:{' '}
-                    {gameState.lastRound.playerGuess.trim() || 'No answer'}
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    {[
-                      gameState.lastRound.continent,
-                      gameState.lastRound.subregion,
-                    ]
-                      .filter((value): value is string => Boolean(value))
-                      .join(' • ')}
-                  </Typography>
-                  <Typography variant="body2">
-                    Round time: {formatElapsed(gameState.lastRound.roundElapsedMs)}
-                  </Typography>
-                  <Typography variant="body2">
-                    Score change: +{gameState.lastRound.scoreDelta}
-                  </Typography>
-                  {gameState.lastRound.hintsUsed > 0 ? (
+                  <Stack spacing={0.5}>
+                    <Typography variant="h4">
+                      {gameState.lastRound.countryName}
+                    </Typography>
                     <Typography color="text.secondary" variant="body2">
-                      Hint penalty applied for {gameState.lastRound.hintsUsed}{' '}
-                      refocus
-                      {gameState.lastRound.hintsUsed > 1 ? 'es' : ''}.
+                      {[
+                        gameState.lastRound.continent,
+                        gameState.lastRound.subregion,
+                      ]
+                        .filter((value): value is string => Boolean(value))
+                        .join(' • ')}
+                    </Typography>
+                  </Stack>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      ...mutedSurface,
+                      borderRadius: 3.5,
+                      p: 1.5,
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Stack spacing={0.6}>
+                      <Typography color="text.secondary" variant="caption">
+                        You guessed:{' '}
+                        {gameState.lastRound.playerGuess.trim() || 'No answer'}
+                      </Typography>
+                      <Typography variant="body1">
+                        {gameState.lastRound.playerGuess.trim() || 'No answer'}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1,
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      width: '100%',
+                    }}
+                  >
+                    {[
+                      {
+                        label: 'Time',
+                        value: formatElapsed(gameState.lastRound.roundElapsedMs),
+                      },
+                      {
+                        label: 'Score',
+                        value: `+${gameState.lastRound.scoreDelta}`,
+                      },
+                      {
+                        label: 'Hints',
+                        value: gameState.lastRound.hintsUsed,
+                      },
+                    ].map((item) => (
+                      <Paper
+                        key={item.label}
+                        elevation={0}
+                        sx={{
+                          ...accentSurface,
+                          borderRadius: 3,
+                          p: 1.1,
+                        }}
+                      >
+                        <Typography color="text.secondary" variant="caption">
+                          {item.label}
+                        </Typography>
+                        <Typography
+                          sx={{ fontVariantNumeric: 'tabular-nums' }}
+                          variant="subtitle1"
+                        >
+                          {item.value}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Box>
+                  {gameState.lastRound.hintsUsed > 0 ? (
+                    <Typography color="text.secondary" variant="caption">
+                      Hint penalty applied.
                     </Typography>
                   ) : null}
                   <Button autoFocus variant="contained" onClick={handleNextRound}>
@@ -918,27 +947,20 @@ export function GamePage() {
                 </>
               ) : gameState.status === 'playing' ? (
                 <>
-                  <Typography variant="body1">
-                    Guess the highlighted country.
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    Type a country name directly or use autocomplete.
-                  </Typography>
+                  <Typography variant="h6">Guess the highlighted country.</Typography>
                   <GuessInput options={countryOptions} onSubmit={handleSubmit} />
                 </>
               ) : (
                 <>
-                  <Typography variant="body1">
-                    Select a mode to begin.
-                  </Typography>
+                  <Typography variant="body1">Choose a run to begin.</Typography>
                   {storedDailyResult ? (
                     <Typography color="text.secondary" variant="body2">
-                      Today&apos;s daily is already complete: {storedDailyResult.correctCount}/
+                      Daily complete: {storedDailyResult.correctCount}/
                       {storedDailyResult.totalCount}
                     </Typography>
                   ) : (
                     <Typography color="text.secondary" variant="body2">
-                      Daily challenge is available in the menu.
+                      Open the menu for today&apos;s daily.
                     </Typography>
                   )}
                 </>

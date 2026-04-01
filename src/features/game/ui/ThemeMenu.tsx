@@ -6,15 +6,27 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
-import type { AppThemeDefinition } from '@/app/theme';
+import {
+  getThemeAccentSurfaceStyles,
+  getThemeSurfaceStyles,
+  type AppThemeDefinition,
+} from '@/app/theme';
 
 interface ThemeMenuProps {
   onAbout: () => void;
   onRefocus: () => void;
   onRestart: () => void;
   onQuit: () => void;
+}
+
+interface MenuAction {
+  icon: typeof Crosshair;
+  label: string;
+  onClick: () => void;
+  tone?: 'contained' | 'outlined';
 }
 
 function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
@@ -120,6 +132,14 @@ export function ThemeMenu({
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
+  const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
+  const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
+  const actions: MenuAction[] = [
+    { icon: Crosshair, label: 'Refocus', onClick: onRefocus, tone: 'contained' },
+    { icon: RotateCcw, label: 'Retry', onClick: onRestart },
+    { icon: XCircle, label: 'Quit', onClick: onQuit },
+    { icon: Info, label: 'About', onClick: onAbout },
+  ];
 
   return (
     <Box
@@ -134,16 +154,13 @@ export function ThemeMenu({
     >
       <Stack alignItems="flex-start" spacing={1.5}>
         <Button
+          aria-expanded={open}
           size="small"
           sx={{
-            backgroundColor: activeTheme.background.panel,
-            border: `1px solid ${activeTheme.background.panelBorder}`,
-            borderRadius: 999,
-            boxShadow: activeTheme.background.panelShadow,
+            ...panelSurface,
             minWidth: 0,
-            px: 1.5,
           }}
-          variant="contained"
+          variant="outlined"
           onClick={() => setOpen((value) => !value)}
         >
           Menu
@@ -152,53 +169,74 @@ export function ThemeMenu({
           <Paper
             elevation={0}
             sx={{
-              backgroundColor: activeTheme.background.panel,
-              border: `1px solid ${activeTheme.background.panelBorder}`,
-              borderRadius: 4,
-              boxShadow: activeTheme.background.panelShadow,
-              p: 2,
+              ...panelSurface,
+              borderRadius: 5,
+              p: 1.5,
             }}
           >
-            <Stack spacing={2}>
-              <Stack direction="row" flexWrap="wrap" gap={1}>
-                <Button size="small" variant="contained" onClick={onRefocus}>
-                  Refocus
-                </Button>
-                <Button size="small" variant="outlined" onClick={onRestart}>
-                  Retry
-                </Button>
-                <Button size="small" variant="outlined" onClick={onQuit}>
-                  Quit
-                </Button>
-                <Button size="small" variant="outlined" onClick={onAbout}>
-                  About
-                </Button>
-              </Stack>
-              <Stack spacing={0.5}>
-                <Typography variant="overline">Theme picker</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Switches the interface, scene background, and globe styling.
-                </Typography>
-              </Stack>
-              <Stack spacing={1.25}>
+            <Stack spacing={1.25}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1,
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                }}
+              >
+                {actions.map((action) => {
+                  const ActionIcon = action.icon;
+
+                  return (
+                  <Button
+                    aria-label={action.label === 'Refocus' ? 'Refocus country' : action.label}
+                    key={action.label}
+                    size="small"
+                    sx={{
+                      ...((action.tone === 'contained' ? panelSurface : mutedSurface) as object),
+                      borderRadius: 3,
+                      display: 'grid',
+                      gap: 0.4,
+                      minHeight: 72,
+                      minWidth: 0,
+                      p: 1,
+                    }}
+                    variant={action.tone === 'contained' ? 'contained' : 'outlined'}
+                    onClick={action.onClick}
+                  >
+                    <Box
+                      aria-hidden
+                      sx={{ display: 'grid', lineHeight: 0, placeItems: 'center' }}
+                    >
+                      <ActionIcon size={16} strokeWidth={2} />
+                    </Box>
+                    <Typography variant="caption">{action.label}</Typography>
+                  </Button>
+                  );
+                })}
+              </Box>
+              <Typography color="text.secondary" sx={{ px: 0.25 }} variant="caption">
+                Themes
+              </Typography>
+              <Stack spacing={0.9}>
                 {themes.map((theme) => {
                   const isActive = theme.id === activeTheme.id;
 
                   return (
                     <Button
                       key={theme.id}
-                      color={isActive ? 'primary' : 'inherit'}
                       sx={{
                         alignItems: 'stretch',
+                        ...(isActive
+                          ? getThemeAccentSurfaceStyles(activeTheme, 'strong')
+                          : mutedSurface),
                         borderColor: isActive
                           ? 'primary.main'
                           : activeTheme.background.panelBorder,
+                        borderRadius: 3,
                         justifyContent: 'flex-start',
                         p: 0.75,
                         textAlign: 'left',
-                        textTransform: 'none',
                       }}
-                      variant={isActive ? 'contained' : 'outlined'}
+                      variant="outlined"
                       onClick={() => setTheme(theme.id)}
                     >
                       <Stack
@@ -206,15 +244,12 @@ export function ThemeMenu({
                         spacing={1.25}
                         sx={{ alignItems: 'center', width: '100%' }}
                       >
-                        <Box sx={{ flexShrink: 0, width: 94 }}>
+                        <Box sx={{ flexShrink: 0, width: 82 }}>
                           <ThemePreview theme={theme} />
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
                           <Typography variant="subtitle2">{theme.label}</Typography>
-                          <Typography
-                            color={isActive ? 'inherit' : 'text.secondary'}
-                            variant="body2"
-                          >
+                          <Typography color="text.secondary" variant="caption">
                             {theme.description}
                           </Typography>
                         </Box>

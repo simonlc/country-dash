@@ -78,6 +78,8 @@ export interface AppThemeDefinition {
   preview: ThemePreview;
 }
 
+export type ThemeSurfaceTone = 'panel' | 'muted' | 'elevated';
+
 const headingFont = '"Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
 const bodyFont = '"Nunito Sans", system-ui, sans-serif';
 const atlasHeadingFont =
@@ -484,10 +486,92 @@ export function getAppThemeDefinition(themeId: AppThemeId): AppThemeDefinition {
   return appThemes.find((theme) => theme.id === themeId) ?? appThemes[0]!;
 }
 
+export function getThemeSurfaceStyles(
+  definition: AppThemeDefinition,
+  tone: ThemeSurfaceTone = 'panel',
+) {
+  const isAtlas = definition.id === 'atlas';
+  const isGlacier = definition.id === 'glacier';
+  const backgroundColor =
+    tone === 'muted'
+      ? definition.background.mutedPanel
+      : definition.background.panel;
+
+  return {
+    backdropFilter: isGlacier
+      ? 'blur(22px) saturate(1.45)'
+      : isAtlas
+        ? 'blur(8px) saturate(0.9)'
+        : 'blur(18px)',
+    backgroundColor,
+    backgroundImage:
+      tone === 'elevated'
+        ? `linear-gradient(180deg, rgba(255,255,255,${
+            definition.mode === 'light' ? '0.16' : '0.08'
+          }), rgba(255,255,255,0))`
+        : isGlacier
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
+          : isAtlas
+            ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
+            : 'none',
+    border: `1px solid ${definition.background.panelBorder}`,
+    boxShadow:
+      tone === 'elevated'
+        ? `0 20px 48px ${
+            definition.mode === 'light'
+              ? 'rgba(40, 66, 95, 0.14)'
+              : 'rgba(0, 0, 0, 0.32)'
+          }, ${definition.background.panelShadow}`
+        : definition.background.panelShadow,
+    overflow: isAtlas ? 'hidden' : undefined,
+    position: 'relative' as const,
+  };
+}
+
+export function getThemeAccentSurfaceStyles(
+  definition: AppThemeDefinition,
+  emphasis: 'subtle' | 'strong' = 'subtle',
+) {
+  const tintOpacity = emphasis === 'strong' ? 0.2 : 0.12;
+  const baseOpacity = emphasis === 'strong' ? 0.18 : 0.1;
+
+  return {
+    background: `linear-gradient(180deg, ${hexToRgba(
+      definition.palette.primary,
+      tintOpacity,
+    )}, ${hexToRgba(definition.palette.secondary, baseOpacity)})`,
+    border: `1px solid ${hexToRgba(definition.palette.primary, 0.24)}`,
+    boxShadow: `inset 0 1px 0 ${hexToRgba(
+      '#ffffff',
+      definition.mode === 'light' ? 0.5 : 0.08,
+    )}`,
+  };
+}
+
+function hexToRgba(value: string, alpha: number) {
+  const hex = value.replace('#', '');
+
+  if (hex.length !== 6) {
+    return value;
+  }
+
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 export function createAppTheme(themeId: AppThemeId): Theme {
   const definition = getAppThemeDefinition(themeId);
   const isGlacier = definition.id === 'glacier';
   const isAtlas = definition.id === 'atlas';
+  const paperSurface = getThemeSurfaceStyles(definition);
+  const elevatedSurface = getThemeSurfaceStyles(definition, 'elevated');
+  const accentSurface = getThemeAccentSurfaceStyles(definition);
+  const strongAccentSurface = getThemeAccentSurfaceStyles(definition, 'strong');
+  const darkOutline = hexToRgba(definition.palette.textPrimary, 0.12);
+  const lightInset = hexToRgba('#ffffff', definition.mode === 'light' ? 0.62 : 0.08);
 
   return createTheme({
     cssVariables: true,
@@ -525,82 +609,163 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiPaper: {
         styleOverrides: {
           root: {
-            backdropFilter: isGlacier
-              ? 'blur(22px) saturate(1.45)'
-              : isAtlas
-                ? 'blur(8px) saturate(0.9)'
-                : 'blur(16px)',
-            overflow: isAtlas ? 'hidden' : undefined,
-            backgroundImage: isGlacier
-              ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
-              : isAtlas
-                ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
-                : 'none',
-            boxShadow: isGlacier
-              ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
-              : isAtlas
-                ? 'inset 0 1px 0 rgba(255,249,231,0.72), inset 0 -18px 28px rgba(116, 74, 31, 0.08)'
-                : undefined,
+            ...paperSurface,
+            boxShadow: [
+              paperSurface.boxShadow,
+              isGlacier
+                ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
+                : isAtlas
+                  ? 'inset 0 1px 0 rgba(255,249,231,0.72), inset 0 -18px 28px rgba(116, 74, 31, 0.08)'
+                  : `inset 0 1px 0 ${lightInset}`,
+            ]
+              .filter(Boolean)
+              .join(', '),
           },
         },
       },
       MuiDialog: {
         styleOverrides: {
-          paper: isGlacier
-            ? {
-                backdropFilter: 'blur(26px) saturate(1.5)',
-                background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.76), rgba(235,245,255,0.42))',
-                border: '1px solid rgba(255,255,255,0.82)',
-                boxShadow:
-                  '0 28px 80px rgba(104, 151, 191, 0.18), inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)',
-              }
-            : isAtlas
-              ? {
-                  backdropFilter: 'blur(10px) saturate(0.9)',
-                  background:
-                    'linear-gradient(180deg, rgba(251,242,220,0.92), rgba(225,199,150,0.5))',
-                  border: '1px solid rgba(110,74,34,0.3)',
-                  overflow: 'hidden',
-                  boxShadow:
-                    '0 28px 80px rgba(82, 53, 23, 0.24), inset 0 1px 0 rgba(255,248,228,0.86), inset 0 -24px 42px rgba(116, 74, 31, 0.08)',
-                }
-            : undefined,
+          paper: {
+            ...getThemeSurfaceStyles(definition, 'elevated'),
+            maxWidth: 'min(960px, calc(100vw - 32px))',
+            boxShadow: [
+              elevatedSurface.boxShadow,
+              isGlacier
+                ? 'inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)'
+                : isAtlas
+                  ? 'inset 0 1px 0 rgba(255,248,228,0.86), inset 0 -24px 42px rgba(116, 74, 31, 0.08)'
+                  : `inset 0 1px 0 ${lightInset}`,
+            ]
+              .filter(Boolean)
+              .join(', '),
+          },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            paddingBottom: 8,
+            paddingTop: 24,
+          },
+        },
+      },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            paddingBottom: 24,
+            paddingTop: 8,
+          },
+        },
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            padding: '0 24px 24px',
+          },
         },
       },
       MuiButton: {
         styleOverrides: {
-          root:
-            isGlacier || isAtlas
-              ? {
-                  backdropFilter: isGlacier
-                    ? 'blur(14px) saturate(1.35)'
-                    : 'blur(6px) saturate(0.95)',
-                  borderColor: isGlacier
-                    ? 'rgba(255,255,255,0.82)'
-                    : 'rgba(108, 72, 31, 0.42)',
-                  boxShadow: isGlacier
-                    ? 'inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 24px rgba(112, 167, 210, 0.14)'
-                    : 'inset 0 1px 0 rgba(255,248,229,0.76), 0 10px 18px rgba(100, 63, 25, 0.14)',
-                }
-              : undefined,
-          contained:
-            isGlacier || isAtlas
-              ? {
-                  background: isGlacier
-                    ? 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(205,235,255,0.76))'
-                    : 'linear-gradient(180deg, #8b572a 0%, #6b3d17 100%)',
-                  color: isGlacier ? '#1b4f78' : '#f9edd3',
-                }
-              : undefined,
-          outlined:
-            isGlacier || isAtlas
-              ? {
-                  backgroundColor: isGlacier
-                    ? 'rgba(255,255,255,0.3)'
-                    : 'rgba(247,235,204,0.38)',
-                }
-              : undefined,
+          root: {
+            borderRadius: 999,
+            fontWeight: 700,
+            paddingInline: 18,
+            paddingBlock: 10,
+            textTransform: 'none',
+            transition: 'transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease',
+            '&:hover': {
+              boxShadow: 'none',
+              transform: 'translateY(-1px)',
+            },
+          },
+          contained: {
+            ...strongAccentSurface,
+            borderColor: 'transparent',
+            color:
+              definition.mode === 'light' && !isAtlas ? definition.palette.textPrimary : '#fffdf7',
+            boxShadow: `0 16px 32px ${hexToRgba(
+              definition.palette.primary,
+              definition.mode === 'light' ? 0.2 : 0.28,
+            )}`,
+          },
+          outlined: {
+            ...accentSurface,
+            color: definition.palette.textPrimary,
+          },
+          text: {
+            color: definition.palette.textSecondary,
+          },
+          sizeSmall: {
+            paddingBlock: 7,
+            paddingInline: 14,
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            borderRadius: 18,
+            background: hexToRgba(
+              definition.palette.backgroundPaper,
+              definition.mode === 'light' ? 0.74 : 0.12,
+            ),
+            boxShadow: `inset 0 1px 0 ${lightInset}`,
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: definition.background.panelBorder,
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: hexToRgba(definition.palette.primary, 0.36),
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: definition.palette.primary,
+              borderWidth: 1,
+            },
+          },
+          input: {
+            paddingBlock: 15,
+          },
+        },
+      },
+      MuiAutocomplete: {
+        styleOverrides: {
+          paper: {
+            ...getThemeSurfaceStyles(definition, 'elevated'),
+            marginTop: 8,
+          },
+          listbox: {
+            padding: 8,
+          },
+          option: {
+            borderRadius: 12,
+            marginBottom: 4,
+            minHeight: 0,
+            '&[aria-selected="true"]': {
+              ...accentSurface,
+            },
+            '&.Mui-focused': {
+              backgroundColor: hexToRgba(definition.palette.primary, 0.12),
+            },
+          },
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          root: {
+            borderRadius: 16,
+            border: `1px solid ${darkOutline}`,
+          },
+          standardSuccess: {
+            background: `linear-gradient(180deg, ${hexToRgba(
+              definition.palette.secondary,
+              0.18,
+            )}, ${hexToRgba(definition.palette.secondary, 0.08)})`,
+          },
+          standardError: {
+            background: `linear-gradient(180deg, ${hexToRgba(
+              '#d85c5c',
+              0.18,
+            )}, ${hexToRgba('#d85c5c', 0.08)})`,
+          },
         },
       },
     },

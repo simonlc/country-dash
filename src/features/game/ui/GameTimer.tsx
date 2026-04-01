@@ -1,4 +1,4 @@
-import { Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 import { formatElapsed } from '@/features/game/logic/gameLogic';
 
 interface GameTimerProps {
@@ -7,8 +7,18 @@ interface GameTimerProps {
 
 export function GameTimer({ elapsedMs }: GameTimerProps) {
   return (
-    <Typography component="p" variant="body2">
-      {formatElapsed(elapsedMs)}
-    </Typography>
+    <Stack spacing={0.2} sx={{ minWidth: 88 }}>
+      <Typography color="text.secondary" variant="caption">
+        Time
+      </Typography>
+      <Typography
+        component="p"
+        lineHeight={1}
+        sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+        variant="h6"
+      >
+        {formatElapsed(elapsedMs)}
+      </Typography>
+    </Stack>
   );
 }
