@@ -18,7 +18,12 @@ export const AboutDialog = NiceModal.create(() => {
   const accentSurface = getThemeAccentSurfaceStyles(activeTheme);
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={modal.visible} onClose={() => void modal.hide()}>
+    <Dialog
+      fullWidth
+      maxWidth="sm"
+      open={modal.visible}
+      onClose={() => void modal.hide()}
+    >
       <DialogTitle>
         <Stack spacing={0.75}>
           <Typography color="text.secondary" variant="overline">
@@ -32,23 +37,21 @@ export const AboutDialog = NiceModal.create(() => {
           <Box
             sx={{
               ...accentSurface,
-              borderRadius: 4,
+              borderRadius: 3,
               p: 2,
             }}
           >
             <Typography variant="body1">
-              A globe-first geography challenge built around fast recognition,
-              clean rounds, and themed presentation.
+              A globe-first geography game for fast country recognition.
             </Typography>
           </Box>
           <Typography>
-            Country Guesser is a globe-based geography game built as a static app
-            with React 19, TanStack Router, MUI, NiceModal, and a typed game
-            logic layer.
+            Daily challenge for one fixed route, plus custom runs across
+            regions, island nations, microstates, and broader world pools.
           </Typography>
           <Typography>
-            Start a round, identify the highlighted country, and work through the
-            weighted difficulty pool without interrupting the current session.
+            Built with React, TanStack Router, MUI, and a typed game logic
+            layer.
           </Typography>
         </Stack>
       </DialogContent>

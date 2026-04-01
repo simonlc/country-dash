@@ -99,7 +99,9 @@ function getSessionTypeLabel(gameState: GameState) {
     return 'Menu';
   }
 
-  return gameState.sessionConfig.kind === 'daily' ? 'Daily Challenge' : 'Random Run';
+  return gameState.sessionConfig.kind === 'daily'
+    ? 'Daily Challenge'
+    : 'Random Run';
 }
 
 function getSessionModeLabel(gameState: GameState) {
@@ -129,13 +131,20 @@ export function GamePage() {
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
   const [worldData, setWorldData] = useState<WorldData | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [gameState, dispatch] = useReducer(gameReducer, undefined, createInitialGameState);
-  const [storedDailyResult, setStoredDailyResult] = useState<DailyChallengeResult | null>(
-    () => getStoredDailyResult(todayDateKey),
+  const [gameState, dispatch] = useReducer(
+    gameReducer,
+    undefined,
+    createInitialGameState,
   );
+  const [storedDailyResult, setStoredDailyResult] =
+    useState<DailyChallengeResult | null>(() =>
+      getStoredDailyResult(todayDateKey),
+    );
   const [focusRequest, setFocusRequest] = useState(0);
   const renderer = getStoredRenderer();
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
+    'idle',
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -201,7 +210,9 @@ export function GamePage() {
     () =>
       (gameState.currentCountryId
         ? countryFeaturesById.get(gameState.currentCountryId)
-        : null) ?? countryPool[0] ?? null,
+        : null) ??
+      countryPool[0] ??
+      null,
     [countryFeaturesById, countryPool, gameState.currentCountryId],
   );
   const rotation = useMemo<[number, number]>(() => {
@@ -429,7 +440,11 @@ export function GamePage() {
   }, []);
 
   const handleCopyDailyShare = useCallback(async () => {
-    if (!dailyShareText || typeof navigator === 'undefined' || !navigator.clipboard) {
+    if (
+      !dailyShareText ||
+      typeof navigator === 'undefined' ||
+      !navigator.clipboard
+    ) {
       setCopyState('failed');
       return;
     }
@@ -652,7 +667,10 @@ export function GamePage() {
                 },
               }}
             >
-              <Stack spacing={0.15} sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
+              <Stack
+                spacing={0.15}
+                sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}
+              >
                 <Typography
                   color="text.secondary"
                   letterSpacing="0.12em"
@@ -668,7 +686,11 @@ export function GamePage() {
                     {getSessionModeLabel(gameState)}
                   </Typography>
                   {getSessionSummaryLabel(gameState) ? (
-                    <Typography color="text.secondary" lineHeight={1.3} variant="body2">
+                    <Typography
+                      color="text.secondary"
+                      lineHeight={1.3}
+                      variant="body2"
+                    >
                       {getSessionSummaryLabel(gameState)}
                     </Typography>
                   ) : null}
@@ -683,7 +705,11 @@ export function GamePage() {
                   ]
                     .filter((value): value is string => Boolean(value))
                     .map((label) => (
-                      <Typography key={label} color="text.secondary" variant="caption">
+                      <Typography
+                        key={label}
+                        color="text.secondary"
+                        variant="caption"
+                      >
                         {label}
                       </Typography>
                     ))}
@@ -709,7 +735,11 @@ export function GamePage() {
                     textAlign: 'center',
                   }}
                 >
-                  <Typography color="text.secondary" lineHeight={1} variant="caption">
+                  <Typography
+                    color="text.secondary"
+                    lineHeight={1}
+                    variant="caption"
+                  >
                     {item.label}
                   </Typography>
                   <Typography
@@ -734,7 +764,8 @@ export function GamePage() {
               >
                 <GameTimer elapsedMs={displayElapsedMs} />
               </Paper>
-              {gameState.status !== 'gameOver' && gameState.status !== 'intro' ? (
+              {gameState.status !== 'gameOver' &&
+              gameState.status !== 'intro' ? (
                 <Button
                   aria-label="Refocus country"
                   size="small"
@@ -796,7 +827,7 @@ export function GamePage() {
                             elevation={0}
                             sx={{
                               ...mutedSurface,
-                              borderRadius: 3,
+                              borderRadius: 2.25,
                               p: 1.5,
                             }}
                           >
@@ -812,7 +843,10 @@ export function GamePage() {
                               {dailyShareText}
                             </Typography>
                           </Paper>
-                          <Button variant="outlined" onClick={handleCopyDailyShare}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleCopyDailyShare}
+                          >
                             {copyState === 'copied'
                               ? 'Copied'
                               : copyState === 'failed'
@@ -824,8 +858,8 @@ export function GamePage() {
                     </>
                   ) : (
                     <Typography variant="body1">
-                      Final score: {gameState.score} with {gameState.correct} correct
-                      out of {totalRounds}.
+                      Final score: {gameState.score} with {gameState.correct}{' '}
+                      correct out of {totalRounds}.
                     </Typography>
                   )}
                   <Typography color="text.secondary" variant="body2">
@@ -878,7 +912,7 @@ export function GamePage() {
                     elevation={0}
                     sx={{
                       ...mutedSurface,
-                      borderRadius: 3.5,
+                      borderRadius: 2.25,
                       p: 1.5,
                       textAlign: 'left',
                     }}
@@ -904,7 +938,9 @@ export function GamePage() {
                     {[
                       {
                         label: 'Time',
-                        value: formatElapsed(gameState.lastRound.roundElapsedMs),
+                        value: formatElapsed(
+                          gameState.lastRound.roundElapsedMs,
+                        ),
                       },
                       {
                         label: 'Score',
@@ -920,7 +956,7 @@ export function GamePage() {
                         elevation={0}
                         sx={{
                           ...accentSurface,
-                          borderRadius: 3,
+                          borderRadius: 2,
                           p: 1.1,
                         }}
                       >
@@ -941,18 +977,29 @@ export function GamePage() {
                       Hint penalty applied.
                     </Typography>
                   ) : null}
-                  <Button autoFocus variant="contained" onClick={handleNextRound}>
+                  <Button
+                    autoFocus
+                    variant="contained"
+                    onClick={handleNextRound}
+                  >
                     {isReviewComplete ? 'Finish' : 'Next'}
                   </Button>
                 </>
               ) : gameState.status === 'playing' ? (
                 <>
-                  <Typography variant="h6">Guess the highlighted country.</Typography>
-                  <GuessInput options={countryOptions} onSubmit={handleSubmit} />
+                  <Typography variant="h6">
+                    Guess the highlighted country.
+                  </Typography>
+                  <GuessInput
+                    options={countryOptions}
+                    onSubmit={handleSubmit}
+                  />
                 </>
               ) : (
                 <>
-                  <Typography variant="body1">Choose a run to begin.</Typography>
+                  <Typography variant="body1">
+                    Choose a run to begin.
+                  </Typography>
                   {storedDailyResult ? (
                     <Typography color="text.secondary" variant="body2">
                       Daily complete: {storedDailyResult.correctCount}/

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Button,
-  Collapse,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Collapse, Paper, Stack, Typography } from '@mui/material';
 import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
@@ -42,7 +35,7 @@ function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
     <Box
       sx={{
         background: theme.preview.sky,
-        borderRadius: 2,
+        borderRadius: 1.5,
         height: 78,
         overflow: 'hidden',
         position: 'relative',
@@ -135,7 +128,12 @@ export function ThemeMenu({
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
   const actions: MenuAction[] = [
-    { icon: Crosshair, label: 'Refocus', onClick: onRefocus, tone: 'contained' },
+    {
+      icon: Crosshair,
+      label: 'Refocus',
+      onClick: onRefocus,
+      tone: 'contained',
+    },
     { icon: RotateCcw, label: 'Retry', onClick: onRestart },
     { icon: XCircle, label: 'Quit', onClick: onQuit },
     { icon: Info, label: 'About', onClick: onAbout },
@@ -186,34 +184,50 @@ export function ThemeMenu({
                   const ActionIcon = action.icon;
 
                   return (
-                  <Button
-                    aria-label={action.label === 'Refocus' ? 'Refocus country' : action.label}
-                    key={action.label}
-                    size="small"
-                    sx={{
-                      ...((action.tone === 'contained' ? panelSurface : mutedSurface) as object),
-                      borderRadius: 3,
-                      display: 'grid',
-                      gap: 0.4,
-                      minHeight: 72,
-                      minWidth: 0,
-                      p: 1,
-                    }}
-                    variant={action.tone === 'contained' ? 'contained' : 'outlined'}
-                    onClick={action.onClick}
-                  >
-                    <Box
-                      aria-hidden
-                      sx={{ display: 'grid', lineHeight: 0, placeItems: 'center' }}
+                    <Button
+                      aria-label={
+                        action.label === 'Refocus'
+                          ? 'Refocus country'
+                          : action.label
+                      }
+                      key={action.label}
+                      size="small"
+                      sx={{
+                        ...((action.tone === 'contained'
+                          ? panelSurface
+                          : mutedSurface) as object),
+                        borderRadius: 2.5,
+                        display: 'grid',
+                        gap: 0.4,
+                        minHeight: 72,
+                        minWidth: 0,
+                        p: 1,
+                      }}
+                      variant={
+                        action.tone === 'contained' ? 'contained' : 'outlined'
+                      }
+                      onClick={action.onClick}
                     >
-                      <ActionIcon size={16} strokeWidth={2} />
-                    </Box>
-                    <Typography variant="caption">{action.label}</Typography>
-                  </Button>
+                      <Box
+                        aria-hidden
+                        sx={{
+                          display: 'grid',
+                          lineHeight: 0,
+                          placeItems: 'center',
+                        }}
+                      >
+                        <ActionIcon size={16} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="caption">{action.label}</Typography>
+                    </Button>
                   );
                 })}
               </Box>
-              <Typography color="text.secondary" sx={{ px: 0.25 }} variant="caption">
+              <Typography
+                color="text.secondary"
+                sx={{ px: 0.25 }}
+                variant="caption"
+              >
                 Themes
               </Typography>
               <Stack spacing={0.9}>
@@ -231,7 +245,7 @@ export function ThemeMenu({
                         borderColor: isActive
                           ? 'primary.main'
                           : activeTheme.background.panelBorder,
-                        borderRadius: 3,
+                        borderRadius: 2.5,
                         justifyContent: 'flex-start',
                         p: 0.75,
                         textAlign: 'left',
@@ -248,7 +262,9 @@ export function ThemeMenu({
                           <ThemePreview theme={theme} />
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle2">{theme.label}</Typography>
+                          <Typography variant="subtitle2">
+                            {theme.label}
+                          </Typography>
                           <Typography color="text.secondary" variant="caption">
                             {theme.description}
                           </Typography>

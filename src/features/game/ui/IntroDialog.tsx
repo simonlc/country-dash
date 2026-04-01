@@ -169,7 +169,10 @@ export const IntroDialog = NiceModal.create(
       useState<CountrySizeFilter>('mixed');
     const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
     const accentSurface = getThemeAccentSurfaceStyles(activeTheme);
-    const strongAccentSurface = getThemeAccentSurfaceStyles(activeTheme, 'strong');
+    const strongAccentSurface = getThemeAccentSurfaceStyles(
+      activeTheme,
+      'strong',
+    );
     const panelSurface = getThemeSurfaceStyles(activeTheme);
     const mutedSurface = getThemeSurfaceStyles(activeTheme, 'muted');
 
@@ -182,11 +185,7 @@ export const IntroDialog = NiceModal.create(
     }, [dailyResult]);
 
     return (
-      <Dialog
-        fullWidth
-        maxWidth="md"
-        open={modal.visible}
-      >
+      <Dialog fullWidth maxWidth="md" open={modal.visible}>
         <DialogContent sx={{ p: { md: 4, xs: 2.5 } }}>
           <Stack spacing={3}>
             <Stack spacing={1}>
@@ -219,9 +218,7 @@ export const IntroDialog = NiceModal.create(
               >
                 <Stack spacing={1.5}>
                   <Stack spacing={0.35}>
-                    <Typography variant="overline">
-                      Daily Challenge
-                    </Typography>
+                    <Typography variant="overline">Daily Challenge</Typography>
                     <Typography lineHeight={1.05} variant="h5">
                       Today&apos;s route
                     </Typography>
@@ -232,7 +229,7 @@ export const IntroDialog = NiceModal.create(
                       elevation={0}
                       sx={{
                         ...accentSurface,
-                        borderRadius: 3,
+                        borderRadius: 2.5,
                         p: 1.75,
                       }}
                     >
@@ -262,7 +259,7 @@ export const IntroDialog = NiceModal.create(
                       elevation={0}
                       sx={{
                         ...mutedSurface,
-                        borderRadius: 3,
+                        borderRadius: 2.5,
                         p: 1.75,
                       }}
                     >
@@ -315,9 +312,7 @@ export const IntroDialog = NiceModal.create(
               >
                 <Stack spacing={2.25}>
                   <Stack spacing={0.35}>
-                    <Typography variant="overline">
-                      Random
-                    </Typography>
+                    <Typography variant="overline">Random</Typography>
                     <Typography variant="h5">Custom run</Typography>
                   </Stack>
 
@@ -332,30 +327,41 @@ export const IntroDialog = NiceModal.create(
                       const ModeIcon = option.icon;
 
                       return (
-                      <Button
-                        aria-label={option.label}
-                        key={option.value}
-                        sx={{
-                          ...(mode === option.value ? strongAccentSurface : mutedSurface),
-                          borderColor: mode === option.value ? 'primary.main' : undefined,
-                          borderRadius: 3,
-                          display: 'grid',
-                          gap: 0.4,
-                          minHeight: 84,
-                          minWidth: 0,
-                          p: 1,
-                        }}
-                        variant="outlined"
-                        onClick={() => setMode(option.value)}
-                      >
-                        <Box
-                          aria-hidden
-                          sx={{ display: 'grid', lineHeight: 0, placeItems: 'center' }}
+                        <Button
+                          aria-label={option.label}
+                          key={option.value}
+                          sx={{
+                            ...(mode === option.value
+                              ? strongAccentSurface
+                              : mutedSurface),
+                            borderColor:
+                              mode === option.value
+                                ? 'primary.main'
+                                : undefined,
+                            borderRadius: 2.5,
+                            display: 'grid',
+                            gap: 0.4,
+                            minHeight: 84,
+                            minWidth: 0,
+                            p: 1,
+                          }}
+                          variant="outlined"
+                          onClick={() => setMode(option.value)}
                         >
-                          <ModeIcon size={16} strokeWidth={2} />
-                        </Box>
-                        <Typography variant="caption">{option.label}</Typography>
-                      </Button>
+                          <Box
+                            aria-hidden
+                            sx={{
+                              display: 'grid',
+                              lineHeight: 0,
+                              placeItems: 'center',
+                            }}
+                          >
+                            <ModeIcon size={16} strokeWidth={2} />
+                          </Box>
+                          <Typography variant="caption">
+                            {option.label}
+                          </Typography>
+                        </Button>
                       );
                     })}
                   </Box>
@@ -372,7 +378,9 @@ export const IntroDialog = NiceModal.create(
                     }}
                   >
                     {[
-                      ...(Object.keys(countrySizeLabels) as CountrySizeFilter[]).map((key) => ({
+                      ...(
+                        Object.keys(countrySizeLabels) as CountrySizeFilter[]
+                      ).map((key) => ({
                         isSize: true,
                         icon:
                           key === 'large'
@@ -386,10 +394,12 @@ export const IntroDialog = NiceModal.create(
                             : key === 'mixed'
                               ? `${counts[key]} random countries with medium difficulty.`
                               : `${counts[key]} random countries with lower difficulty.`,
-                        detail: difficultyLabels[randomRunPresetDifficulties[key]],
+                        detail:
+                          difficultyLabels[randomRunPresetDifficulties[key]],
                         label: countrySizeLabels[key],
                         meta: `${counts[key]} countries`,
-                        selected: regionFilter === null && countrySizeFilter === key,
+                        selected:
+                          regionFilter === null && countrySizeFilter === key,
                         value: key,
                       })),
                       ...categoryOptions.map((option) => ({
@@ -417,7 +427,7 @@ export const IntroDialog = NiceModal.create(
                                             : 'The full Oceania region, islands included.',
                         detail: '',
                         label: option.label,
-                        meta: 'Category pool',
+                        meta: '',
                         selected: regionFilter === option.value,
                         value: option.value,
                       })),
@@ -425,71 +435,79 @@ export const IntroDialog = NiceModal.create(
                       const ItemIcon = item.icon;
 
                       return (
-                      <Button
-                        aria-label={
-                          item.isSize
-                            ? `${item.label} ${item.meta} ${item.description}`
-                            : `${item.label} ${item.meta} ${item.description}`
-                        }
-                        key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
-                        sx={{
-                          alignItems: 'flex-start',
-                          ...(item.selected
-                            ? strongAccentSurface
-                            : item.isSize
-                              ? panelSurface
-                              : mutedSurface),
-                          borderColor: item.selected ? 'primary.main' : undefined,
-                          borderRadius: 3,
-                          justifyContent: 'flex-start',
-                          minHeight: item.isSize ? 118 : 64,
-                          minWidth: 0,
-                          px: item.isSize ? 1.5 : 1.25,
-                          py: item.isSize ? 1.5 : 1,
-                          textAlign: 'left',
-                        }}
-                        variant="outlined"
-                        onClick={() => {
-                          if (item.isSize) {
-                            setCountrySizeFilter(item.value as CountrySizeFilter);
-                            setRegionFilter(null);
-                            return;
+                        <Button
+                          aria-label={
+                            item.isSize
+                              ? `${item.label} ${item.meta} ${item.description}`
+                              : `${item.label} Category pool ${item.description}`
                           }
+                          key={`${item.isSize ? 'size' : 'region'}-${String(item.value)}`}
+                          sx={{
+                            alignItems: 'flex-start',
+                            ...(item.selected
+                              ? strongAccentSurface
+                              : item.isSize
+                                ? panelSurface
+                                : mutedSurface),
+                            borderColor: item.selected
+                              ? 'primary.main'
+                              : undefined,
+                            borderRadius: 2.5,
+                            justifyContent: 'flex-start',
+                            minHeight: item.isSize ? 118 : 64,
+                            minWidth: 0,
+                            px: item.isSize ? 1.5 : 1.25,
+                            py: item.isSize ? 1.5 : 1,
+                            textAlign: 'left',
+                          }}
+                          variant="outlined"
+                          onClick={() => {
+                            if (item.isSize) {
+                              setCountrySizeFilter(
+                                item.value as CountrySizeFilter,
+                              );
+                              setRegionFilter(null);
+                              return;
+                            }
 
-                          setRegionFilter(item.value as RegionFilter);
-                          setCountrySizeFilter('mixed');
-                        }}
-                      >
-                        <Stack spacing={item.isSize ? 0.45 : 0.15}>
-                          <ItemIcon
-                            aria-hidden
-                            size={item.isSize ? 18 : 16}
-                            strokeWidth={2}
-                          />
-                          <Typography
-                            fontWeight={700}
-                            variant={item.isSize ? 'h6' : 'body2'}
-                          >
-                            {item.label}
-                          </Typography>
-                          {item.meta ? (
+                            setRegionFilter(item.value as RegionFilter);
+                            setCountrySizeFilter('mixed');
+                          }}
+                        >
+                          <Stack spacing={item.isSize ? 0.45 : 0.15}>
+                            <ItemIcon
+                              aria-hidden
+                              size={item.isSize ? 18 : 16}
+                              strokeWidth={2}
+                            />
                             <Typography
-                              color={item.selected ? 'inherit' : 'text.secondary'}
-                              variant="caption"
+                              fontWeight={700}
+                              variant={item.isSize ? 'h6' : 'body2'}
                             >
-                              {item.meta}
+                              {item.label}
                             </Typography>
-                          ) : null}
-                          {item.detail ? (
-                            <Typography
-                              color={item.selected ? 'inherit' : 'text.secondary'}
-                              variant="caption"
-                            >
-                              {item.detail}
-                            </Typography>
-                          ) : null}
-                        </Stack>
-                      </Button>
+                            {item.meta ? (
+                              <Typography
+                                color={
+                                  item.selected ? 'inherit' : 'text.secondary'
+                                }
+                                variant="caption"
+                              >
+                                {item.meta}
+                              </Typography>
+                            ) : null}
+                            {item.detail ? (
+                              <Typography
+                                color={
+                                  item.selected ? 'inherit' : 'text.secondary'
+                                }
+                                variant="caption"
+                              >
+                                {item.detail}
+                              </Typography>
+                            ) : null}
+                          </Stack>
+                        </Button>
                       );
                     })}
                   </Box>
@@ -510,7 +528,8 @@ export const IntroDialog = NiceModal.create(
                       void modal.hide();
                     }}
                   >
-                    Start {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
+                    Start{' '}
+                    {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
                   </Button>
                 </Stack>
               </Paper>
