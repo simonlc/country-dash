@@ -60,13 +60,6 @@ export function GamePage() {
   const [sessionKey, setSessionKey] = useState(0);
   const [focusRequest, setFocusRequest] = useState(0);
   const [renderer, setRenderer] = useState<GlobeRenderer>(getStoredRenderer);
-  const handleTick = useCallback((elapsedMs: number) => {
-    setGameState((previousState) =>
-      previousState.elapsedMs === elapsedMs
-        ? previousState
-        : { ...previousState, elapsedMs },
-    );
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -291,7 +284,6 @@ export function GamePage() {
               <GameTimer
                 key={sessionKey}
                 isRunning={gameState.status === 'playing'}
-                onTick={handleTick}
               />
             </Stack>
           </Paper>

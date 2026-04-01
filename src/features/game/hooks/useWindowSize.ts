@@ -20,12 +20,31 @@ export function useWindowSize() {
   const [size, setSize] = useState<WindowSize>(getWindowSize);
 
   useEffect(() => {
+    let frameId = 0;
+
     const handleResize = () => {
-      setSize(getWindowSize());
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        setSize((previousSize) => {
+          const nextSize = getWindowSize();
+
+          if (
+            previousSize.width === nextSize.width &&
+            previousSize.height === nextSize.height
+          ) {
+            return previousSize;
+          }
+
+          return nextSize;
+        });
+      });
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return size;

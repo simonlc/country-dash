@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 
 interface GameTimerProps {
   isRunning: boolean;
-  onTick: (elapsedMs: number) => void;
 }
 
 function formatElapsed(elapsedMs: number) {
@@ -17,29 +16,62 @@ function formatElapsed(elapsedMs: number) {
     .padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
 }
 
-export function GameTimer({ isRunning, onTick }: GameTimerProps) {
+export function GameTimer({ isRunning }: GameTimerProps) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const startedAtRef = useRef<number | null>(null);
+  const intervalIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const stopInterval = () => {
+      if (intervalIdRef.current !== null) {
+        window.clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
+
+    const updateElapsed = () => {
+      const startedAt = startedAtRef.current ?? performance.now();
+      setElapsedMs(Math.max(0, Math.floor(performance.now() - startedAt)));
+    };
+
+    const startInterval = () => {
+      if (intervalIdRef.current !== null || document.visibilityState === 'hidden') {
+        return;
+      }
+
+      intervalIdRef.current = window.setInterval(updateElapsed, 50);
+    };
+
     if (!isRunning) {
+      stopInterval();
       startedAtRef.current = null;
-      return;
+      return stopInterval;
     }
 
     if (startedAtRef.current === null) {
-      startedAtRef.current = Date.now();
+      startedAtRef.current = performance.now();
     }
 
-    const intervalId = window.setInterval(() => {
-      const startedAt = startedAtRef.current ?? Date.now();
-      const nextElapsedMs = Date.now() - startedAt;
-      setElapsedMs(nextElapsedMs);
-      onTick(nextElapsedMs);
-    }, 50);
+    updateElapsed();
+    startInterval();
 
-    return () => window.clearInterval(intervalId);
-  }, [isRunning, onTick]);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopInterval();
+        return;
+      }
+
+      updateElapsed();
+      startInterval();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopInterval();
+    };
+  }, [isRunning]);
 
   return (
     <Typography component="p" variant="body2">

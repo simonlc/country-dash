@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { GlobePalette } from '@/app/theme';
 import { SvgGlobe } from '@/features/game/ui/SvgGlobe';
 import { WebGlGlobe } from '@/features/game/ui/WebGlGlobe';
@@ -18,7 +19,7 @@ interface GlobeProps {
   renderer: GlobeRenderer;
 }
 
-export function Globe({
+function GlobeComponent({
   renderer,
   ...props
 }: GlobeProps) {
@@ -28,3 +29,5 @@ export function Globe({
 
   return <SvgGlobe {...props} />;
 }
+
+export const Globe = memo(GlobeComponent);

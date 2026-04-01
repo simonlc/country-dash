@@ -89,10 +89,13 @@ export function useGlobeInteraction({
   rotation,
   pointerDirection = { x: 1, y: 1 },
 }: UseGlobeInteractionArgs) {
+  const [isAnimating, setIsAnimating] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
   const animationFrameRef = useRef<number | null>(null);
+  const animateRef = useRef<(now: number) => void>(() => undefined);
   const draggingRef = useRef(false);
+  const isAnimatingRef = useRef(false);
   const lastFrameTimeRef = useRef<number | null>(null);
   const lastDragSampleRef = useRef({ timeStamp: 0, x: 0, y: 0 });
   const currentRotationRef = useRef<[number, number]>(rotation);
@@ -111,115 +114,132 @@ export function useGlobeInteraction({
     currentZoomRef.current = zoomScale;
   }, [zoomScale]);
 
+  const setAnimationState = useCallback((nextValue: boolean) => {
+    if (isAnimatingRef.current === nextValue) {
+      return;
+    }
+
+    isAnimatingRef.current = nextValue;
+    setIsAnimating(nextValue);
+  }, []);
+
   const stopAnimation = useCallback(() => {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
     lastFrameTimeRef.current = null;
-  }, []);
+    setAnimationState(false);
+  }, [setAnimationState]);
 
-  const animate = useCallback(
-    (now: number) => {
-      const previousFrameTime = lastFrameTimeRef.current ?? now;
-      const frameScale = Math.min((now - previousFrameTime) / (1000 / 60), 4);
-      lastFrameTimeRef.current = now;
+  function animate(now: number) {
+    const previousFrameTime = lastFrameTimeRef.current ?? now;
+    const frameScale = Math.min((now - previousFrameTime) / (1000 / 60), 4);
+    lastFrameTimeRef.current = now;
 
-      if (!draggingRef.current) {
-        if (focusTargetRef.current) {
-          const focusTarget = focusTargetRef.current;
-          targetRotationRef.current = [
-            interpolateAngle(targetRotationRef.current[0], focusTarget[0], 0.18 * frameScale),
-            clampLatitudeRotation(
-              targetRotationRef.current[1] +
-                (focusTarget[1] - targetRotationRef.current[1]) * 0.18 * frameScale,
-            ),
-          ];
-
-          const longitudeError = Math.abs(
-            normalizeLongitude(focusTarget[0] - targetRotationRef.current[0]),
-          );
-          const latitudeError = Math.abs(focusTarget[1] - targetRotationRef.current[1]);
-
-          if (longitudeError < 0.1 && latitudeError < 0.1) {
-            targetRotationRef.current = focusTarget;
-            focusTargetRef.current = null;
-          }
-        }
-
+    if (!draggingRef.current) {
+      if (focusTargetRef.current) {
+        const focusTarget = focusTargetRef.current;
         targetRotationRef.current = [
-          normalizeLongitude(
-            targetRotationRef.current[0] +
-              rotationVelocityRef.current.longitude * frameScale,
-          ),
+          interpolateAngle(targetRotationRef.current[0], focusTarget[0], 0.18 * frameScale),
           clampLatitudeRotation(
             targetRotationRef.current[1] +
-              rotationVelocityRef.current.latitude * frameScale,
+              (focusTarget[1] - targetRotationRef.current[1]) * 0.18 * frameScale,
           ),
         ];
-        targetZoomRef.current = clampScale(
-          targetZoomRef.current + zoomVelocityRef.current * frameScale,
-        );
 
-        const inertiaDecay = 0.9 ** frameScale;
-        rotationVelocityRef.current.longitude *= inertiaDecay;
-        rotationVelocityRef.current.latitude *= inertiaDecay;
-        zoomVelocityRef.current *= 0.82 ** frameScale;
+        const longitudeError = Math.abs(
+          normalizeLongitude(focusTarget[0] - targetRotationRef.current[0]),
+        );
+        const latitudeError = Math.abs(focusTarget[1] - targetRotationRef.current[1]);
+
+        if (longitudeError < 0.1 && latitudeError < 0.1) {
+          targetRotationRef.current = focusTarget;
+          focusTargetRef.current = null;
+        }
       }
 
-      const positionLerp = 1 - 0.12 ** frameScale;
-      const nextRotation: [number, number] = [
-        interpolateAngle(
-          currentRotationRef.current[0],
-          targetRotationRef.current[0],
-          positionLerp,
+      targetRotationRef.current = [
+        normalizeLongitude(
+          targetRotationRef.current[0] +
+            rotationVelocityRef.current.longitude * frameScale,
         ),
         clampLatitudeRotation(
-          currentRotationRef.current[1] +
-            (targetRotationRef.current[1] - currentRotationRef.current[1]) * positionLerp,
+          targetRotationRef.current[1] +
+            rotationVelocityRef.current.latitude * frameScale,
         ),
       ];
-      const nextZoom =
-        currentZoomRef.current +
-        (targetZoomRef.current - currentZoomRef.current) * (1 - 0.16 ** frameScale);
+      targetZoomRef.current = clampScale(
+        targetZoomRef.current + zoomVelocityRef.current * frameScale,
+      );
 
-      currentRotationRef.current = nextRotation;
-      currentZoomRef.current = nextZoom;
-      setCurrentRotation(nextRotation);
-      setZoomScale(nextZoom);
+      const inertiaDecay = 0.9 ** frameScale;
+      rotationVelocityRef.current.longitude *= inertiaDecay;
+      rotationVelocityRef.current.latitude *= inertiaDecay;
+      zoomVelocityRef.current *= 0.82 ** frameScale;
+    }
 
-      const rotationSettled =
-        Math.abs(normalizeLongitude(targetRotationRef.current[0] - nextRotation[0])) < 0.01 &&
-        Math.abs(targetRotationRef.current[1] - nextRotation[1]) < 0.01;
-      const zoomSettled = Math.abs(targetZoomRef.current - nextZoom) < 0.001;
-      const velocitySettled =
-        Math.abs(rotationVelocityRef.current.longitude) < 0.001 &&
-        Math.abs(rotationVelocityRef.current.latitude) < 0.001 &&
-        Math.abs(zoomVelocityRef.current) < 0.0005;
+    const positionLerp = 1 - 0.12 ** frameScale;
+    const nextRotation: [number, number] = [
+      interpolateAngle(
+        currentRotationRef.current[0],
+        targetRotationRef.current[0],
+        positionLerp,
+      ),
+      clampLatitudeRotation(
+        currentRotationRef.current[1] +
+          (targetRotationRef.current[1] - currentRotationRef.current[1]) * positionLerp,
+      ),
+    ];
+    const nextZoom =
+      currentZoomRef.current +
+      (targetZoomRef.current - currentZoomRef.current) * (1 - 0.16 ** frameScale);
 
-      if (
-        draggingRef.current ||
-        focusTargetRef.current ||
-        !rotationSettled ||
-        !zoomSettled ||
-        !velocitySettled
-      ) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        animationFrameRef.current = null;
-        lastFrameTimeRef.current = null;
-      }
-    },
-    [],
-  );
+    currentRotationRef.current = nextRotation;
+    currentZoomRef.current = nextZoom;
+    setCurrentRotation(nextRotation);
+    setZoomScale(nextZoom);
+
+    const rotationSettled =
+      Math.abs(normalizeLongitude(targetRotationRef.current[0] - nextRotation[0])) < 0.01 &&
+      Math.abs(targetRotationRef.current[1] - nextRotation[1]) < 0.01;
+    const zoomSettled = Math.abs(targetZoomRef.current - nextZoom) < 0.001;
+    const velocitySettled =
+      Math.abs(rotationVelocityRef.current.longitude) < 0.001 &&
+      Math.abs(rotationVelocityRef.current.latitude) < 0.001 &&
+      Math.abs(zoomVelocityRef.current) < 0.0005;
+
+    if (
+      draggingRef.current ||
+      focusTargetRef.current ||
+      !rotationSettled ||
+      !zoomSettled ||
+      !velocitySettled
+    ) {
+      animationFrameRef.current = requestAnimationFrame((frameNow) => {
+        animateRef.current(frameNow);
+      });
+    } else {
+      animationFrameRef.current = null;
+      lastFrameTimeRef.current = null;
+      setAnimationState(false);
+    }
+  }
+
+  useEffect(() => {
+    animateRef.current = animate;
+  });
 
   const startAnimation = useCallback(() => {
     if (animationFrameRef.current !== null) {
       return;
     }
 
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [animate]);
+    setAnimationState(true);
+    animationFrameRef.current = requestAnimationFrame((now) => {
+      animateRef.current(now);
+    });
+  }, [setAnimationState]);
 
   const onPointerDown = useCallback(
     <T extends Element>(event: ReactPointerEvent<T>) => {
@@ -308,7 +328,14 @@ export function useGlobeInteraction({
     focusTargetRef.current = [rotation[0], rotation[1]];
     targetRotationRef.current = currentRotationRef.current;
     rotationVelocityRef.current = { latitude: 0, longitude: 0 };
-    startAnimation();
+
+    const frameId = window.requestAnimationFrame(() => {
+      startAnimation();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, [focusRequest, rotation, startAnimation]);
 
   useEffect(() => stopAnimation, [stopAnimation]);
@@ -322,6 +349,7 @@ export function useGlobeInteraction({
       onPointerUp,
       onWheel,
     },
+    isAnimating,
     zoomScale,
   };
 }

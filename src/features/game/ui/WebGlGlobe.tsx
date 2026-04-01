@@ -15,7 +15,7 @@ import {
   geoRotation,
   type GeoPermissibleObjects,
 } from 'd3';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobePalette } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
 
@@ -64,6 +64,8 @@ interface WebGlResources {
     time: WebGLUniformLocation;
   };
 }
+
+const ambientAnimationFps = 12;
 
 const vertexShaderSource = `
   attribute vec3 a_position;
@@ -585,9 +587,51 @@ function configureTexture(gl: WebGLRenderingContext, texture: WebGLTexture) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
+function hasAmbientAnimation(palette: GlobePalette) {
+  return (
+    palette.auroraStrength > 0 ||
+    palette.gridStrength > 0 ||
+    palette.noiseStrength > 0 ||
+    palette.scanlineStrength > 0
+  );
+}
+
+function getTextureResolution(
+  gl: WebGLRenderingContext,
+  width: number,
+  height: number,
+) {
+  const textureLimit = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
+  const maxTextureSize = Math.min(
+    Number.isFinite(textureLimit) ? textureLimit : 4096,
+    8192,
+  );
+  const dpr = window.devicePixelRatio || 1;
+  const desiredSize = Math.max(width, height) * dpr * 2;
+
+  if (desiredSize >= 6144 && maxTextureSize >= 8192) {
+    return 8192;
+  }
+
+  if (desiredSize >= 3072 && maxTextureSize >= 4096) {
+    return 4096;
+  }
+
+  if (desiredSize >= 1536 && maxTextureSize >= 2048) {
+    return 2048;
+  }
+
+  return Math.min(1024, maxTextureSize);
+}
+
 function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const gl =
-    canvas.getContext('webgl', { alpha: true, antialias: true }) ??
+    canvas.getContext('webgl', {
+      alpha: true,
+      antialias: true,
+      desynchronized: true,
+      powerPreference: 'low-power',
+    }) ??
     canvas.getContext('experimental-webgl');
 
   if (!gl || !(gl instanceof WebGLRenderingContext)) {
@@ -822,6 +866,7 @@ export function WebGlGlobe({
     width,
     zoomScale: 1,
   });
+  const paletteRef = useRef(palette);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -834,12 +879,16 @@ export function WebGlGlobe({
       ) ?? country,
     [country, world.features],
   );
-  const { currentRotation, interactionHandlers, zoomScale } = useGlobeInteraction({
+  const { currentRotation, interactionHandlers, isAnimating, zoomScale } = useGlobeInteraction({
     baseScale,
     focusRequest,
     pointerDirection: { x: 1, y: 1 },
     rotation,
   });
+  const ambientAnimationEnabled = useMemo(
+    () => hasAmbientAnimation(palette),
+    [palette],
+  );
 
   useEffect(() => {
     frameStateRef.current = {
@@ -849,6 +898,31 @@ export function WebGlGlobe({
       zoomScale,
     };
   }, [currentRotation, height, width, zoomScale]);
+
+  useEffect(() => {
+    paletteRef.current = palette;
+  }, [palette]);
+
+  const drawCurrentFrame = useCallback((now = performance.now()) => {
+    const canvas = canvasRef.current;
+    const resources = resourcesRef.current;
+    const frameState = frameStateRef.current;
+
+    if (!canvas || !resources) {
+      return;
+    }
+
+    drawGlobe(
+      resources,
+      canvas,
+      frameState.width,
+      frameState.height,
+      frameState.zoomScale,
+      frameState.currentRotation,
+      paletteRef.current,
+      now * 0.001,
+    );
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -879,13 +953,7 @@ export function WebGlGlobe({
     }
 
     const gl = resources.gl;
-    const textureLimit = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
-    const textureSize = Math.min(
-      Number.isFinite(textureLimit) ? textureLimit : 4096,
-      8192,
-    );
-    const textureResolution =
-      textureSize >= 8192 ? 8192 : textureSize >= 4096 ? 4096 : 2048;
+    const textureResolution = getTextureResolution(gl, width, height);
     const hasRaisedCountries = palette.countryElevation > 0;
     const baseTextureCanvas = hasRaisedCountries
       ? buildOceanTextureCanvas(world, palette, textureResolution)
@@ -900,7 +968,7 @@ export function WebGlGlobe({
       : null;
     const shadowCanvas = buildShadowTextureCanvas(
       palette,
-      textureSize >= 4096 ? 4096 : 2048,
+      textureResolution >= 4096 ? 4096 : 2048,
     );
 
     gl.activeTexture(gl.TEXTURE0);
@@ -947,41 +1015,64 @@ export function WebGlGlobe({
       }
     }, 0);
 
+    drawCurrentFrame();
+
     return () => {
       cancelled = true;
     };
-  }, [palette, targetFeature, world]);
+  }, [drawCurrentFrame, height, palette, targetFeature, width, world]);
 
   useEffect(() => {
+    drawCurrentFrame();
+  }, [currentRotation, drawCurrentFrame, height, palette, width, zoomScale]);
+
+  useEffect(() => {
+    let cancelled = false;
     let frameId = 0;
+    let timeoutId = 0;
 
-    const render = (now: number) => {
-      const canvas = canvasRef.current;
-      const resources = resourcesRef.current;
-      const frameState = frameStateRef.current;
-
-      if (canvas && resources) {
-        drawGlobe(
-          resources,
-          canvas,
-          frameState.width,
-          frameState.height,
-          frameState.zoomScale,
-          frameState.currentRotation,
-          palette,
-          now * 0.001,
-        );
+    const scheduleNextFrame = () => {
+      if (cancelled || document.visibilityState === 'hidden') {
+        return;
       }
 
-      frameId = window.requestAnimationFrame(render);
+      if (isAnimating) {
+        frameId = window.requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      if (ambientAnimationEnabled) {
+        timeoutId = window.setTimeout(() => {
+          frameId = window.requestAnimationFrame(renderLoop);
+        }, 1000 / ambientAnimationFps);
+      }
     };
 
-    frameId = window.requestAnimationFrame(render);
+    const renderLoop = (now: number) => {
+      drawCurrentFrame(now);
+      scheduleNextFrame();
+    };
+
+    const handleVisibilityChange = () => {
+      window.clearTimeout(timeoutId);
+      window.cancelAnimationFrame(frameId);
+
+      if (!cancelled && document.visibilityState === 'visible') {
+        drawCurrentFrame();
+        scheduleNextFrame();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    scheduleNextFrame();
 
     return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearTimeout(timeoutId);
       window.cancelAnimationFrame(frameId);
     };
-  }, [palette]);
+  }, [ambientAnimationEnabled, drawCurrentFrame, isAnimating]);
 
   return (
     <div
