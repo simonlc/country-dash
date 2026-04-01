@@ -59,16 +59,7 @@ const modeLabels: Record<GameMode, string> = {
 };
 
 function getStoredRenderer(): GlobeRenderer {
-  if (typeof window === 'undefined') {
-    return 'svg';
-  }
-
-  const storage = window.localStorage;
-  const storedValue =
-    storage && typeof storage.getItem === 'function'
-      ? storage.getItem(rendererStorageKey)
-      : null;
-  return storedValue === 'webgl' ? 'webgl' : 'svg';
+  return 'webgl';
 }
 
 function getStoredDailyResult(dateKey: string) {
@@ -127,7 +118,7 @@ export function GamePage() {
     () => getStoredDailyResult(todayDateKey),
   );
   const [focusRequest, setFocusRequest] = useState(0);
-  const [renderer, setRenderer] = useState<GlobeRenderer>(getStoredRenderer);
+  const renderer = getStoredRenderer();
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
@@ -606,10 +597,8 @@ export function GamePage() {
           void NiceModal.show(AboutDialog);
         }}
         onQuit={handleQuitToMenu}
-        onRendererChange={setRenderer}
         onRefocus={handleRefocus}
         onRestart={handlePlayAgain}
-        renderer={renderer}
       />
       <Container
         maxWidth="lg"

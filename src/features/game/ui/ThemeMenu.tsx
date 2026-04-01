@@ -9,15 +9,12 @@ import {
 import { useMemo, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import type { AppThemeDefinition } from '@/app/theme';
-import type { GlobeRenderer } from '@/features/game/types';
 
 interface ThemeMenuProps {
   onAbout: () => void;
   onRefocus: () => void;
   onRestart: () => void;
   onQuit: () => void;
-  renderer: GlobeRenderer;
-  onRendererChange: (renderer: GlobeRenderer) => void;
 }
 
 function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
@@ -120,8 +117,6 @@ export function ThemeMenu({
   onQuit,
   onRefocus,
   onRestart,
-  renderer,
-  onRendererChange,
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
@@ -227,28 +222,6 @@ export function ThemeMenu({
                     </Button>
                   );
                 })}
-              </Stack>
-              <Stack spacing={0.5}>
-                <Typography variant="overline">Renderer</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Choose between SVG precision and WebGL acceleration.
-                </Typography>
-              </Stack>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  size="small"
-                  variant={renderer === 'svg' ? 'contained' : 'outlined'}
-                  onClick={() => onRendererChange('svg')}
-                >
-                  SVG
-                </Button>
-                <Button
-                  size="small"
-                  variant={renderer === 'webgl' ? 'contained' : 'outlined'}
-                  onClick={() => onRendererChange('webgl')}
-                >
-                  WebGL
-                </Button>
               </Stack>
             </Stack>
           </Paper>

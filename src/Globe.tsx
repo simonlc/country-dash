@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import type { AppThemeId, GlobePalette } from '@/app/theme';
-import { SvgGlobe } from '@/features/game/ui/SvgGlobe';
 import { WebGlGlobe } from '@/features/game/ui/WebGlGlobe';
 import type {
   CountryFeature,
@@ -21,14 +20,10 @@ interface GlobeProps {
 }
 
 function GlobeComponent({
-  renderer,
+  renderer: _renderer,
   ...props
 }: GlobeProps) {
-  if (renderer === 'webgl') {
-    return <WebGlGlobe {...props} />;
-  }
-
-  return <SvgGlobe {...props} />;
+  return <WebGlGlobe {...props} />;
 }
 
 export const Globe = memo(GlobeComponent);
