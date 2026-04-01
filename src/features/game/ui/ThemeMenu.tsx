@@ -20,7 +20,6 @@ interface MenuAction {
   icon: typeof Crosshair;
   label: string;
   onClick: () => void;
-  tone?: 'contained' | 'outlined';
 }
 
 function ThemePreview({ theme }: { theme: AppThemeDefinition }) {
@@ -132,7 +131,6 @@ export function ThemeMenu({
       icon: Crosshair,
       label: 'Refocus',
       onClick: onRefocus,
-      tone: 'contained',
     },
     { icon: RotateCcw, label: 'Retry', onClick: onRestart },
     { icon: XCircle, label: 'Quit', onClick: onQuit },
@@ -199,12 +197,10 @@ export function ThemeMenu({
                         gap: 0.55,
                         minHeight: 76,
                         minWidth: 0,
-                        px: 1,
+                        px: 1.2,
                         py: 1.15,
                       }}
-                      variant={
-                        action.tone === 'contained' ? 'contained' : 'outlined'
-                      }
+                      variant="contained"
                       onClick={action.onClick}
                     >
                       <Box

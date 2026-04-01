@@ -151,6 +151,8 @@ Rules:
 - Controls/selectors use `sm`/`md`.
 - Panels use `lg`.
 - `pill` is reserved for intentional pill UI, not broad default usage.
+- Any pill control must have increased horizontal padding so text does not crowd curved edges.
+  Baseline: `padding-inline >= 22px` (`sizeSmall >= 16px`).
 
 ### 5.3 Motion
 

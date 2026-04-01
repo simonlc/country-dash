@@ -694,7 +694,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             fontSize: designTokens.fontSize.sm,
             fontWeight: designTokens.fontWeight.semibold,
             minHeight: 42,
-            paddingInline: 18,
+            paddingInline: 22,
             paddingBlock: 10,
             textTransform: 'none',
             transition:
@@ -737,7 +737,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
           sizeSmall: {
             minHeight: 34,
             paddingBlock: 7,
-            paddingInline: 14,
+            paddingInline: 16,
           },
         },
       },
