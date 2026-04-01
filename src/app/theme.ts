@@ -345,7 +345,8 @@ export const appThemes: AppThemeDefinition[] = [
   {
     id: 'cipher',
     label: 'Cipher',
-    description: 'Elite terminal green, encrypted glow, and tactical scanlines.',
+    description:
+      'Elite terminal green, encrypted glow, and tactical scanlines.',
     mode: 'dark',
     background: {
       app: 'radial-gradient(circle at top left, rgba(0, 255, 163, 0.16), rgba(0, 255, 163, 0) 24%), radial-gradient(circle at 78% 18%, rgba(48, 122, 255, 0.14), rgba(48, 122, 255, 0) 22%), linear-gradient(145deg, #020907 0%, #051713 44%, #09251e 100%)',
@@ -413,63 +414,63 @@ export const appThemes: AppThemeDefinition[] = [
     description: 'Cold glass, frosted highlights, and aero-like blue haze.',
     mode: 'light',
     background: {
-      app: 'radial-gradient(circle at top left, rgba(255,255,255,0.84), rgba(255,255,255,0) 25%), radial-gradient(circle at 82% 14%, rgba(127, 212, 255, 0.28), rgba(127, 212, 255, 0) 24%), linear-gradient(155deg, #eef8ff 0%, #d6ebff 44%, #bddfff 100%)',
-      panel: 'rgba(245, 251, 255, 0.56)',
-      panelBorder: 'rgba(108, 160, 207, 0.24)',
-      panelShadow: '0 28px 72px rgba(82, 129, 171, 0.18)',
-      mutedPanel: 'rgba(236, 246, 255, 0.58)',
+      app: 'radial-gradient(circle at 14% 10%, rgba(255,255,255,0.92), rgba(255,255,255,0) 24%), radial-gradient(circle at 82% 16%, rgba(88, 201, 255, 0.22), rgba(88, 201, 255, 0) 24%), linear-gradient(155deg, #f5fbff 0%, #dfeefe 42%, #c7e0fb 100%)',
+      panel: 'rgba(244, 250, 255, 0.48)',
+      panelBorder: 'rgba(255, 255, 255, 0.62)',
+      panelShadow: '0 28px 72px rgba(124, 165, 206, 0.18)',
+      mutedPanel: 'rgba(236, 246, 255, 0.46)',
     },
     palette: {
-      primary: '#2379c8',
-      secondary: '#6ed3ff',
-      backgroundDefault: '#edf7ff',
-      backgroundPaper: '#f7fbff',
+      primary: '#2a7fd8',
+      secondary: '#7ad9ff',
+      backgroundDefault: '#f2f9ff',
+      backgroundPaper: '#fbfdff',
       textPrimary: '#17324a',
-      textSecondary: '#65819b',
+      textSecondary: '#7088a2',
     },
     globe: {
-      oceanFill: '#eef3f7',
-      oceanDepth: '#dde5ec',
-      oceanHighlight: '#42b8ff',
+      oceanFill: '#f4f8fb',
+      oceanDepth: '#e6eef5',
+      oceanHighlight: '#6cd6ff',
       oceanHighlightOpacity: 0.26,
-      countryElevation: 0.028,
+      countryElevation: 0.01,
       graticule: 'rgba(255, 255, 255, 0)',
-      countryFill: '#f8fcff',
-      countryStroke: 'rgba(246, 251, 255, 0.72)',
+      countryFill: '#ffffff',
+      countryStroke: 'rgba(245, 251, 255, 0.82)',
       countryDebossDark: 'rgba(94, 128, 156, 0.34)',
       countryDebossLight: 'rgba(255, 255, 255, 0.92)',
       countryDebossWidth: 4.2,
       countryDebossOffset: 2.1,
       countryDebossStrength: 0,
-      countryShadowColor: 'rgba(72, 94, 116, 0.58)',
-      countryShadowBlur: 18,
-      countryShadowOffsetX: 4.4,
-      countryShadowOffsetY: 4.4,
-      selectedFill: '#38c6ff',
-      hazeOuter: '#dff2ff',
-      hazeInner: '#7dd1ff',
-      nightShade: 'rgba(24, 64, 97, 0.14)',
-      smallCountryCircle: 'rgba(35, 121, 200, 0.82)',
+      countryShadowColor: 'rgba(130, 130, 135, 0.24)',
+      countryShadowBlur: 42,
+      countryShadowOffsetX: 0,
+      countryShadowOffsetY: 0,
+      selectedFill: '#62d9ff',
+      hazeOuter: '#e6f3ff',
+      hazeInner: '#9fdbff',
+      nightShade: 'rgba(34, 68, 104, 0.12)',
+      smallCountryCircle: 'rgba(68, 148, 214, 0.74)',
       atmosphereTint: '#f3fbff',
-      gridColor: '#d6f3ff',
+      gridColor: '#ddf6ff',
       rimLightColor: '#f7fdff',
       specularColor: '#ffffff',
-      atmosphereOpacity: 0.05,
+      atmosphereOpacity: 0.04,
       auroraStrength: 0.0,
       gridStrength: 0.0,
-      noiseStrength: 0.02,
-      rimLightStrength: 0.035,
+      noiseStrength: 0.01,
+      rimLightStrength: 0.028,
       scanlineDensity: 190,
       scanlineStrength: 0.0,
       specularPower: 52,
-      specularStrength: 0.015,
+      specularStrength: 0.012,
     },
     preview: {
-      sky: 'linear-gradient(145deg, #eef8ff, #b9dcff)',
-      glow: '#42b8ff',
-      ocean: '#eef3f7',
-      land: '#f8fcff',
-      accent: '#38c6ff',
+      sky: 'linear-gradient(145deg, #f6fbff, #cfe5fb)',
+      glow: '#73d7ff',
+      ocean: '#f4f8fb',
+      land: '#ffffff',
+      accent: '#62d9ff',
     },
   },
 ];
@@ -520,12 +521,14 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       MuiPaper: {
         styleOverrides: {
           root: {
-            backdropFilter: isGlacier ? 'blur(22px) saturate(1.45)' : 'blur(16px)',
+            backdropFilter: isGlacier
+              ? 'blur(22px) saturate(1.45)'
+              : 'blur(16px)',
             backgroundImage: isGlacier
-              ? 'linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.28))'
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
               : 'none',
             boxShadow: isGlacier
-              ? 'inset 0 1px 0 rgba(255,255,255,0.78), inset 0 -18px 32px rgba(120, 182, 226, 0.08)'
+              ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
               : undefined,
           },
         },
@@ -536,10 +539,10 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             ? {
                 backdropFilter: 'blur(26px) saturate(1.5)',
                 background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.68), rgba(231,244,255,0.4))',
-                border: '1px solid rgba(255,255,255,0.72)',
+                  'linear-gradient(180deg, rgba(255,255,255,0.76), rgba(235,245,255,0.42))',
+                border: '1px solid rgba(255,255,255,0.82)',
                 boxShadow:
-                  '0 28px 80px rgba(89, 142, 186, 0.22), inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -22px 40px rgba(144, 201, 237, 0.12)',
+                  '0 28px 80px rgba(104, 151, 191, 0.18), inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)',
               }
             : undefined,
         },
@@ -549,16 +552,16 @@ export function createAppTheme(themeId: AppThemeId): Theme {
           root: isGlacier
             ? {
                 backdropFilter: 'blur(14px) saturate(1.35)',
-                borderColor: 'rgba(255,255,255,0.7)',
+                borderColor: 'rgba(255,255,255,0.82)',
                 boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.84), 0 12px 24px rgba(106, 162, 205, 0.16)',
+                  'inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 24px rgba(112, 167, 210, 0.14)',
               }
             : undefined,
           contained: isGlacier
             ? {
                 background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(188,227,255,0.78))',
-                color: '#17466f',
+                  'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(205,235,255,0.76))',
+                color: '#1b4f78',
               }
             : undefined,
           outlined: isGlacier

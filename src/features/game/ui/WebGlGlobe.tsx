@@ -345,17 +345,42 @@ function applyCountryShadow(
     return;
   }
 
-  context.save();
-  context.fillStyle = palette.countryShadowColor;
-  context.shadowBlur = palette.countryShadowBlur;
-  context.shadowColor = palette.countryShadowColor;
-  context.shadowOffsetX = palette.countryShadowOffsetX;
-  context.shadowOffsetY = palette.countryShadowOffsetY;
+  const isRaisedShadow = palette.countryElevation > 0;
+  const steps = isRaisedShadow
+    ? Math.max(14, Math.min(56, Math.round(palette.countryShadowBlur * 1.2)))
+    : 1;
+  const baseAlpha = parseCssColor(palette.countryShadowColor).alpha;
+  const shadowRgb = parseCssColor(palette.countryShadowColor).rgb;
+  const blurSpread = Math.max(palette.countryShadowBlur * 0.14, 1.2);
+  const baseOffsetX = isRaisedShadow ? 0 : palette.countryShadowOffsetX;
+  const baseOffsetY = isRaisedShadow ? 0 : palette.countryShadowOffsetY;
 
-  for (const feature of world.features) {
-    context.beginPath();
-    path(feature as GeoPermissibleObjects);
-    context.fill();
+  context.save();
+  context.fillStyle = `rgba(${shadowRgb[0]}, ${shadowRgb[1]}, ${shadowRgb[2]}, ${baseAlpha})`;
+
+  for (let step = 0; step < steps; step += 1) {
+    const progress = (step + 1) / steps;
+    const angle = (step / steps) * Math.PI * 2;
+    const radialDistance = isRaisedShadow
+      ? Math.sqrt(progress) * blurSpread
+      : 0;
+    const alphaScale = isRaisedShadow
+      ? Math.pow(1 - step / steps, 1.45) * 0.09
+      : 1;
+    const offsetX = baseOffsetX + Math.cos(angle) * radialDistance;
+    const offsetY = baseOffsetY + Math.sin(angle) * radialDistance;
+
+    context.save();
+    context.translate(offsetX, offsetY);
+    context.globalAlpha = alphaScale;
+
+    for (const feature of world.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.fill();
+    }
+
+    context.restore();
   }
 
   context.restore();
