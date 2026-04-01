@@ -160,18 +160,25 @@ export function getRotatedSunDirection(rotation: [number, number]) {
 interface UseGlobeInteractionArgs {
   baseScale: number;
   focusRequest: number;
+  onFrame?: (frame: {
+    rotation: [number, number];
+    zoomScale: number;
+  }) => void;
   rotation: [number, number];
   pointerDirection?: {
     x: 1 | -1;
     y: 1 | -1;
   };
+  useStateUpdates?: boolean;
 }
 
 export function useGlobeInteraction({
   baseScale,
   focusRequest,
+  onFrame,
   rotation,
   pointerDirection = { x: 1, y: 1 },
+  useStateUpdates = true,
 }: UseGlobeInteractionArgs) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
@@ -187,6 +194,7 @@ export function useGlobeInteraction({
   const currentZoomRef = useRef(1);
   const targetZoomRef = useRef(1);
   const focusTargetRef = useRef<[number, number] | null>(null);
+  const onFrameRef = useRef(onFrame);
   const rotationVelocityRef = useRef({ latitude: 0, longitude: 0 });
   const zoomVelocityRef = useRef(0);
 
@@ -197,6 +205,10 @@ export function useGlobeInteraction({
   useEffect(() => {
     currentZoomRef.current = zoomScale;
   }, [zoomScale]);
+
+  useEffect(() => {
+    onFrameRef.current = onFrame;
+  }, [onFrame]);
 
   const setAnimationState = useCallback((nextValue: boolean) => {
     if (isAnimatingRef.current === nextValue) {
@@ -281,8 +293,14 @@ export function useGlobeInteraction({
 
     currentRotationRef.current = nextRotation;
     currentZoomRef.current = nextZoom;
-    setCurrentRotation(nextRotation);
-    setZoomScale(nextZoom);
+    if (useStateUpdates) {
+      setCurrentRotation(nextRotation);
+      setZoomScale(nextZoom);
+    }
+    onFrameRef.current?.({
+      rotation: nextRotation,
+      zoomScale: nextZoom,
+    });
 
     const rotationSettled =
       Math.abs(normalizeLongitude(targetRotationRef.current[0] - nextRotation[0])) < 0.01 &&

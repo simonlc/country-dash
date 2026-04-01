@@ -10,6 +10,7 @@ import {
   geoCircle,
   geoEquirectangular,
   geoGraticule10,
+  geoOrthographic,
   geoPath,
   geoRotation,
   type GeoPermissibleObjects,
@@ -472,7 +473,7 @@ function drawAtlasExpeditionDetails(
 
 function buildCombinedTextureCanvas(
   world: FeatureCollectionLike,
-  targetFeature: CountryFeature,
+  targetFeature: CountryFeature | null,
   palette: GlobePalette,
   textureSize: number,
   isAtlas: boolean,
@@ -487,10 +488,6 @@ function buildCombinedTextureCanvas(
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
-    const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
-      geoCircle().center(ring.center).radius(ring.radius)(),
-    );
-
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
@@ -523,20 +520,26 @@ function buildCombinedTextureCanvas(
     );
     applyCountryDeboss(context, path, world, palette);
 
-    context.beginPath();
-    path(targetFeature as GeoPermissibleObjects);
-    context.fillStyle = palette.selectedFill;
-    context.strokeStyle = palette.countryStroke;
-    context.lineWidth = isAtlas ? 2 : 1.6;
-    context.fill();
-    context.stroke();
+    if (targetFeature) {
+      const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
+        geoCircle().center(ring.center).radius(ring.radius)(),
+      );
 
-    for (const selectedRing of selectedRings) {
       context.beginPath();
-      path(selectedRing);
-      context.strokeStyle = palette.smallCountryCircle;
-      context.lineWidth = 3;
+      path(targetFeature as GeoPermissibleObjects);
+      context.fillStyle = palette.selectedFill;
+      context.strokeStyle = palette.countryStroke;
+      context.lineWidth = isAtlas ? 2 : 1.6;
+      context.fill();
       context.stroke();
+
+      for (const selectedRing of selectedRings) {
+        context.beginPath();
+        path(selectedRing);
+        context.strokeStyle = palette.smallCountryCircle;
+        context.lineWidth = 3;
+        context.stroke();
+      }
     }
   });
 
@@ -545,7 +548,7 @@ function buildCombinedTextureCanvas(
 
 function buildCountryTextureCanvas(
   world: FeatureCollectionLike,
-  targetFeature: CountryFeature,
+  targetFeature: CountryFeature | null,
   palette: GlobePalette,
   textureSize: number,
   isAtlas: boolean,
@@ -560,10 +563,6 @@ function buildCountryTextureCanvas(
       .translate([textureCanvas.width / 2, textureCanvas.height / 2])
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
-    const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
-      geoCircle().center(ring.center).radius(ring.radius)(),
-    );
-
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
     if (isAtlas) {
       applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
@@ -591,20 +590,26 @@ function buildCountryTextureCanvas(
     );
     applyCountryDeboss(context, path, world, palette);
 
-    context.beginPath();
-    path(targetFeature as GeoPermissibleObjects);
-    context.fillStyle = palette.selectedFill;
-    context.strokeStyle = palette.countryStroke;
-    context.lineWidth = isAtlas ? 2 : 1.6;
-    context.fill();
-    context.stroke();
+    if (targetFeature) {
+      const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
+        geoCircle().center(ring.center).radius(ring.radius)(),
+      );
 
-    for (const selectedRing of selectedRings) {
       context.beginPath();
-      path(selectedRing);
-      context.strokeStyle = palette.smallCountryCircle;
-      context.lineWidth = 3;
+      path(targetFeature as GeoPermissibleObjects);
+      context.fillStyle = palette.selectedFill;
+      context.strokeStyle = palette.countryStroke;
+      context.lineWidth = isAtlas ? 2 : 1.6;
+      context.fill();
       context.stroke();
+
+      for (const selectedRing of selectedRings) {
+        context.beginPath();
+        path(selectedRing);
+        context.strokeStyle = palette.smallCountryCircle;
+        context.lineWidth = 3;
+        context.stroke();
+      }
     }
   });
 
@@ -667,10 +672,27 @@ function hasAmbientAnimation(palette: GlobePalette) {
   );
 }
 
+function getTextureLodLevel(zoomScale: number) {
+  if (zoomScale >= 3) {
+    return 3;
+  }
+
+  if (zoomScale >= 2) {
+    return 2;
+  }
+
+  if (zoomScale >= 1.35) {
+    return 1;
+  }
+
+  return 0;
+}
+
 function getTextureResolution(
   gl: WebGLRenderingContext,
   width: number,
   height: number,
+  textureLodLevel: number,
 ) {
   const textureLimit = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
   const maxTextureSize = Math.min(
@@ -678,7 +700,8 @@ function getTextureResolution(
     8192,
   );
   const dpr = window.devicePixelRatio || 1;
-  const desiredSize = Math.max(width, height) * dpr * 2;
+  const lodMultiplier = [1, 1.35, 1.8, 2.4][textureLodLevel] ?? 1;
+  const desiredSize = Math.max(width, height) * dpr * 2 * lodMultiplier;
 
   if (desiredSize >= 6144 && maxTextureSize >= 8192) {
     return 8192;
@@ -920,6 +943,73 @@ function drawGlobe(
   }
 }
 
+function drawSelectedCountryOverlay(args: {
+  canvas: HTMLCanvasElement;
+  country: CountryFeature;
+  currentRotation: [number, number];
+  height: number;
+  palette: GlobePalette;
+  width: number;
+  zoomScale: number;
+}) {
+  const { canvas, country, currentRotation, height, palette, width, zoomScale } = args;
+  const dpr = window.devicePixelRatio || 1;
+  const targetWidth = Math.max(Math.floor(width * dpr), 1);
+  const targetHeight = Math.max(Math.floor(height * dpr), 1);
+
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return;
+  }
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.scale(dpr, dpr);
+
+  const baseScale = Math.max(Math.min(width, height) / 2 - 10, 1);
+  const projection = geoOrthographic()
+    .scale(baseScale * zoomScale)
+    .center([0, 0])
+    .translate([width / 2, height / 2])
+    .rotate([currentRotation[0], currentRotation[1], 0]);
+  const path = geoPath(projection, context);
+  const ringPaths = getCountryHighlightRings(country).map((ring) =>
+    geoCircle().center(ring.center).radius(ring.radius)(),
+  );
+
+  context.save();
+  context.beginPath();
+  path({ type: 'Sphere' });
+  context.clip();
+
+  context.beginPath();
+  path(country as GeoPermissibleObjects);
+  context.fillStyle = palette.selectedFill;
+  context.strokeStyle = palette.countryStroke;
+  context.globalAlpha = 0.96;
+  context.lineWidth = 0.9;
+  context.fill();
+  context.stroke();
+  context.globalAlpha = 1;
+
+  context.strokeStyle = palette.smallCountryCircle;
+  context.lineWidth = 1.4;
+  for (const ringPath of ringPaths) {
+    context.beginPath();
+    path(ringPath);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
 export function WebGlGlobe({
   country,
   width,
@@ -932,7 +1022,11 @@ export function WebGlGlobe({
 }: WebGlGlobeProps) {
   const isAtlas = themeId === 'atlas';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
+  const drawCurrentFrameRef = useRef<(now?: number) => void>(() => undefined);
+  const textureLodLevelRef = useRef(0);
+  const targetFeatureRef = useRef<CountryFeature>(country);
   const frameStateRef = useRef({
     currentRotation: rotation,
     height,
@@ -942,6 +1036,7 @@ export function WebGlGlobe({
   const paletteRef = useRef(palette);
   const [atlasPaperImage, setAtlasPaperImage] = useState<HTMLImageElement | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [textureLodLevel, setTextureLodLevel] = useState(0);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
     [height, width],
@@ -953,11 +1048,27 @@ export function WebGlGlobe({
       ) ?? country,
     [country, world.features],
   );
-  const { currentRotation, interactionHandlers, isAnimating, zoomScale } = useGlobeInteraction({
+  const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
     focusRequest,
+    onFrame: ({ rotation: nextRotation, zoomScale: nextZoomScale }) => {
+      frameStateRef.current = {
+        currentRotation: nextRotation,
+        height,
+        width,
+        zoomScale: nextZoomScale,
+      };
+
+      const nextTextureLodLevel = getTextureLodLevel(nextZoomScale);
+      if (textureLodLevelRef.current !== nextTextureLodLevel) {
+        textureLodLevelRef.current = nextTextureLodLevel;
+        setTextureLodLevel(nextTextureLodLevel);
+      }
+      drawCurrentFrameRef.current();
+    },
     pointerDirection: { x: 1, y: 1 },
     rotation,
+    useStateUpdates: false,
   });
   const ambientAnimationEnabled = useMemo(
     () => hasAmbientAnimation(palette),
@@ -966,16 +1077,24 @@ export function WebGlGlobe({
 
   useEffect(() => {
     frameStateRef.current = {
-      currentRotation,
+      currentRotation: frameStateRef.current.currentRotation,
       height,
       width,
-      zoomScale,
+      zoomScale: frameStateRef.current.zoomScale,
     };
-  }, [currentRotation, height, width, zoomScale]);
+  }, [height, width]);
 
   useEffect(() => {
     paletteRef.current = palette;
   }, [palette]);
+
+  useEffect(() => {
+    targetFeatureRef.current = targetFeature;
+  }, [targetFeature]);
+
+  useEffect(() => {
+    textureLodLevelRef.current = textureLodLevel;
+  }, [textureLodLevel]);
 
   useEffect(() => {
     if (!isAtlas) {
@@ -1004,10 +1123,11 @@ export function WebGlGlobe({
 
   const drawCurrentFrame = useCallback((now = performance.now()) => {
     const canvas = canvasRef.current;
+    const overlayCanvas = overlayCanvasRef.current;
     const resources = resourcesRef.current;
     const frameState = frameStateRef.current;
 
-    if (!canvas || !resources) {
+    if (!canvas || !overlayCanvas || !resources) {
       return;
     }
 
@@ -1021,7 +1141,21 @@ export function WebGlGlobe({
       paletteRef.current,
       now * 0.001,
     );
+
+    drawSelectedCountryOverlay({
+      canvas: overlayCanvas,
+      country: targetFeatureRef.current,
+      currentRotation: frameState.currentRotation,
+      height: frameState.height,
+      palette: paletteRef.current,
+      width: frameState.width,
+      zoomScale: frameState.zoomScale,
+    });
   }, []);
+
+  useEffect(() => {
+    drawCurrentFrameRef.current = drawCurrentFrame;
+  }, [drawCurrentFrame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1052,7 +1186,7 @@ export function WebGlGlobe({
     }
 
     const gl = resources.gl;
-    const textureResolution = getTextureResolution(gl, width, height);
+    const textureResolution = getTextureResolution(gl, width, height, textureLodLevel);
     const hasRaisedCountries = palette.countryElevation > 0;
     const baseTextureCanvas = hasRaisedCountries
       ? buildOceanTextureCanvas(
@@ -1064,7 +1198,7 @@ export function WebGlGlobe({
         )
       : buildCombinedTextureCanvas(
           world,
-          targetFeature,
+          null,
           palette,
           textureResolution,
           isAtlas,
@@ -1073,7 +1207,7 @@ export function WebGlGlobe({
     const countryTextureCanvas = hasRaisedCountries
       ? buildCountryTextureCanvas(
           world,
-          targetFeature,
+          null,
           palette,
           textureResolution,
           isAtlas,
@@ -1134,11 +1268,20 @@ export function WebGlGlobe({
     return () => {
       cancelled = true;
     };
-  }, [atlasPaperImage, drawCurrentFrame, height, isAtlas, palette, targetFeature, width, world]);
+  }, [
+    atlasPaperImage,
+    drawCurrentFrame,
+    height,
+    isAtlas,
+    palette,
+    textureLodLevel,
+    width,
+    world,
+  ]);
 
   useEffect(() => {
     drawCurrentFrame();
-  }, [currentRotation, drawCurrentFrame, height, palette, width, zoomScale]);
+  }, [drawCurrentFrame, palette, targetFeature, textureLodLevel, height, width]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1151,7 +1294,6 @@ export function WebGlGlobe({
       }
 
       if (isAnimating) {
-        frameId = window.requestAnimationFrame(renderLoop);
         return;
       }
 
@@ -1216,6 +1358,17 @@ export function WebGlGlobe({
       <canvas
         ref={canvasRef}
         style={{ display: 'block', height: '100%', position: 'relative', width: '100%' }}
+      />
+      <canvas
+        ref={overlayCanvasRef}
+        style={{
+          display: 'block',
+          height: '100%',
+          inset: 0,
+          pointerEvents: 'none',
+          position: 'absolute',
+          width: '100%',
+        }}
       />
       {errorMessage ? (
         <div
