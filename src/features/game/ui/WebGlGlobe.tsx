@@ -208,8 +208,9 @@ const fragmentShaderSource = `
     float dayImageryMix = u_useDayImagery * 0.6 * imageryMask;
     vec3 dayColor = mix(baseColor.rgb, dayImagery, dayImageryMix);
     dayColor = mix(dayColor, dayImagery, u_useWaterMask * waterMask * 0.85);
+    vec3 fallbackNight = mix(dayColor, u_nightColor, 0.72);
     vec3 nightTarget = mix(
-      u_nightColor,
+      fallbackNight,
       nightImagery,
       u_useNightImagery * imageryMask
     );
