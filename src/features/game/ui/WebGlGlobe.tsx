@@ -17,7 +17,10 @@ import {
 } from 'd3';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppThemeId, GlobePalette } from '@/app/theme';
-import type { CountryFeature, FeatureCollectionLike } from '@/features/game/types';
+import type {
+  CountryFeature,
+  FeatureCollectionLike,
+} from '@/features/game/types';
 
 interface WebGlGlobeProps extends GlobeViewProps {
   palette: GlobePalette;
@@ -67,6 +70,7 @@ interface WebGlResources {
 }
 
 const ambientAnimationFps = 12;
+const selectedOverlayInsetPx = 0.2;
 
 const vertexShaderSource = `
   attribute vec3 a_position;
@@ -175,7 +179,8 @@ function compileShader(
   gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const message = gl.getShaderInfoLog(shader) ?? 'Unknown shader compile error.';
+    const message =
+      gl.getShaderInfoLog(shader) ?? 'Unknown shader compile error.';
     gl.deleteShader(shader);
     throw new Error(message);
   }
@@ -190,7 +195,11 @@ function createProgram(gl: WebGLRenderingContext) {
   }
 
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-  const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  const fragmentShader = compileShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    fragmentShaderSource,
+  );
 
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
@@ -199,7 +208,8 @@ function createProgram(gl: WebGLRenderingContext) {
   gl.deleteShader(fragmentShader);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const message = gl.getProgramInfoLog(program) ?? 'Unknown program link error.';
+    const message =
+      gl.getProgramInfoLog(program) ?? 'Unknown program link error.';
     gl.deleteProgram(program);
     throw new Error(message);
   }
@@ -207,7 +217,10 @@ function createProgram(gl: WebGLRenderingContext) {
   return program;
 }
 
-function createSphereMesh(latitudeBands = 96, longitudeBands = 192): SphereMesh {
+function createSphereMesh(
+  latitudeBands = 96,
+  longitudeBands = 192,
+): SphereMesh {
   const positions: number[] = [];
   const sourceCoordinates: number[] = [];
   const uvs: number[] = [];
@@ -322,13 +335,19 @@ function applyCountryDeboss(
     context.lineJoin = 'round';
     context.lineWidth = palette.countryDebossWidth;
 
-    context.translate(-palette.countryDebossOffset, -palette.countryDebossOffset);
+    context.translate(
+      -palette.countryDebossOffset,
+      -palette.countryDebossOffset,
+    );
     context.beginPath();
     path(feature as GeoPermissibleObjects);
     context.strokeStyle = palette.countryDebossLight;
     context.stroke();
 
-    context.translate(-palette.countryDebossOffset * 2, -palette.countryDebossOffset * 2);
+    context.translate(
+      -palette.countryDebossOffset * 2,
+      -palette.countryDebossOffset * 2,
+    );
     context.beginPath();
     path(feature as GeoPermissibleObjects);
     context.strokeStyle = palette.countryDebossDark;
@@ -413,10 +432,22 @@ function applyAtlasPaperTexture(
   context.save();
   context.globalAlpha = 0.3;
   context.globalCompositeOperation = 'multiply';
-  context.drawImage(atlasPaperImage, 0, 0, textureCanvas.width, textureCanvas.height);
+  context.drawImage(
+    atlasPaperImage,
+    0,
+    0,
+    textureCanvas.width,
+    textureCanvas.height,
+  );
   context.globalAlpha = 0.16;
   context.globalCompositeOperation = 'soft-light';
-  context.drawImage(atlasPaperImage, 0, 0, textureCanvas.width, textureCanvas.height);
+  context.drawImage(
+    atlasPaperImage,
+    0,
+    0,
+    textureCanvas.width,
+    textureCanvas.height,
+  );
   context.restore();
 }
 
@@ -521,8 +552,8 @@ function buildCombinedTextureCanvas(
     applyCountryDeboss(context, path, world, palette);
 
     if (targetFeature) {
-      const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
-        geoCircle().center(ring.center).radius(ring.radius)(),
+      const selectedRings = getCountryHighlightRings(targetFeature).map(
+        (ring) => geoCircle().center(ring.center).radius(ring.radius)(),
       );
 
       context.beginPath();
@@ -591,8 +622,8 @@ function buildCountryTextureCanvas(
     applyCountryDeboss(context, path, world, palette);
 
     if (targetFeature) {
-      const selectedRings = getCountryHighlightRings(targetFeature).map((ring) =>
-        geoCircle().center(ring.center).radius(ring.radius)(),
+      const selectedRings = getCountryHighlightRings(targetFeature).map(
+        (ring) => geoCircle().center(ring.center).radius(ring.radius)(),
       );
 
       context.beginPath();
@@ -616,10 +647,7 @@ function buildCountryTextureCanvas(
   return textureCanvas;
 }
 
-function buildShadowTextureCanvas(
-  palette: GlobePalette,
-  textureSize: number,
-) {
+function buildShadowTextureCanvas(palette: GlobePalette, textureSize: number) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
   textureCanvas.height = textureSize / 2;
@@ -703,8 +731,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       antialias: true,
       desynchronized: true,
       powerPreference: 'low-power',
-    }) ??
-    canvas.getContext('experimental-webgl');
+    }) ?? canvas.getContext('experimental-webgl');
 
   if (!gl || !(gl instanceof WebGLRenderingContext)) {
     throw new Error('WebGL is not available in this browser.');
@@ -874,7 +901,14 @@ function drawGlobe(
   gl.useProgram(resources.program);
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
-  gl.vertexAttribPointer(gl.getAttribLocation(resources.program, 'a_position'), 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(
+    gl.getAttribLocation(resources.program, 'a_position'),
+    3,
+    gl.FLOAT,
+    false,
+    0,
+    0,
+  );
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.shadowTexture, 1);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
@@ -902,7 +936,12 @@ function drawGlobe(
   );
   gl.uniform1f(uniforms.specularPower, palette.specularPower);
   gl.uniform1f(uniforms.specularStrength, palette.specularStrength);
-  gl.uniform3f(uniforms.sunDirection, sunDirection.x, sunDirection.y, sunDirection.z);
+  gl.uniform3f(
+    uniforms.sunDirection,
+    sunDirection.x,
+    sunDirection.y,
+    sunDirection.z,
+  );
   gl.uniform1f(uniforms.time, effectTimeSeconds);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, resources.texture);
@@ -911,7 +950,14 @@ function drawGlobe(
   if (hasRaisedCountries) {
     gl.bindBuffer(gl.ARRAY_BUFFER, overlayPositionBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, overlayPositions);
-    gl.vertexAttribPointer(gl.getAttribLocation(resources.program, 'a_position'), 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(
+      gl.getAttribLocation(resources.program, 'a_position'),
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0,
+    );
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
     gl.enable(gl.BLEND);
@@ -930,7 +976,15 @@ function drawSelectedCountryOverlay(args: {
   width: number;
   zoomScale: number;
 }) {
-  const { canvas, country, currentRotation, height, palette, width, zoomScale } = args;
+  const {
+    canvas,
+    country,
+    currentRotation,
+    height,
+    palette,
+    width,
+    zoomScale,
+  } = args;
   const dpr = window.devicePixelRatio || 1;
   const targetWidth = Math.max(Math.floor(width * dpr), 1);
   const targetHeight = Math.max(Math.floor(height * dpr), 1);
@@ -953,7 +1007,7 @@ function drawSelectedCountryOverlay(args: {
 
   const baseScale = Math.max(Math.min(width, height) / 2 - 10, 1);
   const projection = geoOrthographic()
-    .scale(baseScale * zoomScale)
+    .scale(Math.max(baseScale * zoomScale - selectedOverlayInsetPx, 1))
     .center([0, 0])
     .translate([width / 2, height / 2])
     .rotate([currentRotation[0], currentRotation[1], 0]);
@@ -970,15 +1024,15 @@ function drawSelectedCountryOverlay(args: {
   context.beginPath();
   path(country as GeoPermissibleObjects);
   context.fillStyle = palette.selectedFill;
-  context.strokeStyle = palette.countryStroke;
-  context.globalAlpha = 0.99;
-  context.lineWidth = 0.45;
+  context.strokeStyle = palette.selectedFill;
+  context.globalAlpha = 0.9;
+  context.lineWidth = 0.18;
   context.fill();
   context.stroke();
   context.globalAlpha = 1;
 
   context.strokeStyle = palette.smallCountryCircle;
-  context.lineWidth = 1.1;
+  context.lineWidth = 1.7;
   for (const ringPath of ringPaths) {
     context.beginPath();
     path(ringPath);
@@ -1011,7 +1065,8 @@ export function WebGlGlobe({
     zoomScale: 1,
   });
   const paletteRef = useRef(palette);
-  const [atlasPaperImage, setAtlasPaperImage] = useState<HTMLImageElement | null>(null);
+  const [atlasPaperImage, setAtlasPaperImage] =
+    useState<HTMLImageElement | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -1136,7 +1191,9 @@ export function WebGlGlobe({
         resourcesRef.current = initializeWebGl(canvas);
       } catch (error) {
         const nextMessage =
-          error instanceof Error ? error.message : 'WebGL initialization failed.';
+          error instanceof Error
+            ? error.message
+            : 'WebGL initialization failed.';
         window.setTimeout(() => {
           if (!cancelled) {
             setErrorMessage(nextMessage);
@@ -1322,7 +1379,12 @@ export function WebGlGlobe({
       />
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', height: '100%', position: 'relative', width: '100%' }}
+        style={{
+          display: 'block',
+          height: '100%',
+          position: 'relative',
+          width: '100%',
+        }}
       />
       <canvas
         ref={overlayCanvasRef}
