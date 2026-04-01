@@ -212,7 +212,7 @@ export const IntroDialog = NiceModal.create(
                 sx={{
                   ...panelSurface,
                   ...strongAccentSurface,
-                  borderRadius: 5,
+                  borderRadius: 3.5,
                   p: { md: 2.25, xs: 2 },
                 }}
               >
@@ -229,8 +229,8 @@ export const IntroDialog = NiceModal.create(
                       elevation={0}
                       sx={{
                         ...accentSurface,
-                        borderRadius: 2.5,
-                        p: 1.75,
+                        borderRadius: 1.75,
+                        p: 1.9,
                       }}
                     >
                       <Stack
@@ -259,8 +259,8 @@ export const IntroDialog = NiceModal.create(
                       elevation={0}
                       sx={{
                         ...mutedSurface,
-                        borderRadius: 2.5,
-                        p: 1.75,
+                        borderRadius: 1.75,
+                        p: 1.9,
                       }}
                     >
                       <Stack
@@ -306,7 +306,7 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
-                  borderRadius: 5,
+                  borderRadius: 3.5,
                   p: 2.5,
                 }}
               >
@@ -338,12 +338,13 @@ export const IntroDialog = NiceModal.create(
                               mode === option.value
                                 ? 'primary.main'
                                 : undefined,
-                            borderRadius: 2.5,
+                            borderRadius: 1.75,
                             display: 'grid',
-                            gap: 0.4,
-                            minHeight: 84,
+                            gap: 0.55,
+                            minHeight: 88,
                             minWidth: 0,
-                            p: 1,
+                            px: 1,
+                            py: 1.2,
                           }}
                           variant="outlined"
                           onClick={() => setMode(option.value)}
@@ -452,12 +453,12 @@ export const IntroDialog = NiceModal.create(
                             borderColor: item.selected
                               ? 'primary.main'
                               : undefined,
-                            borderRadius: 2.5,
+                            borderRadius: 1.75,
                             justifyContent: 'flex-start',
-                            minHeight: item.isSize ? 118 : 64,
+                            minHeight: item.isSize ? 124 : 72,
                             minWidth: 0,
-                            px: item.isSize ? 1.5 : 1.25,
-                            py: item.isSize ? 1.5 : 1,
+                            px: item.isSize ? 1.65 : 1.35,
+                            py: item.isSize ? 1.7 : 1.2,
                             textAlign: 'left',
                           }}
                           variant="outlined"
@@ -474,7 +475,7 @@ export const IntroDialog = NiceModal.create(
                             setCountrySizeFilter('mixed');
                           }}
                         >
-                          <Stack spacing={item.isSize ? 0.45 : 0.15}>
+                          <Stack spacing={item.isSize ? 0.55 : 0.25}>
                             <ItemIcon
                               aria-hidden
                               size={item.isSize ? 18 : 16}

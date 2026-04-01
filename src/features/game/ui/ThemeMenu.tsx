@@ -156,7 +156,10 @@ export function ThemeMenu({
           size="small"
           sx={{
             ...panelSurface,
+            borderRadius: 2,
             minWidth: 0,
+            px: 1.75,
+            py: 0.85,
           }}
           variant="outlined"
           onClick={() => setOpen((value) => !value)}
@@ -196,12 +199,13 @@ export function ThemeMenu({
                         ...((action.tone === 'contained'
                           ? panelSurface
                           : mutedSurface) as object),
-                        borderRadius: 2.5,
+                        borderRadius: 1.75,
                         display: 'grid',
-                        gap: 0.4,
-                        minHeight: 72,
+                        gap: 0.55,
+                        minHeight: 76,
                         minWidth: 0,
-                        p: 1,
+                        px: 1,
+                        py: 1.15,
                       }}
                       variant={
                         action.tone === 'contained' ? 'contained' : 'outlined'
@@ -245,9 +249,9 @@ export function ThemeMenu({
                         borderColor: isActive
                           ? 'primary.main'
                           : activeTheme.background.panelBorder,
-                        borderRadius: 2.5,
+                        borderRadius: 1.75,
                         justifyContent: 'flex-start',
-                        p: 0.75,
+                        p: 0.95,
                         textAlign: 'left',
                       }}
                       variant="outlined"

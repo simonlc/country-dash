@@ -652,7 +652,7 @@ export function GamePage() {
               ...panelSurface,
               borderRadius: isAtlas ? '6px 9px 7px 8px' : 3,
               flex: 1,
-              p: { md: 1.3, xs: 1.1 },
+              p: { md: 1.75, xs: 1.4 },
               pointerEvents: 'auto',
             }}
           >
@@ -730,8 +730,8 @@ export function GamePage() {
                     ...mutedSurface,
                     borderRadius: 999,
                     minWidth: { md: 74, xs: 0 },
-                    px: 1.2,
-                    py: 0.85,
+                    px: 1.3,
+                    py: 0.95,
                     textAlign: 'center',
                   }}
                 >
@@ -756,8 +756,8 @@ export function GamePage() {
                 sx={{
                   ...accentSurface,
                   borderRadius: 999,
-                  px: 1.2,
-                  py: 0.85,
+                  px: 1.3,
+                  py: 0.95,
                   justifySelf: { md: 'end', xs: 'stretch' },
                   gridColumn: { xs: 'span 2', md: 'auto' },
                 }}
