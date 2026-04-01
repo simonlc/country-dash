@@ -47,6 +47,14 @@ export interface GlobePalette {
   specularStrength: number;
 }
 
+export interface GlobeQualityConfig {
+  reliefMapEnabled: boolean;
+  reliefHeight: number;
+  dayImageryEnabled: boolean;
+  nightImageryEnabled: boolean;
+  waterMaskEnabled: boolean;
+}
+
 export interface ThemePreview {
   sky: string;
   glow: string;
@@ -76,6 +84,7 @@ export interface AppThemeDefinition {
     textSecondary: string;
   };
   globe: GlobePalette;
+  qualityDefaults: GlobeQualityConfig;
   preview: ThemePreview;
 }
 
@@ -145,6 +154,13 @@ export const appThemes: AppThemeDefinition[] = [
       specularPower: 20,
       specularStrength: 0.0,
     },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: false,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
+    },
     preview: {
       sky: 'linear-gradient(140deg, #edf7ff, #c7e1ff)',
       glow: '#8dd7ff',
@@ -209,6 +225,13 @@ export const appThemes: AppThemeDefinition[] = [
       scanlineStrength: 0.015,
       specularPower: 28,
       specularStrength: 0.1,
+    },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: false,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
     },
     preview: {
       sky: 'linear-gradient(145deg, #08131f, #15314e)',
@@ -275,6 +298,13 @@ export const appThemes: AppThemeDefinition[] = [
       specularPower: 18,
       specularStrength: 0.04,
     },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: false,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
+    },
     preview: {
       sky: 'linear-gradient(145deg, #2a1614, #99563d)',
       glow: '#d27d5a',
@@ -339,6 +369,13 @@ export const appThemes: AppThemeDefinition[] = [
       scanlineStrength: 0.0,
       specularPower: 14,
       specularStrength: 0.03,
+    },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: true,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
     },
     preview: {
       sky: 'linear-gradient(145deg, #f2e4c5, #c9a774)',
@@ -406,6 +443,13 @@ export const appThemes: AppThemeDefinition[] = [
       specularPower: 42,
       specularStrength: 0.22,
     },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: false,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
+    },
     preview: {
       sky: 'linear-gradient(145deg, #020907, #0b3025)',
       glow: '#1cffb5',
@@ -470,6 +514,13 @@ export const appThemes: AppThemeDefinition[] = [
       scanlineStrength: 0.0,
       specularPower: 52,
       specularStrength: 0.012,
+    },
+    qualityDefaults: {
+      reliefMapEnabled: true,
+      reliefHeight: 1,
+      dayImageryEnabled: false,
+      nightImageryEnabled: false,
+      waterMaskEnabled: false,
     },
     preview: {
       sky: 'linear-gradient(145deg, #f6fbff, #cfe5fb)',

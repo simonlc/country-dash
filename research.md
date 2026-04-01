@@ -1,378 +1,275 @@
-# Country Guesser Modernization Research
+# WebGL Globe Notifications Research
 
-## Scope
+## Scope and method
 
-This document is based on a full read of the repository contents on March 31, 2026, plus a quick verification of current official ecosystem baselines for React, Vite, ESLint, `typescript-eslint`, and MUI.
+This document is a source-level analysis of how notifications work in the current `country-guesser` codebase, with an emphasis on the WebGL globe pipeline and its interaction with gameplay state.
 
-I did not install dependencies because this checkout has no `node_modules` and networked package installation was not available in the current environment. I also could not run the actual Vite or ESLint binaries for that reason. The analysis below is therefore based on source inspection and on attempted script execution from a clean checkout.
+Code inspected:
 
-## Executive Summary
+- `src/features/game/ui/WebGlGlobe.tsx`
+- `src/features/game/ui/globeShared.ts`
+- `src/features/game/routes/GamePage.tsx`
+- `src/features/game/logic/gameLogic.ts`
+- `src/features/game/types.ts`
+- `src/app/theme.ts`
+- `src/Globe.tsx`
+- tests in `src/features/game/routes/GamePage.test.tsx` and `tests/e2e/game.spec.ts`
 
-This project is not an ancient frontend stack, but it is also not in a healthy modern state.
+The term notification is used in this document for all user-facing feedback signals, including:
 
-The core runtime stack is already on a mid-2020s baseline:
+1. Visual globe targeting cues (highlight fill, rings, pulsing capital marker).
+2. In-panel semantic alerts (`Correct` / `Incorrect`, load failures).
+3. Operational fallback messages (`WebGL unavailable`).
+4. Short-lived status messaging (`Copied` / `Copy failed`).
 
-- React 18.2
-- Vite 5
-- TypeScript 5.3
-- MUI 5
-- D3 7
+## Executive summary
 
-That means the main issue is not "still on Webpack + React 16". The bigger problem is that the repo looks half-migrated:
+The system uses **two parallel notification channels** that are synchronized by game state:
 
-- package management is old and unpinned
-- the install/build workflow is not reproducible from a fresh clone
-- linting is declared but not actually configured in the repo
-- several packages are in the wrong dependency bucket
-- large data files are imported directly into the app bundle
-- key React components are weakly typed and contain real maintenance and correctness risks
-- documentation and automation are minimal
+1. **Globe-channel notifications** (WebGL + 2D overlay canvas):
+   - Country mode: selected country fill + optional helper rings.
+   - Capitals mode: animated pulsing marker on the capital.
+2. **UI-channel notifications** (MUI panel):
+   - Round result alert (`Correct`/`Incorrect`) during `reviewing` state.
+   - Error alert for world-data loading failure.
+   - Copy-status label for daily share text.
 
-If the goal is "modern standards", I would treat this as a repo hygiene and architecture upgrade, not just a dependency bump.
+The critical architecture detail is that the WebGL globe uses a **base WebGL canvas** and a **separate overlay 2D canvas** for notifications. This isolates high-frequency notification rendering from expensive texture regeneration.
 
-## What I Found
+## 1. Notification taxonomy and where each is rendered
 
-### 1. Build and package management are not reproducible
+### 1.1 Globe visual notifications (target cues)
 
-`package.json` is minimal and the repo contains a `yarn.lock`, which implies Yarn Classic, but there is no `packageManager` field and no `engines` field to pin the expected toolchain. See `package.json:1-45`.
+- Implemented in `drawSelectedCountryOverlay(...)` in `WebGlGlobe.tsx` (lines 1573-1690).
+- Render target: `overlayCanvasRef` canvas layered above the WebGL canvas (lines 2101-2111).
+- Notification types:
+  - `classic`, `threeLives`, `streak`: selected country fill + optional ring(s) for small/fragmented countries.
+  - `capitals`: center dot + two animated expanding wave rings.
 
-Observed issues:
+### 1.2 Gameplay result alert (semantic text alert)
 
-- No `node_modules` directory exists in the checkout.
-- `yarn build` fails because `vite` is not installed.
-- `yarn lint` fails because `eslint` is not installed.
-- The repo does not declare which package manager and version should be used.
-- The repo does not declare a supported Node version.
+- Implemented in `GamePage.tsx` review block (lines 898-912).
+- Rendered only when `gameState.status === 'reviewing'` and `lastRound` exists.
+- Severity mapping:
+  - `correct` -> `success`
+  - `incorrect` -> `error`
 
-This is the exact failure mode from the current checkout:
+### 1.3 Load/runtime alerts
 
-- `yarn build` -> `/bin/sh: vite: command not found`
-- `yarn lint` -> `/bin/sh: eslint: command not found`
+- World-data load error:
+  - `GamePage.tsx` lines 486-490, `Alert severity="error"`.
+- WebGL initialization fallback:
+  - `WebGlGlobe.tsx` lines 1893-1906 sets `errorMessage`.
+  - Rendered as plain overlay text `WebGL unavailable` (lines 2112-2123), not MUI `Alert`.
 
-This is normal for a fresh clone with no install step, but a modern repo should make the expected bootstrap path explicit and pinned.
+### 1.4 Copy status notification
 
-### 2. Linting is declared but appears incomplete
+- Daily-share copy action uses button label as notification surface:
+  - `Copy results` -> `Copied` or `Copy failed` (lines 865-869).
+- State auto-resets to `idle` after 2s (lines 472-484).
 
-There is a lint script in `package.json:6-10`, but there is no visible ESLint config file in the repository root:
+## 2. End-to-end control flow for answer notifications
 
-- no `.eslintrc.*`
-- no `eslint.config.js`
-- no package.json `eslintConfig`
+### 2.1 Submit path
 
-That means even after installing dependencies, linting is likely not in a maintainable "modern standards" state. In 2026, ESLint's flat config is the standard direction, and this repo does not appear to have completed that migration.
+1. User submits via `GuessInput` while `playing`.
+2. `GamePage.handleSubmit` dispatches `SUBMIT_GUESS` with country + guess + timestamp (lines 398-409).
+3. `gameReducer` computes correctness, score delta, round record, and transitions to `status: 'reviewing'` (gameLogic lines 594-660).
 
-### 3. Dependency placement is inconsistent
+### 2.2 Notification state produced by reducer
 
-Several packages that should normally be development-only are in `dependencies` instead of `devDependencies`:
+On `SUBMIT_GUESS`, reducer updates:
 
-- `prettier` (`package.json:27`)
-- `@types/autosuggest-highlight` (`package.json:18`)
-- `@types/d3` (`package.json:19`)
-- `@types/lodash` (`package.json:20`)
-- `@types/topojson-client` (`package.json:21`)
+- `status = 'reviewing'` (line 631)
+- `lastRound = roundRecord` (line 659)
+- score/streak/lives/hints fields (lines 632-658)
 
-That does not break the app, but it is a sign the dependency graph has not been curated carefully.
+This is the direct trigger for UI alert visibility and review panel content.
 
-There is also stack overlap:
+### 2.3 Review notification rendering
 
-- MUI is present (`package.json:16`)
-- `@reach/dialog` is also present (`package.json:17`)
-- NiceModal is also present (`package.json:13`)
+When in `reviewing`:
 
-The app currently mixes three different UI concerns for one modal flow:
+- MUI alert text shows `Correct` or `Incorrect` (GamePage lines 900-912).
+- Context details show target country/capital and "You guessed" value (lines 913-947).
+- Performance summary cards show time/score/hints (lines 957-993).
+- CTA button shows `Next` or `Finish` based on end-of-run evaluation (lines 1004-1005).
 
-- modal orchestration via NiceModal
-- dialog rendering via Reach
-- form/autocomplete via MUI
+### 2.4 Exit from notification state
 
-That is more surface area than this project needs.
+`ADVANCE_ROUND` transitions either:
 
-### 4. The repo includes large data assets with weak lifecycle management
+- to `gameOver` (lines 667-672), or
+- back to `playing` with a new country and fresh round timer (lines 695-705).
 
-Repository data files are large:
+So the result alert is intentionally a **single-state notification** (reviewing only), never shown during active play.
 
-- `world.json`: 4.8 MB
-- `world-110m.json`: 1.0 MB
-- `world-topo.json`: 616 KB
-- `world-topo-110m.json`: 106 KB
-- `countrymasks.json`: 673 KB
+## 3. WebGL globe notification architecture
 
-Only the topojson files are used by the app. `countrymasks.json` appears unused, and `world.json` / `world-110m.json` appear to exist as source artifacts rather than runtime inputs.
+## 3.1 Renderer composition
 
-Problems with the current setup:
+`WebGlGlobe` composes three visual layers:
 
-- Runtime data is imported directly from project root in `src/App.tsx:4-5`.
-- Those imports become part of the JavaScript module graph instead of being handled as explicit static assets.
-- The README only contains two data-generation commands (`README.md:1-3`) and does not document the data pipeline, source datasets, or when each file is supposed to be kept.
+1. Background/haze `<div>` (lines 2068-2091).
+2. Main WebGL `<canvas>` for globe shading and textures (lines 2092-2100).
+3. Overlay `<canvas>` for notification cues (lines 2101-2111).
 
-For a modern build, I would separate:
+This split is fundamental: notifications do not require rebuilding the large texture unless theme/assets change.
 
-- source geodata used for preprocessing
-- derived runtime assets used by the app
-- unused historical artifacts that should be removed
+### 3.2 Why this matters
 
-### 5. The app architecture centralizes data in `App.tsx` in a way that couples unrelated components
+The main globe path (`drawGlobe`) handles mesh transforms, uniforms, and texture sampling (lines 1412-1571). Notification indicators are drawn in 2D overlay (`drawSelectedCountryOverlay`) every frame or interaction tick. This is cheaper and simpler than baking active notifications into the globe texture.
 
-`App.tsx` exports `land` and `land110m` (`src/App.tsx:15-19`), and other components import from `App`:
+## 4. Country highlight notification logic (non-capitals modes)
 
-- `src/Globe.tsx:14`
-- `src/GuessInput.tsx:1`
+In non-capitals modes (branch at lines 1664-1686):
 
-That creates an avoidable architecture smell:
+1. Build ring geometries from `getCountryHighlightRings(country)`.
+2. Draw selected country geometry filled with `palette.selectedFill` (lines 1669-1677).
+3. Draw ring strokes in `palette.smallCountryCircle` (lines 1679-1685).
 
-- `App.tsx` is both the UI root and the data module
-- component reuse becomes harder
-- module-level work runs at import time
+### 4.1 Ring generation intricacies
 
-At module load, `App.tsx` also:
+`getCountryHighlightRings` (`globeShared.ts` lines 118-158) uses geographic heuristics:
 
-- converts topojson to features
-- shuffles countries
-- derives difficulty buckets
-- computes the initial globe rotation
+- If perimeter is tiny (`geoLength < 0.02`), return one ring at centroid radius 1 (lines 121-127).
+- Else, only consider MultiPolygon countries with at least 3 parts (lines 130-133).
+- Skip rings if total area or largest part area exceeds thresholds (lines 144-149).
+- Otherwise return up to 3 rings over meaningful fragments (lines 151-157).
 
-See `src/App.tsx:15-42`.
+Interpretation: rings are not generic decoration; they are an adaptive discoverability aid for tiny/fragmented geographies.
 
-This is fragile because app state and static data preparation are mixed together in one file.
+### 4.2 Projection and clipping behavior
 
-### 6. There is a real stale-closure bug in round advancement
+- Overlay projection is orthographic with current rotation/zoom (lines 1616-1621).
+- Everything is clipped to visible sphere before drawing (lines 1623-1626).
+- This ensures notification cues stay inside globe silhouette and track camera transforms exactly.
 
-`updateSelectedCountry` reads `countries`, but its dependency list only includes `countryIndex`:
+## 5. Capital pulse notification logic (capitals mode)
 
-- definition: `src/App.tsx:59-68`
+Capitals mode branch (lines 1628-1663):
 
-That means after `onStart` changes the difficulty and replaces the `countries` array (`src/App.tsx:87-91`), the memoized callback can keep using the previous `countries` value until `countryIndex` changes.
+- Requires numeric `capitalLongitude` and `capitalLatitude` (lines 1629-1632).
+- Projects point into current globe view (lines 1633-1636).
+- Draws a solid center dot (radius 3, alpha 0.95) (lines 1644-1648).
+- Draws 2 animated wave rings, 180 degrees out of phase (`wave * 0.5`) (lines 1650-1660).
 
-In practice, that can make "Next" advance using stale country data after changing difficulty.
+Animation details:
 
-This is exactly the kind of issue a stricter modern React + lint setup is supposed to prevent.
+- Cycle = `1.6s` (line 1640).
+- Ring radius = `4 + phase * 28` (line 1652).
+- Ring alpha decays as `0.6 * (1 - phase)` (line 1653).
+- Ring width shrinks as `2 - phase * 0.8` (line 1659).
 
-### 7. State management is only partially modeled
+This creates continuous pulse behavior, even when the player is not dragging.
 
-Several state choices suggest the app grew organically:
+## 6. Notification frame scheduling and performance model
 
-- `showGameOver` is `boolean | null` instead of a clearer game-state enum (`src/App.tsx:50`)
-- `showAnswer` is a string union in practice but typed as `string | null` (`src/App.tsx:49`)
-- `onStart` is untyped (`src/App.tsx:87`)
-- the score/timer/game lifecycle is spread across unrelated booleans rather than a single state machine
+### 6.1 Interaction-driven updates
 
-This is workable for a toy app, but it becomes brittle during refactors.
+`useGlobeInteraction` drives camera updates and calls `onFrame` (globeShared lines 319-322). In WebGL mode this callback updates refs and draws immediately (WebGlGlobe lines 1736-1744).
 
-### 8. Typing is much weaker than the `strict` tsconfig suggests
+### 6.2 Ambient/idle updates
 
-The TypeScript config enables `strict` (`tsconfig.json:18`), but many public component interfaces are effectively `any` because props are not typed:
+A separate idle loop runs at `ambientAnimationFps = 12` (line 77; scheduler lines 2029-2033) when either:
 
-- `Globe` props are untyped (`src/Globe.tsx:98`)
-- `GuessInput` props are untyped (`src/GuessInput.tsx:32`)
-- `AutocompleteHint` props are untyped (`src/GuessInput.tsx:73`)
-- `Timer` props are untyped (`src/Timer.tsx:5`)
-- modal props are untyped (`src/IntroModal.tsx:12`)
-- helper functions in `transformations.tsx` are untyped throughout
+- palette has ambient animation properties (`hasAmbientAnimation`) or
+- mode is `capitals` (`hasCapitalBlipAnimation`, line 1753).
 
-There are also several nullability hazards hidden by loose typing:
+Because capitals mode enables this unconditionally, pulse notifications animate even at rest.
 
-- `rawCountries` is built with `find`, which can return `undefined` (`src/App.tsx:25-27`)
-- `matchingOption` is dereferenced without a guard in the autocomplete Tab handler (`src/GuessInput.tsx:101-108`)
-- `newValue` is dereferenced in autocomplete `onChange` without explicit typing or null handling (`src/GuessInput.tsx:94-97`)
+### 6.3 Visibility throttling
 
-This is one of the strongest signals that the repo needs a quality pass beyond version upgrades.
+On tab hidden, loop scheduling halts; on visible, it forces redraw then resumes (lines 2041-2048). This avoids background churn for notifications.
 
-### 9. `GuessInput` contains dead code and duplicated logic
+## 7. Interaction hooks that influence notification timing
 
-`src/GuessInput.tsx` includes an unused custom hook:
+`useGlobeInteraction` (`globeShared.ts` lines 194-504) affects how quickly notification cues settle after input:
 
-- `useCountryMatch` is defined at `src/GuessInput.tsx:12-30`
-- it is not used
-- it brings in `useThrottle` solely for dead code
+- Pointer drag updates target rotation and inertia (lines 382-410).
+- Wheel updates zoom target with clamped velocity (lines 434-446).
+- Refocus (`focusRequest`) starts smooth interpolation toward target rotation (lines 450-467).
+- Animation stops only after rotation/zoom/velocity thresholds settle (lines 324-347).
 
-The file also recomputes `countries` on every render (`src/GuessInput.tsx:37`) and has two overlapping matching systems:
+Implication: notification markers are always camera-locked and naturally eased, not jumpy.
 
-- one in the dead hook
-- one in `filterOptions`
-- one more prefix-match path in `renderInput`
+## 8. Theme coupling for notification visuals
 
-This is not a build-breaker, but it is a maintenance smell.
+Notification colors are theme-driven via `GlobePalette` fields:
 
-### 10. `Timer` is not implemented in a modern React style
+- `selectedFill`
+- `smallCountryCircle`
+- `nightShade`
+- atmosphere/grid/rim/specular values used by shader
 
-`src/Timer.tsx` has multiple issues:
+Interface is defined in `theme.ts` lines 10-45.
 
-- it imports `useModal` and `IntroModal` but does not use them meaningfully (`src/Timer.tsx:1-6`)
-- `isPaused` is accepted but ignored (`src/Timer.tsx:5`)
-- it mutates DOM text directly through `ref` instead of rendering time through React state (`src/Timer.tsx:10-29`)
-- it updates every 10ms, which is high-frequency work for marginal UX value
-- `startTime` is never reset when a new game starts (`src/Timer.tsx:8`)
+UI semantic alert styling is also theme-customized via MUI overrides (`MuiAlert`) in `theme.ts` lines 796-815.
 
-This component is small, but it is not aligned with how the rest of a modern React app should be written.
+This means both globe and panel notifications are visually coherent per theme, but their implementations are independent (canvas vs MUI).
 
-### 11. `Globe` has the highest concentration of modernization risk
+## 9. WebGL resource lifecycle relevant to notifications
 
-`src/Globe.tsx` is the most complex file in the repo and the most likely source of upgrade pain.
+### 9.1 Initialization and fallback
 
-Key issues:
+- `initializeWebGl` allocates buffers/textures/program; throws on failure (WebGlGlobe lines 1294-1388).
+- Failure sets `errorMessage`; overlay text `WebGL unavailable` is shown (lines 1893-1906 and 2112-2123).
 
-- It mixes React state with imperative D3 DOM/canvas mutation throughout the component.
-- Props are untyped (`src/Globe.tsx:98`).
-- It queries the first global `canvas` in the document instead of scoping to its own root (`src/Globe.tsx:241-244`).
-- The resize effect only depends on `width`, not `height` (`src/Globe.tsx:236-259`).
-- The canvas context is scaled by device pixel ratio on reuse without resetting the transform, which can compound scaling across resizes (`src/Globe.tsx:254-255`).
-- The drag/zoom effect attaches behaviors but does not explicitly clean them up (`src/Globe.tsx:266-350`).
-- The debounced draw function is recreated on each render (`src/Globe.tsx:261-264`).
-- The theme has an invalid `rgba(...)` string for `nightShade` because the closing parenthesis is missing (`src/Globe.tsx:67`).
+### 9.2 Texture upload strategy
 
-This file is functional but not easy to evolve safely. If there is one place to spend architectural time during modernization, it is here.
+When resources/theme/assets change:
 
-### 12. `transformations.tsx` looks like leftover utility code
+- Base texture uploaded to `resources.texture` (lines 1947-1957).
+- Overlay terrain texture for raised-country mode uploaded to `resources.overlayTexture` (lines 1959-1970).
+- Relief map uploaded to texture unit 1 (lines 1973-1985).
 
-`src/transformations.tsx` contains multiple helpers with no explicit types, and only `rotateProjectionTo` is currently imported by the app.
+Notably, initialization path passes `targetFeature: null` to texture builders (lines 1927-1930, 1938-1939), so active-target notification is intentionally delegated to the live 2D overlay pass.
 
-Unused exported surface:
+## 10. Non-globe notification state machine details
 
-- `rotateProjectionBy`
-- `throttledRotateProjectionBy`
-- `zoomProjectionBy`
-- `throttledZoomProjectionBy`
+### 10.1 Game status enum
 
-That file also pulls in `lodash` solely for `throttle` (`src/transformations.tsx:2`), which may not be worth carrying if the unused exports are removed or replaced with a small local utility.
+`GameStatus = 'intro' | 'playing' | 'reviewing' | 'gameOver'` (`types.ts` line 11).
 
-### 13. Styling still contains template defaults and ad hoc overrides
+### 10.2 Notification visibility by status
 
-`src/index.css` still looks close to Vite starter CSS:
+- `intro`: no result alert.
+- `playing`: prompt only (`Guess the highlighted country` / `Guess the capital city`, lines 1009-1013).
+- `reviewing`: result alert + round details (lines 898-1006).
+- `gameOver`: completion summary, share controls (lines 830-897).
 
-- default font stack (`src/index.css:2`)
-- `color-scheme: light dark` (`src/index.css:6`)
-- starter button styles (`src/index.css:38-55`)
+### 10.3 Hint notification behavior
 
-`src/App.css` then overrides much of that with app-specific styling, including a remote `@font-face` URL to Google-hosted font assets (`src/App.css:1-12`).
+There is no transient toast for hints; hint usage is surfaced in review summary (`Hints` stat and `Hint penalty applied`, lines 969-997). Hint action increments reducer counter (`gameLogic.ts` lines 721-725).
 
-The result is not broken, but it is not especially coherent:
+## 11. Verified test coverage of notifications
 
-- starter defaults remain in the repo
-- app styles are layered on top
-- some old commented-out CSS remains
-- autocomplete styles are heavily customized by class targeting
+### 11.1 Unit/integration
 
-This is a common sign of a project that never got a final cleanup pass after initial scaffolding.
+`GamePage.test.tsx` asserts incorrect-answer alert presence by role and text (lines 205-223).
 
-### 14. Documentation is far below current expectations
+### 11.2 E2E
 
-The README only documents two data conversion commands (`README.md:1-3`).
+`tests/e2e/game.spec.ts` verifies alert role on incorrect answer (line 30), plus copy-status behavior in daily flow (`Copied`, lines 50-54).
 
-Missing documentation:
+Coverage note: globe visual notification rendering (rings/pulses) is not asserted in tests.
 
-- how to install dependencies
-- required Node version
-- which package manager to use
-- how to run locally
-- how to build
-- how to lint
-- where the map data comes from
-- how to regenerate derived assets
-- deployment expectations for the hard-coded Vite `base`
+## 12. Important intricacies and caveats
 
-### 15. Deployment configuration is too rigid
+1. `Globe` receives `renderer` prop but ignores it; always returns `WebGlGlobe` (`src/Globe.tsx` lines 24-30). So all notification behavior discussed here is effectively the only runtime path.
+2. `reviewQueue` and `missedCountryIds` are populated in reducer (gameLogic lines 647-654) but currently not surfaced as dedicated user notifications.
+3. Capitals mode relies on capital coordinates being present and numeric; otherwise no marker appears (WebGlGlobe lines 1629-1632).
+4. WebGL failure notification is plain text overlay, not semantically marked as ARIA alert.
+5. Notification visuals are repainted from mutable refs (`targetFeatureRef`, `paletteRef`, `frameStateRef`) for performance; this reduces React render pressure but makes behavior strongly imperative.
 
-`vite.config.ts:5-7` hard-codes:
+## 13. Practical "how notifications work" model
 
-```ts
-base: '/country-guesser/'
-```
+If you need to reason quickly about this system, use this model:
 
-That may be correct for one GitHub Pages deployment, but it is not portable. A modernized setup should either:
+1. **Game logic decides notification state** by transitioning `playing -> reviewing` and storing `lastRound`.
+2. **Panel notifications** are pure React conditional rendering off `gameState.status` + `lastRound`.
+3. **Globe notifications** are imperative canvas draws every frame using current camera state.
+4. **Interaction and animation loop** determines notification motion smoothness and refresh cadence.
+5. **Theme tokens** determine notification color/contrast consistently across both channels.
 
-- document this as an intentional deployment constraint, or
-- derive it from environment/config for different deploy targets
-
-## Current Stack vs Current Ecosystem Baseline
-
-This repo is behind current majors, but not catastrophically behind.
-
-Repository versions:
-
-- React 18.2 (`package.json:28-29`)
-- Vite 5.0 (`package.json:38,43`)
-- ESLint 8.53 (`package.json:36-41`)
-- `typescript-eslint` 6.14 (`package.json:36-37`)
-- MUI 5.15 (`package.json:16`)
-
-Verified current official baselines on March 31, 2026:
-
-- React 19 is the current major line
-- Vite 8 is the current major line
-- ESLint 9 is the current major line and flat config is the standard config model
-- `typescript-eslint` documents flat-config-first setup on its current docs
-- MUI 7 is the current major line
-
-That means a modernization pass should target current majors rather than just "latest patch within the old major".
-
-## Recommended Modernization Direction
-
-### Phase 1: Make the repo reproducible
-
-1. Pick and pin a package manager.
-2. Add `packageManager` to `package.json`.
-3. Add `engines` for Node.
-4. Reinstall from scratch and commit a fresh lockfile.
-5. Add a real README with setup, run, build, lint, and deploy instructions.
-
-### Phase 2: Fix repo hygiene
-
-1. Move all `@types/*` packages and `prettier` into `devDependencies`.
-2. Add ESLint flat config.
-3. Add `npm`/`pnpm`/`yarn` scripts for `typecheck`, `format`, and optionally `check`.
-4. Remove dead files and dependencies that are truly unused.
-5. Expand `.gitignore` beyond just `node_modules` and `yarn-error.log`.
-
-### Phase 3: Untangle architecture
-
-1. Move topojson/data preparation into a dedicated data module.
-2. Give all components explicit prop types.
-3. Replace ambiguous booleans with a clearer game state model.
-4. Fix the stale-closure issue in `App.tsx`.
-5. Simplify the modal stack so the app is not mixing MUI, Reach, and NiceModal unnecessarily.
-
-### Phase 4: Refactor the rendering hotspot
-
-1. Isolate D3 globe rendering behind a typed adapter or hook.
-2. Fix canvas resize/scaling behavior and cleanup.
-3. Remove global DOM selection.
-4. Reduce imperative work executed inside React render paths.
-5. Add at least a small test surface around game logic and data selection.
-
-### Phase 5: Modernize dependencies intentionally
-
-Suggested upgrade targets:
-
-- React 19
-- React DOM 19
-- Vite 8
-- ESLint 9 with flat config
-- current `typescript-eslint`
-- MUI 7, or alternatively reduce MUI usage if only autocomplete is needed
-
-I would not do these upgrades blindly. The safer sequence is:
-
-1. repo hygiene
-2. typing and architecture cleanup
-3. framework/tooling major upgrades
-4. verification
-
-## Priority Findings
-
-If I had to rank the most important issues to address first, it would be:
-
-1. Missing reproducible toolchain metadata and incomplete lint setup.
-2. Weak typing across core components despite `strict` TypeScript.
-3. Real stale-closure bug in `App.tsx`.
-4. Fragile imperative canvas/D3 code in `Globe.tsx`.
-5. Unclear data asset lifecycle and oversized source artifacts in the repo.
-
-## References
-
-Official ecosystem references checked during this review:
-
-- React blog: https://react.dev/blog
-- Vite blog: https://vite.dev/blog/
-- ESLint migration docs: https://eslint.org/docs/latest/use/migrate-to-9.0.0
-- `typescript-eslint` getting started: https://typescript-eslint.io/getting-started/
-- MUI docs: https://mui.com/
+That is the core architecture and every current notification mechanism fits into it.

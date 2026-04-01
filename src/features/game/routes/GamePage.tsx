@@ -35,11 +35,13 @@ import {
   regionLabels,
 } from '@/features/game/logic/gameLogic';
 import { useWindowSize } from '@/features/game/hooks/useWindowSize';
+import { useGlobeAdminTuning } from '@/features/game/hooks/useGlobeAdminTuning';
 import { GuessInput } from '@/features/game/ui/GuessInput';
 import { IntroDialog } from '@/features/game/ui/IntroDialog';
 import { GameTimer } from '@/features/game/ui/GameTimer';
 import { AboutDialog } from '@/features/game/ui/AboutDialog';
 import { ThemeMenu } from '@/features/game/ui/ThemeMenu';
+import { GlobeAdminPanel } from '@/features/game/ui/GlobeAdminPanel';
 import type {
   CountrySizeFilter,
   CountryProperties,
@@ -146,6 +148,15 @@ export function GamePage() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
     'idle',
   );
+  const {
+    adminEnabled,
+    effectiveQuality,
+    resetAdminOverride,
+    setAdminOverridePatch,
+  } = useGlobeAdminTuning({
+    defaults: activeTheme.qualityDefaults,
+    themeId: activeTheme.id,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -629,6 +640,7 @@ export function GamePage() {
           focusRequest={focusRequest}
           height={size.height}
           palette={activeTheme.globe}
+          quality={effectiveQuality}
           renderer={renderer}
           rotation={rotation}
           themeId={activeTheme.id}
@@ -644,6 +656,14 @@ export function GamePage() {
         onRefocus={handleRefocus}
         onRestart={handlePlayAgain}
       />
+      {adminEnabled ? (
+        <GlobeAdminPanel
+          quality={effectiveQuality}
+          setQualityPatch={setAdminOverridePatch}
+          themeLabel={activeTheme.label}
+          onReset={resetAdminOverride}
+        />
+      ) : null}
       <Container
         maxWidth="lg"
         sx={{

@@ -33,6 +33,7 @@
     "country-capitals": "^1.0.2",
     "country-state-city": "^3.2.1",
     "d3": "^7.9.0",
+    "leva": "^0.10.1",
     "match-sorter": "^8.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

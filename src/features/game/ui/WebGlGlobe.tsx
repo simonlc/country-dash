@@ -16,7 +16,11 @@ import {
   type GeoPermissibleObjects,
 } from 'd3';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppThemeId, GlobePalette } from '@/app/theme';
+import type {
+  AppThemeId,
+  GlobePalette,
+  GlobeQualityConfig,
+} from '@/app/theme';
 import type {
   CountryFeature,
   FeatureCollectionLike,
@@ -25,6 +29,7 @@ import type {
 
 interface WebGlGlobeProps extends GlobeViewProps {
   palette: GlobePalette;
+  quality: GlobeQualityConfig;
   themeId: AppThemeId;
 }
 
@@ -36,10 +41,12 @@ interface SphereMesh {
 }
 
 interface WebGlResources {
+  dayTexture: WebGLTexture;
   gl: WebGLRenderingContext;
   indexCount: number;
   lastRotation: [number, number] | null;
   mesh: SphereMesh;
+  nightTexture: WebGLTexture;
   overlayPositionBuffer: WebGLBuffer;
   overlayPositions: Float32Array;
   overlayTexture: WebGLTexture;
@@ -47,12 +54,15 @@ interface WebGlResources {
   program: WebGLProgram;
   reliefTexture: WebGLTexture;
   texture: WebGLTexture;
+  waterMaskTexture: WebGLTexture;
   uniforms: {
     atmosphereOpacity: WebGLUniformLocation;
     atmosphereTint: WebGLUniformLocation;
     auroraStrength: WebGLUniformLocation;
+    dayTexture: WebGLUniformLocation;
     gridColor: WebGLUniformLocation;
     gridStrength: WebGLUniformLocation;
+    nightTexture: WebGLUniformLocation;
     nightAlpha: WebGLUniformLocation;
     nightColor: WebGLUniformLocation;
     noiseStrength: WebGLUniformLocation;
@@ -71,6 +81,10 @@ interface WebGlResources {
     sunDirection: WebGLUniformLocation;
     texture: WebGLUniformLocation;
     time: WebGLUniformLocation;
+    useDayImagery: WebGLUniformLocation;
+    useNightImagery: WebGLUniformLocation;
+    useWaterMask: WebGLUniformLocation;
+    waterMaskTexture: WebGLUniformLocation;
   };
 }
 
@@ -106,7 +120,10 @@ const fragmentShaderSource = `
   uniform float u_nightAlpha;
   uniform float u_noiseStrength;
   uniform vec3 u_nightColor;
+  uniform sampler2D u_dayTexture;
+  uniform sampler2D u_nightTexture;
   uniform sampler2D u_texture;
+  uniform sampler2D u_waterMaskTexture;
   uniform float u_penumbra;
   uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
@@ -116,6 +133,9 @@ const fragmentShaderSource = `
   uniform vec2 u_reliefTexelSize;
   uniform float u_specularPower;
   uniform float u_specularStrength;
+  uniform float u_useDayImagery;
+  uniform float u_useNightImagery;
+  uniform float u_useWaterMask;
   uniform vec3 u_sunDirection;
   uniform float u_time;
 
@@ -156,6 +176,11 @@ const fragmentShaderSource = `
 
   void main() {
     vec4 baseColor = texture2D(u_texture, v_uv);
+    vec3 dayImagery = texture2D(u_dayTexture, v_uv).rgb;
+    vec3 nightImagery = texture2D(u_nightTexture, v_uv).rgb;
+    vec4 waterMaskSample = texture2D(u_waterMaskTexture, v_uv);
+    float waterMask = max(waterMaskSample.r, waterMaskSample.a);
+    float imageryMask = mix(1.0, waterMask, u_useWaterMask);
     vec3 normal = normalize(v_normal);
     vec3 sunDirection = normalize(u_sunDirection);
 
@@ -178,10 +203,20 @@ const fragmentShaderSource = `
 
     float light = dot(normal, sunDirection);
     float twilight = smoothstep(u_penumbra, -u_penumbra, light) * u_nightAlpha;
-    vec3 shaded = mix(baseColor.rgb, u_nightColor, clamp(twilight, 0.0, 1.0));
+    float nightSide = 1.0 - smoothstep(-u_penumbra, u_penumbra, light);
+    float nightBlend = clamp(max(twilight, nightSide), 0.0, 1.0);
+    float dayImageryMix = u_useDayImagery * 0.6 * imageryMask;
+    vec3 dayColor = mix(baseColor.rgb, dayImagery, dayImageryMix);
+    dayColor = mix(dayColor, dayImagery, u_useWaterMask * waterMask * 0.85);
+    vec3 nightTarget = mix(
+      u_nightColor,
+      nightImagery,
+      u_useNightImagery * imageryMask
+    );
+    vec3 shaded = mix(dayColor, nightTarget, nightBlend);
     float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     float directLight = clamp(light, 0.0, 1.0);
-    float umbra = clamp(twilight, 0.0, 1.0);
+    float umbra = nightBlend;
     vec3 viewDirection = vec3(0.0, 0.0, 1.0);
 
     float paperFiber = fbm(v_uv * vec2(1100.0, 540.0));
@@ -1314,6 +1349,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const texture = gl.createTexture();
   const overlayTexture = gl.createTexture();
   const reliefTexture = gl.createTexture();
+  const dayTexture = gl.createTexture();
+  const nightTexture = gl.createTexture();
+  const waterMaskTexture = gl.createTexture();
   if (
     !positionBuffer ||
     !overlayPositionBuffer ||
@@ -1321,7 +1359,10 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     !indexBuffer ||
     !texture ||
     !overlayTexture ||
-    !reliefTexture
+    !reliefTexture ||
+    !dayTexture ||
+    !nightTexture ||
+    !waterMaskTexture
   ) {
     throw new Error('Failed to allocate WebGL buffers.');
   }
@@ -1349,6 +1390,9 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   configureTexture(gl, texture);
   configureTexture(gl, overlayTexture);
   configureTexture(gl, reliefTexture);
+  configureTexture(gl, dayTexture);
+  configureTexture(gl, nightTexture);
+  configureTexture(gl, waterMaskTexture);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, reliefTexture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
@@ -1363,6 +1407,48 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     gl.UNSIGNED_BYTE,
     new Uint8Array([128, 128, 128, 255]),
   );
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([255, 255, 255, 255]),
+  );
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([0, 0, 0, 255]),
+  );
+  gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([255, 255, 255, 255]),
+  );
   gl.activeTexture(gl.TEXTURE0);
 
   gl.enable(gl.DEPTH_TEST);
@@ -1370,10 +1456,12 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.clearColor(0, 0, 0, 0);
 
   return {
+    dayTexture,
     gl,
     indexCount: mesh.indices.length,
     lastRotation: null,
     mesh,
+    nightTexture,
     overlayPositionBuffer,
     overlayPositions,
     overlayTexture,
@@ -1381,12 +1469,15 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     program,
     reliefTexture,
     texture,
+    waterMaskTexture,
     uniforms: {
       atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
       atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
       auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
+      dayTexture: getUniformLocation(gl, program, 'u_dayTexture'),
       gridColor: getUniformLocation(gl, program, 'u_gridColor'),
       gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
+      nightTexture: getUniformLocation(gl, program, 'u_nightTexture'),
       nightAlpha: getUniformLocation(gl, program, 'u_nightAlpha'),
       nightColor: getUniformLocation(gl, program, 'u_nightColor'),
       noiseStrength: getUniformLocation(gl, program, 'u_noiseStrength'),
@@ -1405,6 +1496,10 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
       texture: getUniformLocation(gl, program, 'u_texture'),
       time: getUniformLocation(gl, program, 'u_time'),
+      useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
+      useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
+      useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
+      waterMaskTexture: getUniformLocation(gl, program, 'u_waterMaskTexture'),
     },
   };
 }
@@ -1417,18 +1512,22 @@ function drawGlobe(
   zoomScale: number,
   currentRotation: [number, number],
   palette: GlobePalette,
+  quality: GlobeQualityConfig,
   effectTimeSeconds: number,
   reliefStrength: number,
   reliefTexelSize: [number, number],
 ) {
   const {
+    dayTexture,
     gl,
     indexCount,
     mesh,
+    nightTexture,
     overlayPositionBuffer,
     overlayPositions,
     positionBuffer,
     uniforms,
+    waterMaskTexture,
   } = resources;
   const dpr = window.devicePixelRatio || 1;
   const targetWidth = Math.max(Math.floor(width * dpr), 1);
@@ -1499,8 +1598,14 @@ function drawGlobe(
   );
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.reliefTexture, 1);
+  gl.uniform1i(uniforms.dayTexture, 2);
+  gl.uniform1i(uniforms.nightTexture, 3);
+  gl.uniform1i(uniforms.waterMaskTexture, 4);
   gl.uniform1f(uniforms.reliefStrength, reliefStrength);
   gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
+  gl.uniform1f(uniforms.useDayImagery, quality.dayImageryEnabled ? 1 : 0);
+  gl.uniform1f(uniforms.useNightImagery, quality.nightImageryEnabled ? 1 : 0);
+  gl.uniform1f(uniforms.useWaterMask, quality.waterMaskEnabled ? 1 : 0);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
   gl.uniform3f(
     uniforms.atmosphereTint,
@@ -1544,6 +1649,12 @@ function drawGlobe(
   gl.bindTexture(gl.TEXTURE_2D, resources.texture);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
   gl.activeTexture(gl.TEXTURE0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
@@ -1562,6 +1673,12 @@ function drawGlobe(
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -1698,6 +1815,7 @@ export function WebGlGlobe({
   focusRequest,
   world,
   palette,
+  quality,
   themeId,
 }: WebGlGlobeProps) {
   const isAtlas = themeId === 'atlas';
@@ -1713,11 +1831,19 @@ export function WebGlGlobe({
     zoomScale: 1,
   });
   const paletteRef = useRef(palette);
+  const qualityRef = useRef(quality);
   const [atlasPaperImage, setAtlasPaperImage] =
     useState<HTMLImageElement | null>(null);
   const [atlasImageryImage, setAtlasImageryImage] =
     useState<HTMLImageElement | null>(null);
+  const [dayImageryImage, setDayImageryImage] =
+    useState<HTMLImageElement | null>(null);
+  const [nightImageryImage, setNightImageryImage] =
+    useState<HTMLImageElement | null>(null);
   const [reliefImage, setReliefImage] = useState<HTMLImageElement | null>(null);
+  const [waterMaskImage, setWaterMaskImage] = useState<HTMLImageElement | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -1766,10 +1892,18 @@ export function WebGlGlobe({
   }, [palette]);
 
   useEffect(() => {
+    qualityRef.current = quality;
+  }, [quality]);
+
+  useEffect(() => {
     targetFeatureRef.current = targetFeature;
   }, [targetFeature]);
 
   useEffect(() => {
+    if (!quality.reliefMapEnabled) {
+      return;
+    }
+
     let cancelled = false;
     const image = new Image();
     image.decoding = 'async';
@@ -1788,7 +1922,7 @@ export function WebGlGlobe({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [quality.reliefMapEnabled]);
 
   useEffect(() => {
     if (!isAtlas) {
@@ -1840,6 +1974,81 @@ export function WebGlGlobe({
     };
   }, [isAtlas]);
 
+  useEffect(() => {
+    if (!quality.dayImageryEnabled) {
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setDayImageryImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setDayImageryImage(null);
+      }
+    };
+    image.src = '/textures/world-imagery.jpg';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.dayImageryEnabled]);
+
+  useEffect(() => {
+    if (!quality.nightImageryEnabled) {
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setNightImageryImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setNightImageryImage(null);
+      }
+    };
+    image.src = '/textures/world-night.jpg';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.nightImageryEnabled]);
+
+  useEffect(() => {
+    if (!quality.waterMaskEnabled) {
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setWaterMaskImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setWaterMaskImage(null);
+      }
+    };
+    image.src = '/textures/world-water-mask.png';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.waterMaskEnabled]);
+
   const drawCurrentFrame = useCallback((now = performance.now()) => {
     const canvas = canvasRef.current;
     const overlayCanvas = overlayCanvasRef.current;
@@ -1850,6 +2059,12 @@ export function WebGlGlobe({
       return;
     }
 
+    const currentQuality = qualityRef.current;
+    const baseReliefStrength = isAtlas ? 16 : 8;
+    const reliefStrength = currentQuality.reliefMapEnabled
+      ? baseReliefStrength * currentQuality.reliefHeight
+      : 0;
+
     drawGlobe(
       resources,
       canvas,
@@ -1858,8 +2073,9 @@ export function WebGlGlobe({
       frameState.zoomScale,
       frameState.currentRotation,
       paletteRef.current,
+      currentQuality,
       now * 0.001,
-      isAtlas ? 16 : 0,
+      reliefStrength,
       reliefImage
         ? [1 / reliefImage.naturalWidth, 1 / reliefImage.naturalHeight]
         : [1 / 2048, 1 / 1024],
@@ -1985,6 +2201,51 @@ export function WebGlGlobe({
       gl.activeTexture(gl.TEXTURE0);
     }
 
+    if (dayImageryImage) {
+      gl.activeTexture(gl.TEXTURE2);
+      configureTexture(gl, resources.dayTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        dayImageryImage,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
+    if (nightImageryImage) {
+      gl.activeTexture(gl.TEXTURE3);
+      configureTexture(gl, resources.nightTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        nightImageryImage,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
+    if (waterMaskImage) {
+      gl.activeTexture(gl.TEXTURE4);
+      configureTexture(gl, resources.waterMaskTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        waterMaskImage,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
     window.setTimeout(() => {
       if (!cancelled) {
         setErrorMessage(null);
@@ -1999,11 +2260,14 @@ export function WebGlGlobe({
   }, [
     atlasImageryImage,
     atlasPaperImage,
+    dayImageryImage,
     drawCurrentFrame,
     height,
     isAtlas,
+    nightImageryImage,
     palette,
     reliefImage,
+    waterMaskImage,
     width,
     world,
   ]);
