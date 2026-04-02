@@ -115,10 +115,26 @@ function getSessionModeLabel(gameState: GameState) {
   return modeLabels[gameState.sessionConfig.mode];
 }
 
+const cipherTelemetryFont =
+  '"IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace';
+
+function formatCipherCoordinate(
+  value: number | null | undefined,
+  positiveLabel: string,
+  negativeLabel: string,
+) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return '--.-';
+  }
+
+  return `${Math.abs(value).toFixed(1)}°${value >= 0 ? positiveLabel : negativeLabel}`;
+}
+
 export function GamePage() {
   const size = useWindowSize();
   const { activeTheme } = useAppearance();
   const isAtlas = activeTheme.id === 'atlas';
+  const isCipher = activeTheme.id === 'cipher';
   const panelSurface = useMemo(
     () => getThemeSurfaceStyles(activeTheme, 'elevated'),
     [activeTheme],
@@ -239,6 +255,49 @@ export function GamePage() {
   const runningSince =
     gameState.status === 'playing' ? gameState.currentRoundStartedAt : null;
   const isDailyRun = gameState.sessionConfig?.kind === 'daily';
+  const cipherCountry = currentCountry?.properties;
+  const cipherTargetLines = useMemo(
+    () => [
+      `ISO-3 // ${cipherCountry?.isocode3 ?? 'UNK'}`,
+      `CAPITAL // ${(cipherCountry?.capitalName ?? 'UNLISTED').toUpperCase()}`,
+      `FIX // ${formatCipherCoordinate(
+        cipherCountry?.capitalLatitude,
+        'N',
+        'S',
+      )} ${formatCipherCoordinate(cipherCountry?.capitalLongitude, 'E', 'W')}`,
+      `REGION // ${(
+        cipherCountry?.subregion ||
+        cipherCountry?.region ||
+        cipherCountry?.continent ||
+        'UNTRACKED'
+      ).toUpperCase()}`,
+    ],
+    [cipherCountry],
+  );
+  const cipherSystemLines = useMemo(
+    () => [
+      `MODE // ${getSessionModeLabel(gameState).toUpperCase()}`,
+      `RUN // ${getSessionTypeLabel(gameState).toUpperCase()}`,
+      `POOL // ${(getSessionSummaryLabel(gameState) || 'GLOBAL').toUpperCase()}`,
+      `HYDRO // ${effectiveQuality.showRivers ? 'RIVERS' : 'OFF'} / ${effectiveQuality.showLakes ? 'LAKES' : 'OFF'}`,
+      `UMBRA // ${effectiveQuality.umbraDarkness.toFixed(2)}`,
+      `IMAGERY // ${effectiveQuality.dayImageryEnabled ? 'ON' : 'OFF'}`,
+    ],
+    [effectiveQuality, gameState],
+  );
+  const cipherTickerText = useMemo(
+    () =>
+      [
+        'CIPHER CARTOGRAPHIC NODE',
+        'PASSIVE GEOINT GRID',
+        `TARGET ${cipherCountry?.isocode3 ?? 'UNK'}`,
+        (cipherCountry?.nameEn ?? 'WORLD SECTOR').toUpperCase(),
+        `ROUND ${gameState.roundIndex + 1}/${Math.max(totalRounds, 1)}`,
+        `DATE ${todayDateKey}`,
+        'DATUM WGS84',
+      ].join(' // '),
+    [cipherCountry, gameState.roundIndex, todayDateKey, totalRounds],
+  );
   const completedDailyResult = useMemo(() => {
     if (gameState.dailyResult) {
       return gameState.dailyResult;
@@ -659,6 +718,147 @@ export function GamePage() {
           themeLabel={activeTheme.label}
           onReset={resetAdminOverride}
         />
+      ) : null}
+      {isCipher ? (
+        <Box
+          sx={{
+            inset: 0,
+            pointerEvents: 'none',
+            position: 'absolute',
+            zIndex: 1,
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              backdropFilter: 'blur(16px)',
+              background:
+                'linear-gradient(180deg, rgba(4, 18, 19, 0.8), rgba(1, 10, 11, 0.44))',
+              border: '1px solid rgba(0, 255, 236, 0.16)',
+              bottom: { md: 'auto', xs: 128 },
+              boxShadow:
+                'inset 0 0 0 1px rgba(223, 255, 114, 0.05), 0 18px 42px rgba(0, 0, 0, 0.22)',
+              left: { md: 24, xs: 16 },
+              maxWidth: { md: 272, xs: 'calc(100vw - 32px)' },
+              position: 'absolute',
+              px: 1.6,
+              py: 1.4,
+              top: { md: 112, xs: 'auto' },
+            }}
+          >
+            <Typography
+              sx={{
+                color: 'rgba(223, 255, 114, 0.86)',
+                fontFamily: cipherTelemetryFont,
+                fontSize: '0.66rem',
+                letterSpacing: '0.22em',
+                mb: 0.7,
+                textTransform: 'uppercase',
+              }}
+            >
+              Target Dossier
+            </Typography>
+            <Typography
+              sx={{
+                color: '#f6ff9e',
+                fontFamily: cipherTelemetryFont,
+                fontSize: '0.96rem',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                mb: 1,
+                textTransform: 'uppercase',
+              }}
+            >
+              {cipherCountry?.nameEn ?? 'World Sector'}
+            </Typography>
+            <Stack spacing={0.45}>
+              {cipherTargetLines.map((line) => (
+                <Typography
+                  key={line}
+                  sx={{
+                    color: 'rgba(111, 255, 237, 0.78)',
+                    fontFamily: cipherTelemetryFont,
+                    fontSize: '0.67rem',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {line}
+                </Typography>
+              ))}
+            </Stack>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              backdropFilter: 'blur(16px)',
+              background:
+                'linear-gradient(180deg, rgba(4, 18, 19, 0.74), rgba(1, 10, 11, 0.4))',
+              border: '1px solid rgba(0, 255, 236, 0.14)',
+              bottom: { md: 34, xs: 184 },
+              boxShadow:
+                'inset 0 0 0 1px rgba(0, 255, 236, 0.05), 0 16px 34px rgba(0, 0, 0, 0.24)',
+              display: { md: 'block', xs: 'none' },
+              maxWidth: 250,
+              position: 'absolute',
+              px: 1.6,
+              py: 1.4,
+              right: 24,
+            }}
+          >
+            <Typography
+              sx={{
+                color: 'rgba(223, 255, 114, 0.8)',
+                fontFamily: cipherTelemetryFont,
+                fontSize: '0.66rem',
+                letterSpacing: '0.22em',
+                mb: 0.7,
+                textTransform: 'uppercase',
+              }}
+            >
+              Grid State
+            </Typography>
+            <Stack spacing={0.45}>
+              {cipherSystemLines.map((line) => (
+                <Typography
+                  key={line}
+                  sx={{
+                    color: 'rgba(96, 255, 232, 0.74)',
+                    fontFamily: cipherTelemetryFont,
+                    fontSize: '0.67rem',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {line}
+                </Typography>
+              ))}
+            </Stack>
+          </Paper>
+          <Box
+            sx={{
+              bottom: 12,
+              left: { md: 24, xs: 16 },
+              maxWidth: { md: 'min(58vw, 760px)', xs: 'calc(100vw - 32px)' },
+              position: 'absolute',
+              px: 1.3,
+              py: 0.75,
+            }}
+          >
+            <Typography
+              sx={{
+                color: 'rgba(111, 255, 237, 0.58)',
+                fontFamily: cipherTelemetryFont,
+                fontSize: '0.63rem',
+                letterSpacing: '0.16em',
+                textShadow: '0 0 12px rgba(0, 255, 236, 0.2)',
+                textTransform: 'uppercase',
+              }}
+            >
+              {cipherTickerText}
+            </Typography>
+          </Box>
+        </Box>
       ) : null}
       <Container
         maxWidth="lg"

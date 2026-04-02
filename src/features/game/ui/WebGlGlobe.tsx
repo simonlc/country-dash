@@ -2474,6 +2474,127 @@ function drawCipherSelectedCountryOverlay(args: {
   context.restore();
 }
 
+function formatCipherCoordinate(
+  value: number | null | undefined,
+  positiveLabel: string,
+  negativeLabel: string,
+) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '--.-';
+  }
+
+  return `${Math.abs(value).toFixed(1)} ${value >= 0 ? positiveLabel : negativeLabel}`;
+}
+
+function drawCipherMapAnnotations(args: {
+  context: CanvasRenderingContext2D;
+  country: CountryFeature;
+  height: number;
+  nowMs: number;
+  palette: GlobePalette;
+  projection: ReturnType<typeof geoOrthographic>;
+  width: number;
+}) {
+  const { context, country, height, nowMs, palette, projection, width } = args;
+  const countryShape = country as GeoPermissibleObjects;
+  const measurePath = geoPath(projection);
+  const [centroidX, centroidY] = measurePath.centroid(countryShape);
+  const [[minX, minY], [maxX, maxY]] = measurePath.bounds(countryShape);
+
+  if (
+    !Number.isFinite(centroidX) ||
+    !Number.isFinite(centroidY) ||
+    !Number.isFinite(minX) ||
+    !Number.isFinite(minY) ||
+    !Number.isFinite(maxX) ||
+    !Number.isFinite(maxY)
+  ) {
+    return;
+  }
+
+  const labelWidth = Math.min(Math.max((maxX - minX) * 0.85, 152), 228);
+  const labelHeight = 52;
+  const placeOnRight = centroidX < width * 0.56;
+  const anchorX = placeOnRight ? maxX + 26 : minX - 26;
+  const leaderEndX = placeOnRight ? anchorX + 12 : anchorX - 12;
+  const labelX = Math.max(
+    12,
+    Math.min(
+      width - labelWidth - 12,
+      placeOnRight ? anchorX + 14 : anchorX - labelWidth - 14,
+    ),
+  );
+  const labelY = Math.max(
+    12,
+    Math.min(height - labelHeight - 12, centroidY - labelHeight * 0.5),
+  );
+  const title = country.properties.isocode3 || country.properties.isocode || 'UNK';
+  const region =
+    country.properties.subregion ||
+    country.properties.region ||
+    country.properties.continent ||
+    'UNTRACKED';
+  const latText = formatCipherCoordinate(
+    country.properties.capitalLatitude,
+    'N',
+    'S',
+  );
+  const lonText = formatCipherCoordinate(
+    country.properties.capitalLongitude,
+    'E',
+    'W',
+  );
+  const blink = 0.5 + 0.5 * Math.sin(nowMs * 0.0048);
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.strokeStyle = withOpacity(palette.selectedFill, 0.5);
+  context.lineWidth = 1.1;
+  context.setLineDash([5, 7]);
+  context.lineDashOffset = -nowMs * 0.012;
+  context.beginPath();
+  context.moveTo(centroidX, centroidY);
+  context.lineTo(anchorX, labelY + labelHeight * 0.5);
+  context.lineTo(leaderEndX, labelY + labelHeight * 0.5);
+  context.stroke();
+
+  context.setLineDash([]);
+  context.fillStyle = 'rgba(3, 15, 17, 0.64)';
+  context.strokeStyle = withOpacity(palette.smallCountryCircle, 0.22);
+  context.lineWidth = 1;
+  context.shadowColor = withOpacity(palette.smallCountryCircle, 0.16);
+  context.shadowBlur = 12;
+  context.beginPath();
+  context.roundRect(labelX, labelY, labelWidth, labelHeight, 8);
+  context.fill();
+  context.stroke();
+
+  context.shadowBlur = 0;
+  context.fillStyle = withOpacity(palette.selectedFill, 0.92);
+  context.font = '600 10px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.fillText(`TARGET ${title}`, labelX + 12, labelY + 15);
+
+  context.fillStyle = withOpacity('#f6ff9e', 0.94);
+  context.font = '600 13px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.fillText(
+    country.properties.nameEn.toUpperCase().slice(0, 20),
+    labelX + 12,
+    labelY + 31,
+  );
+
+  context.fillStyle = withOpacity(palette.smallCountryCircle, 0.82);
+  context.font = '500 9px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.fillText(
+    `${region.toUpperCase().slice(0, 12)}  ${latText} ${lonText}`,
+    labelX + 12,
+    labelY + 45,
+  );
+
+  context.fillStyle = withOpacity(palette.selectedFill, 0.28 + blink * 0.24);
+  context.fillRect(labelX + labelWidth - 18, labelY + 11, 6, 6);
+  context.restore();
+}
+
 function drawCipherHydroOverlay(args: {
   context: CanvasRenderingContext2D;
   height: number;
@@ -2507,29 +2628,66 @@ function drawCipherHydroOverlay(args: {
     context.clip();
 
     context.globalCompositeOperation = 'screen';
-    context.strokeStyle = shiftColor(quality.lakesColor, 145, 4, 32, 0.18);
-    context.lineWidth = 1.4;
-    const stripeSpacing = Math.max(Math.min(width, height) / 11, 18);
-    const stripeDrift = (nowMs * 0.012) % stripeSpacing;
+    context.fillStyle = shiftColor(quality.lakesColor, 26, 0, 16, 0.04);
+    context.fillRect(0, 0, width, height);
+
+    const latticeSpacing = Math.max(Math.min(width, height) / 20, 22);
+    const rowSpacing = latticeSpacing * 0.84;
     for (
-      let offset = -stripeSpacing * 2;
-      offset <= height + stripeSpacing * 2;
-      offset += stripeSpacing
+      let rowIndex = 0, y = -rowSpacing;
+      y <= height + rowSpacing;
+      rowIndex += 1, y += rowSpacing
     ) {
-      const y = offset + stripeDrift;
-      context.beginPath();
-      for (let x = -24; x <= width + 24; x += 24) {
-        const wave =
-          Math.sin(x * 0.034 + y * 0.075 + nowMs * 0.0014) * 3.4 +
-          Math.sin(x * 0.012 - y * 0.042 + nowMs * 0.00095) * 1.8;
-        const py = y + wave;
-        if (x === -24) {
-          context.moveTo(x, py);
-        } else {
-          context.lineTo(x, py);
+      const rowOffset = rowIndex % 2 === 0 ? 0 : latticeSpacing * 0.48;
+      for (
+        let x = -latticeSpacing;
+        x <= width + latticeSpacing;
+        x += latticeSpacing
+      ) {
+        const px = x + rowOffset;
+        const flow =
+          Math.sin(px * 0.041 + y * 0.082 - nowMs * 0.00034) * 0.5 + 0.5;
+        const beat =
+          Math.sin(
+            px * 0.017 - y * 0.024 + nowMs * 0.00021 + rowIndex * 0.31,
+          ) *
+            0.5 +
+          0.5;
+        const signal = flow * 0.68 + beat * 0.32;
+
+        if (signal < 0.58) {
+          continue;
+        }
+
+        const intensity = (signal - 0.58) / 0.42;
+        const glyphWidth = 4.5 + intensity * 7.4;
+        const glyphHeight = 1.2 + intensity * 1.4;
+
+        context.fillStyle = shiftColor(
+          quality.lakesColor,
+          156,
+          12,
+          44,
+          0.08 + intensity * 0.18,
+        );
+        context.fillRect(
+          px - glyphWidth * 0.5,
+          y - glyphHeight * 0.5,
+          glyphWidth,
+          glyphHeight,
+        );
+
+        if (intensity > 0.54) {
+          context.fillStyle = shiftColor(
+            quality.lakesColor,
+            192,
+            26,
+            54,
+            0.08 + intensity * 0.14,
+          );
+          context.fillRect(px - 0.8, y - 2, 1.6, 4);
         }
       }
-      context.stroke();
     }
     context.restore();
 
@@ -2551,51 +2709,52 @@ function drawCipherHydroOverlay(args: {
         continue;
       }
 
-      const sweepProgress =
-        ((nowMs * 0.00024 + visibleLakeCount * 0.19) % 1 + 1) % 1;
-      const sweepWidth = Math.max(boundsWidth * 0.22, 18);
-      const travelWidth = boundsWidth + boundsHeight * 0.65;
-      const sweepX = -travelWidth * 0.55 + sweepProgress * travelWidth * 1.65;
-
-      context.save();
-      context.beginPath();
-      path(lakeShape);
-      context.clip();
-      context.globalCompositeOperation = 'screen';
-      context.translate((minX + maxX) / 2, (minY + maxY) / 2);
-      context.rotate(-0.34);
-      context.shadowColor = shiftColor(quality.lakesColor, 165, 8, 38, 0.28);
-      context.shadowBlur = 16;
-      const sweep = context.createLinearGradient(
-        sweepX - sweepWidth,
-        0,
-        sweepX + sweepWidth,
-        0,
-      );
-      sweep.addColorStop(0, withOpacity(quality.lakesColor, 0));
-      sweep.addColorStop(0.3, shiftColor(quality.lakesColor, 90, 0, 18, 0.05));
-      sweep.addColorStop(0.5, shiftColor(quality.lakesColor, 170, 12, 42, 0.24));
-      sweep.addColorStop(0.7, shiftColor(quality.lakesColor, 90, 0, 18, 0.05));
-      sweep.addColorStop(1, withOpacity(quality.lakesColor, 0));
-      context.fillStyle = sweep;
-      context.fillRect(
-        -travelWidth,
-        -boundsHeight * 1.7,
-        travelWidth * 2,
-        boundsHeight * 3.4,
-      );
-      context.restore();
-
       context.save();
       context.globalCompositeOperation = 'screen';
+      context.shadowColor = shiftColor(quality.lakesColor, 180, 14, 42, 0.34);
+      context.shadowBlur = 10;
       context.strokeStyle = shiftColor(
         quality.lakesColor,
-        165,
+        164,
         10,
-        40,
-        0.3,
+        38,
+        0.22,
       );
-      context.lineWidth = 1.2;
+      context.lineWidth = 1;
+      context.beginPath();
+      path(lakeShape);
+      context.stroke();
+
+      const tracerLength = Math.max(
+        14,
+        Math.min((boundsWidth + boundsHeight) * 0.14, 34),
+      );
+      context.shadowBlur = 14;
+      context.strokeStyle = shiftColor(
+        quality.lakesColor,
+        196,
+        28,
+        56,
+        0.48,
+      );
+      context.lineWidth = 1.45;
+      context.setLineDash([tracerLength, tracerLength * 1.9]);
+      context.lineDashOffset = -nowMs * 0.008 + visibleLakeCount * 11;
+      context.beginPath();
+      path(lakeShape);
+      context.stroke();
+
+      context.shadowBlur = 8;
+      context.strokeStyle = shiftColor(
+        quality.lakesColor,
+        124,
+        4,
+        24,
+        0.14,
+      );
+      context.lineWidth = 2.2;
+      context.setLineDash([2.2, tracerLength * 2.6]);
+      context.lineDashOffset = nowMs * 0.004 + visibleLakeCount * 7;
       context.beginPath();
       path(lakeShape);
       context.stroke();
@@ -2803,6 +2962,18 @@ function drawSelectedCountryOverlay(args: {
         context.stroke();
       }
     }
+  }
+
+  if (themeId === 'cipher') {
+    drawCipherMapAnnotations({
+      context,
+      country,
+      height,
+      nowMs,
+      palette,
+      projection,
+      width,
+    });
   }
 
   context.globalAlpha = 1;
