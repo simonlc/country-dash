@@ -1,11 +1,37 @@
 import { Stack, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { formatElapsed } from '@/features/game/logic/gameLogic';
 
 interface GameTimerProps {
   elapsedMs: number;
+  runningSince?: number | null;
 }
 
-export function GameTimer({ elapsedMs }: GameTimerProps) {
+export function GameTimer({
+  elapsedMs,
+  runningSince = null,
+}: GameTimerProps) {
+  const [tickNow, setTickNow] = useState(() => performance.now());
+
+  useEffect(() => {
+    if (runningSince === null) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setTickNow(performance.now());
+    }, 50);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [runningSince]);
+
+  const liveElapsedMs =
+    runningSince === null
+      ? elapsedMs
+      : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
+
   return (
     <Stack spacing={0.2} sx={{ minWidth: 88 }}>
       <Typography color="text.secondary" variant="caption">
@@ -16,7 +42,7 @@ export function GameTimer({ elapsedMs }: GameTimerProps) {
         sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
         variant="h6"
       >
-        {formatElapsed(elapsedMs)}
+        {formatElapsed(liveElapsedMs)}
       </Typography>
     </Stack>
   );

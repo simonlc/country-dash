@@ -534,7 +534,7 @@ export const appThemes: AppThemeDefinition[] = [
       noiseStrength: 0.14,
       rimLightStrength: 0.31,
       scanlineDensity: 360,
-      scanlineStrength: 0.24,
+      scanlineStrength: 0.28,
       specularPower: 38,
       specularStrength: 0.24,
       surfaceDistortionStrength: 0.08,

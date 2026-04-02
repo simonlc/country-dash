@@ -186,23 +186,6 @@ export function GamePage() {
     }
   }, [renderer]);
 
-  useEffect(() => {
-    if (gameState.status !== 'playing') {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      dispatch({
-        type: 'TICK_TIMER',
-        now: performance.now(),
-      });
-    }, 50);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [gameState.status]);
-
   const countryPool = useMemo(
     () => (worldData ? worldData.world.features : []),
     [worldData],
@@ -252,9 +235,9 @@ export function GamePage() {
     [worldData],
   );
   const totalRounds = gameState.sessionPlan?.totalRounds ?? 0;
-  const displayElapsedMs =
-    gameState.totalElapsedMs +
-    (gameState.status === 'playing' ? gameState.currentRoundElapsedMs : 0);
+  const displayElapsedMs = gameState.totalElapsedMs;
+  const runningSince =
+    gameState.status === 'playing' ? gameState.currentRoundStartedAt : null;
   const isDailyRun = gameState.sessionConfig?.kind === 'daily';
   const completedDailyResult = useMemo(() => {
     if (gameState.dailyResult) {
@@ -324,11 +307,21 @@ export function GamePage() {
       return;
     }
 
+    let cancelled = false;
     window.localStorage.setItem(
       formatDailyStorageKey(gameState.dailyResult.date),
       JSON.stringify(gameState.dailyResult),
     );
-    setStoredDailyResult(gameState.dailyResult);
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setStoredDailyResult(gameState.dailyResult);
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, [gameState.dailyResult]);
 
   const beginSession = useCallback(
@@ -798,7 +791,10 @@ export function GamePage() {
                   gridColumn: { xs: 'span 2', md: 'auto' },
                 }}
               >
-                <GameTimer elapsedMs={displayElapsedMs} />
+                <GameTimer
+                  elapsedMs={displayElapsedMs}
+                  runningSince={runningSince}
+                />
               </Paper>
               {gameState.status !== 'gameOver' &&
               gameState.status !== 'intro' ? (
@@ -883,7 +879,9 @@ export function GamePage() {
                           </Paper>
                           <Button
                             variant="outlined"
-                            onClick={handleCopyDailyShare}
+                            onClick={() => {
+                              void handleCopyDailyShare();
+                            }}
                           >
                             {copyState === 'copied'
                               ? 'Copied'

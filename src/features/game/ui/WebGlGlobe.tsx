@@ -37,22 +37,23 @@ interface WebGlGlobeProps extends GlobeViewProps {
 interface SphereMesh {
   indices: Uint16Array;
   positions: Float32Array;
-  sourceCoordinates: Float32Array;
   uvs: Float32Array;
 }
 
+interface PreparedCityLightsMaps {
+  glow: HTMLCanvasElement;
+  pollution: HTMLCanvasElement;
+}
+
 interface WebGlResources {
+  cityLightsGlowTexture: WebGLTexture;
+  cityLightsPollutionTexture: WebGLTexture;
   cityLightsTexture: WebGLTexture;
   dayTexture: WebGLTexture;
   gl: WebGLRenderingContext;
   indexCount: number;
-  lastRotation: [number, number] | null;
-  mesh: SphereMesh;
   nightTexture: WebGLTexture;
-  overlayPositionBuffer: WebGLBuffer;
-  overlayPositions: Float32Array;
   overlayTexture: WebGLTexture;
-  positionBuffer: WebGLBuffer;
   program: WebGLProgram;
   reliefTexture: WebGLTexture;
   texture: WebGLTexture;
@@ -64,7 +65,8 @@ interface WebGlResources {
     cityLightsColor: WebGLUniformLocation;
     cityLightsGlow: WebGLUniformLocation;
     cityLightsIntensity: WebGLUniformLocation;
-    cityLightsTexelSize: WebGLUniformLocation;
+    cityLightsGlowTexture: WebGLUniformLocation;
+    cityLightsPollutionTexture: WebGLUniformLocation;
     cityLightsTexture: WebGLUniformLocation;
     cityLightsThreshold: WebGLUniformLocation;
     dayTexture: WebGLUniformLocation;
@@ -80,10 +82,13 @@ interface WebGlResources {
     penumbra: WebGLUniformLocation;
     rimLightColor: WebGLUniformLocation;
     rimLightStrength: WebGLUniformLocation;
+    rotationMatrix: WebGLUniformLocation;
     scale: WebGLUniformLocation;
     scanlineDensity: WebGLUniformLocation;
+    slowScanlineStrength: WebGLUniformLocation;
     scanlineStrength: WebGLUniformLocation;
     surfaceDistortionStrength: WebGLUniformLocation;
+    surfaceScale: WebGLUniformLocation;
     surfaceTextureStrength: WebGLUniformLocation;
     reliefStrength: WebGLUniformLocation;
     reliefTexture: WebGLUniformLocation;
@@ -112,15 +117,26 @@ const vertexShaderSource = `
   attribute vec3 a_position;
   attribute vec2 a_uv;
 
+  uniform mat3 u_rotationMatrix;
   uniform vec2 u_scale;
+  uniform float u_surfaceScale;
 
   varying vec2 v_uv;
   varying vec3 v_normal;
+  varying vec3 v_surfaceNormal;
 
   void main() {
-    gl_Position = vec4(a_position.x * u_scale.x, a_position.y * u_scale.y, a_position.z * 0.5, 1.0);
+    vec3 rotatedPosition = u_rotationMatrix * a_position;
+    vec3 surfacePosition = rotatedPosition * u_surfaceScale;
+    gl_Position = vec4(
+      surfacePosition.x * u_scale.x,
+      surfacePosition.y * u_scale.y,
+      surfacePosition.z * 0.5,
+      1.0
+    );
     v_uv = a_uv;
-    v_normal = a_position;
+    v_normal = rotatedPosition;
+    v_surfaceNormal = a_position;
   }
 `;
 
@@ -137,7 +153,6 @@ const fragmentShaderSource = `
   uniform float u_auroraStrength;
   uniform float u_cityLightsGlow;
   uniform float u_cityLightsIntensity;
-  uniform vec2 u_cityLightsTexelSize;
   uniform float u_cityLightsThreshold;
   uniform float u_gridStrength;
   uniform float u_lightPollutionIntensity;
@@ -146,6 +161,8 @@ const fragmentShaderSource = `
   uniform float u_noiseStrength;
   uniform vec3 u_nightColor;
   uniform sampler2D u_cityLightsTexture;
+  uniform sampler2D u_cityLightsGlowTexture;
+  uniform sampler2D u_cityLightsPollutionTexture;
   uniform sampler2D u_dayTexture;
   uniform sampler2D u_nightTexture;
   uniform sampler2D u_texture;
@@ -153,6 +170,7 @@ const fragmentShaderSource = `
   uniform float u_penumbra;
   uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
+  uniform float u_slowScanlineStrength;
   uniform float u_scanlineStrength;
   uniform float u_surfaceDistortionStrength;
   uniform float u_surfaceTextureStrength;
@@ -172,6 +190,7 @@ const fragmentShaderSource = `
 
   varying vec2 v_uv;
   varying vec3 v_normal;
+  varying vec3 v_surfaceNormal;
 
   float hash(vec2 point) {
     return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
@@ -210,40 +229,14 @@ const fragmentShaderSource = `
     return dot(cityLightsSample, vec3(0.299, 0.587, 0.114));
   }
 
-  float sampleCityLightsBlur(vec2 uv, vec2 texelSize, float radius) {
-    vec2 eastWest = vec2(texelSize.x * radius, 0.0);
-    vec2 northSouth = vec2(0.0, texelSize.y * radius);
-    vec2 eastWestHalf = eastWest * 0.5;
-    vec2 northSouthHalf = northSouth * 0.5;
-    vec2 diagonal = texelSize * radius * 0.70710678;
-    vec2 diagonalHalf = diagonal * 0.5;
-
-    float value = sampleCityLights(uv) * 0.18;
-    value += sampleCityLights(uv + eastWestHalf) * 0.1;
-    value += sampleCityLights(uv - eastWestHalf) * 0.1;
-    value += sampleCityLights(uv + northSouthHalf) * 0.1;
-    value += sampleCityLights(uv - northSouthHalf) * 0.1;
-    value += sampleCityLights(uv + eastWest) * 0.07;
-    value += sampleCityLights(uv - eastWest) * 0.07;
-    value += sampleCityLights(uv + northSouth) * 0.07;
-    value += sampleCityLights(uv - northSouth) * 0.07;
-    value += sampleCityLights(uv + diagonalHalf) * 0.045;
-    value += sampleCityLights(uv + vec2(diagonalHalf.x, -diagonalHalf.y)) * 0.045;
-    value += sampleCityLights(uv + vec2(-diagonalHalf.x, diagonalHalf.y)) * 0.045;
-    value += sampleCityLights(uv - diagonalHalf) * 0.045;
-    value += sampleCityLights(uv + diagonal) * 0.025;
-    value += sampleCityLights(uv + vec2(diagonal.x, -diagonal.y)) * 0.025;
-    value += sampleCityLights(uv + vec2(-diagonal.x, diagonal.y)) * 0.025;
-    value += sampleCityLights(uv - diagonal) * 0.025;
-    return value;
+  float sampleCityLightsGlow(vec2 uv) {
+    vec3 sample = texture2D(u_cityLightsGlowTexture, uv).rgb;
+    return dot(sample, vec3(0.299, 0.587, 0.114));
   }
 
-  float sampleCityLightsBloom(vec2 uv, vec2 texelSize, float radius) {
-    float tight = sampleCityLightsBlur(uv, texelSize, max(radius * 0.38, 0.55));
-    float medium = sampleCityLightsBlur(uv, texelSize, max(radius * 0.78, 0.95));
-    float wide = sampleCityLightsBlur(uv, texelSize, max(radius * 1.45, 1.45));
-    float outer = sampleCityLightsBlur(uv, texelSize, max(radius * 2.2, 2.2));
-    return tight * 0.36 + medium * 0.31 + wide * 0.21 + outer * 0.12;
+  float sampleCityLightsPollution(vec2 uv) {
+    vec3 sample = texture2D(u_cityLightsPollutionTexture, uv).rgb;
+    return dot(sample, vec3(0.299, 0.587, 0.114));
   }
 
   float compressRadiance(float radiance, float exposure) {
@@ -258,6 +251,7 @@ const fragmentShaderSource = `
     float waterMask = max(waterMaskSample.r, waterMaskSample.a);
     float imageryMask = mix(1.0, waterMask, u_useWaterMask);
     vec3 normal = normalize(v_normal);
+    vec3 sweepSurfaceNormal = normalize(v_surfaceNormal);
     vec3 sunDirection = normalize(u_sunDirection);
     float reliefEnabled = step(0.0001, u_reliefStrength);
 
@@ -334,6 +328,26 @@ const fragmentShaderSource = `
 
     float scanlineWave = sin(v_uv.y * u_scanlineDensity + u_time * 5.0 + v_uv.x * 12.0);
     float scanline = (0.5 + 0.5 * scanlineWave) * u_scanlineStrength * daylight * (1.0 - umbraShade);
+    float slowScanlineStrength = u_scanlineStrength * u_slowScanlineStrength;
+    vec3 earthAxis = vec3(0.0, 1.0, 0.0);
+    vec3 slowScanlineAxis = normalize(earthAxis + vec3(0.22, 0.0, 0.08));
+    float slowScanlineOffset = sin(u_time * 0.08) * 0.88;
+    float slowScanlineDistance = abs(
+      dot(sweepSurfaceNormal, slowScanlineAxis) - slowScanlineOffset
+    );
+    float slowScanlineCore = 1.0 - smoothstep(0.0, 0.065, slowScanlineDistance);
+    float slowScanlineGlow = 1.0 - smoothstep(0.0, 0.19, slowScanlineDistance);
+    float slowScanlineTail = 1.0 - smoothstep(0.0, 0.29, slowScanlineDistance);
+    float slowScanline =
+      (
+        slowScanlineTail * 0.26 +
+        slowScanlineGlow * 0.5 +
+        slowScanlineCore * 0.76
+      ) *
+      slowScanlineStrength *
+      (0.28 + daylight * 0.42) *
+      (0.74 + facing * 0.18) *
+      (1.0 - umbraShade * 0.68);
 
     float auroraWave = sin(v_uv.y * 18.0 - u_time * 0.9 + normal.x * 3.5);
     float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
@@ -358,25 +372,12 @@ const fragmentShaderSource = `
 
     if (u_useCityLights > 0.0 || u_useLightPollution > 0.0) {
       float cityRadiance = sampleCityLights(v_uv);
-      float glowRadiance = sampleCityLightsBloom(
-        v_uv,
-        u_cityLightsTexelSize,
-        0.85 + u_cityLightsGlow * 1.1
-      );
-      float pollutionRadiance = sampleCityLightsBloom(
-        v_uv,
-        u_cityLightsTexelSize,
-        2.6 + u_lightPollutionSpread * 3.1
-      );
-      float farPollutionRadiance = sampleCityLightsBloom(
-        v_uv,
-        u_cityLightsTexelSize,
-        5.2 + u_lightPollutionSpread * 5.1
-      );
+      float glowRadiance = sampleCityLightsGlow(v_uv);
+      float pollutionRadiance = sampleCityLightsPollution(v_uv);
       float cityResponse = compressRadiance(cityRadiance, 448.0);
       float glowResponse = compressRadiance(glowRadiance, 320.0);
-      float pollutionResponse = compressRadiance(pollutionRadiance, 128.0);
-      float farPollutionResponse = compressRadiance(farPollutionRadiance, 56.0);
+      float pollutionExposure = mix(116.0, 72.0, clamp(u_lightPollutionSpread / 3.5, 0.0, 1.0));
+      float pollutionResponse = compressRadiance(pollutionRadiance, pollutionExposure);
       float normalizedCityLights = clamp(
         (cityResponse - u_cityLightsThreshold) /
         max(1.0 - u_cityLightsThreshold, 0.0001),
@@ -385,8 +386,7 @@ const fragmentShaderSource = `
       );
       float cityCoreSignal = pow(normalizedCityLights, 0.42);
       float cityGlowSignal = max(glowResponse - cityResponse * 0.22, 0.0);
-      float pollutionBase = mix(pollutionResponse, farPollutionResponse, 0.48);
-      float pollutionField = max(pollutionBase - cityResponse * 0.10, 0.0);
+      float pollutionField = max(pollutionResponse - cityResponse * 0.10, 0.0);
       float pollutionSignal = pow(pollutionField, 0.68);
 
       cityEmission =
@@ -415,7 +415,13 @@ const fragmentShaderSource = `
     color = mix(color, desaturatedUmbra, umbraShade * 0.75);
     color *= 1.0 - umbraShade * 0.12;
     color += u_atmosphereTint * atmosphere;
-    color += u_gridColor * (grid + scanline * 0.12);
+    color += u_gridColor * (grid + scanline * 0.12 + slowScanline * 0.58);
+    color +=
+      u_atmosphereTint *
+      (slowScanlineGlow * 0.56 + slowScanlineCore * 0.14) *
+      slowScanlineStrength *
+      0.085 *
+      (0.28 + daylight * 0.34);
     color += u_rimLightColor * (rim + aurora);
     color += u_specularColor * specular;
     color += u_atmosphereTint * vellumSheen * (0.13 + fresnel * 0.22) * sunVisibility;
@@ -493,7 +499,6 @@ function createSphereMesh(
   longitudeBands = 192,
 ): SphereMesh {
   const positions: number[] = [];
-  const sourceCoordinates: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
 
@@ -509,7 +514,6 @@ function createSphereMesh(
       const position = geoToSpherePosition(longitudeDegrees, latitudeDegrees);
 
       positions.push(position.x, position.y, position.z);
-      sourceCoordinates.push(longitudeDegrees, latitudeDegrees);
       uvs.push(u, v);
     }
   }
@@ -527,9 +531,27 @@ function createSphereMesh(
   return {
     indices: new Uint16Array(indices),
     positions: new Float32Array(positions),
-    sourceCoordinates: new Float32Array(sourceCoordinates),
     uvs: new Float32Array(uvs),
   };
+}
+
+function createRotationMatrix(rotation: [number, number]) {
+  const rotate = geoRotation([rotation[0], rotation[1], 0]);
+  const xAxis = geoToSpherePosition(...rotate([90, 0]));
+  const yAxis = geoToSpherePosition(...rotate([0, 90]));
+  const zAxis = geoToSpherePosition(...rotate([180, 0]));
+
+  return new Float32Array([
+    xAxis.x,
+    xAxis.y,
+    xAxis.z,
+    yAxis.x,
+    yAxis.y,
+    yAxis.z,
+    zAxis.x,
+    zAxis.y,
+    zAxis.z,
+  ]);
 }
 
 function parseCssColor(color: string) {
@@ -570,6 +592,174 @@ function withOpacity(color: string, opacity: number) {
   const parsed = parseCssColor(color);
   const alpha = Math.max(0, Math.min(1, opacity));
   return `rgba(${parsed.rgb[0]}, ${parsed.rgb[1]}, ${parsed.rgb[2]}, ${alpha})`;
+}
+
+function createCanvas(width: number, height: number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function getScaledImageDimensions(
+  image: HTMLImageElement,
+  maxWidth: number,
+) {
+  const scale = Math.min(1, maxWidth / Math.max(image.naturalWidth, 1));
+
+  return {
+    height: Math.max(1, Math.round(image.naturalHeight * scale)),
+    width: Math.max(1, Math.round(image.naturalWidth * scale)),
+  };
+}
+
+function drawWrappedImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+) {
+  for (let copy = 0; copy < 3; copy += 1) {
+    context.drawImage(image, copy * width, 0, width, height);
+  }
+}
+
+function buildWrappedBlurPassCanvas(
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  blurPx: number,
+) {
+  const sourceCanvas = createCanvas(width * 3, height);
+  const sourceContext = sourceCanvas.getContext('2d');
+  if (!sourceContext) {
+    throw new Error('Failed to create city lights source canvas.');
+  }
+
+  drawWrappedImage(sourceContext, image, width, height);
+
+  const blurredCanvas = createCanvas(width * 3, height);
+  const blurredContext = blurredCanvas.getContext('2d');
+  if (!blurredContext) {
+    throw new Error('Failed to create city lights blur canvas.');
+  }
+
+  if (blurPx > 0) {
+    blurredContext.filter = `blur(${blurPx}px)`;
+  }
+  blurredContext.drawImage(sourceCanvas, 0, 0);
+  blurredContext.filter = 'none';
+
+  const passCanvas = createCanvas(width, height);
+  const passContext = passCanvas.getContext('2d');
+  if (!passContext) {
+    throw new Error('Failed to create city lights pass canvas.');
+  }
+
+  passContext.drawImage(blurredCanvas, width, 0, width, height, 0, 0, width, height);
+
+  return passCanvas;
+}
+
+function getBloomPasses(radius: number) {
+  return [
+    {
+      blurPx: Math.max(radius * 0.38, 0.55),
+      opacity: 0.36,
+    },
+    {
+      blurPx: Math.max(radius * 0.78, 0.95),
+      opacity: 0.31,
+    },
+    {
+      blurPx: Math.max(radius * 1.45, 1.45),
+      opacity: 0.21,
+    },
+    {
+      blurPx: Math.max(radius * 2.2, 2.2),
+      opacity: 0.12,
+    },
+  ];
+}
+
+function buildCityLightsCompositeTextureCanvas(args: {
+  image: HTMLImageElement;
+  layers: Array<{
+    opacity: number;
+    radius: number;
+  }>;
+  maxWidth: number;
+}) {
+  const { image, layers, maxWidth } = args;
+  const { height, width } = getScaledImageDimensions(image, maxWidth);
+  const textureCanvas = createCanvas(width, height);
+  const context = textureCanvas.getContext('2d');
+  if (!context) {
+    throw new Error('Failed to create city lights texture canvas.');
+  }
+
+  for (const layer of layers) {
+    const layerCanvas = createCanvas(width, height);
+    const layerContext = layerCanvas.getContext('2d');
+    if (!layerContext) {
+      throw new Error('Failed to create city lights layer canvas.');
+    }
+
+    for (const pass of getBloomPasses(layer.radius)) {
+      const passCanvas = buildWrappedBlurPassCanvas(
+        image,
+        width,
+        height,
+        pass.blurPx,
+      );
+      layerContext.save();
+      layerContext.globalAlpha = pass.opacity;
+      layerContext.drawImage(passCanvas, 0, 0);
+      layerContext.restore();
+    }
+
+    context.save();
+    context.globalAlpha = layer.opacity;
+    context.drawImage(layerCanvas, 0, 0);
+    context.restore();
+  }
+
+  return textureCanvas;
+}
+
+function prepareCityLightsMaps(
+  image: HTMLImageElement,
+  args: {
+    cityLightsGlow: number;
+    lightPollutionSpread: number;
+  },
+): PreparedCityLightsMaps {
+  return {
+    glow: buildCityLightsCompositeTextureCanvas({
+      image,
+      layers: [
+        {
+          opacity: 1,
+          radius: 0.85 + args.cityLightsGlow * 1.1,
+        },
+      ],
+      maxWidth: 1024,
+    }),
+    pollution: buildCityLightsCompositeTextureCanvas({
+      image,
+      layers: [
+        {
+          opacity: 0.52,
+          radius: 2.6 + args.lightPollutionSpread * 3.1,
+        },
+        {
+          opacity: 0.48,
+          radius: 5.2 + args.lightPollutionSpread * 5.1,
+        },
+      ],
+      maxWidth: 768,
+    }),
+  };
 }
 
 function isHydroFeatureCollection(value: unknown): value is HydroFeatureCollection {
@@ -1607,13 +1797,35 @@ function getTextureResolution(
   return Math.min(1024, maxTextureSize);
 }
 
+function uploadSolidTexture(
+  gl: WebGLRenderingContext,
+  unit: number,
+  texture: WebGLTexture,
+  rgba: [number, number, number, number],
+) {
+  gl.activeTexture(unit);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array(rgba),
+  );
+}
+
 function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const gl =
     canvas.getContext('webgl', {
       alpha: true,
       antialias: true,
       desynchronized: true,
-      powerPreference: 'low-power',
+      powerPreference: 'high-performance',
     }) ?? canvas.getContext('experimental-webgl');
 
   if (!gl || !(gl instanceof WebGLRenderingContext)) {
@@ -1622,27 +1834,28 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
 
   const program = createProgram(gl);
   const mesh = createSphereMesh();
-  const overlayPositions = new Float32Array(mesh.positions);
   const positionBuffer = gl.createBuffer();
-  const overlayPositionBuffer = gl.createBuffer();
   const uvBuffer = gl.createBuffer();
   const indexBuffer = gl.createBuffer();
   const texture = gl.createTexture();
   const overlayTexture = gl.createTexture();
   const reliefTexture = gl.createTexture();
   const cityLightsTexture = gl.createTexture();
+  const cityLightsGlowTexture = gl.createTexture();
+  const cityLightsPollutionTexture = gl.createTexture();
   const dayTexture = gl.createTexture();
   const nightTexture = gl.createTexture();
   const waterMaskTexture = gl.createTexture();
   if (
     !positionBuffer ||
-    !overlayPositionBuffer ||
     !uvBuffer ||
     !indexBuffer ||
     !texture ||
     !overlayTexture ||
     !reliefTexture ||
     !cityLightsTexture ||
+    !cityLightsGlowTexture ||
+    !cityLightsPollutionTexture ||
     !dayTexture ||
     !nightTexture ||
     !waterMaskTexture
@@ -1653,13 +1866,10 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.useProgram(program);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
   const positionLocation = gl.getAttribLocation(program, 'a_position');
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, overlayPositionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, overlayPositions, gl.DYNAMIC_DRAW);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, mesh.uvs, gl.STATIC_DRAW);
@@ -1674,182 +1884,145 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   configureTexture(gl, overlayTexture);
   configureTexture(gl, reliefTexture);
   configureTexture(gl, cityLightsTexture);
+  configureTexture(gl, cityLightsGlowTexture);
+  configureTexture(gl, cityLightsPollutionTexture);
   configureTexture(gl, dayTexture);
   configureTexture(gl, nightTexture);
   configureTexture(gl, waterMaskTexture);
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, reliefTexture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    1,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([128, 128, 128, 255]),
+  uploadSolidTexture(gl, gl.TEXTURE1, reliefTexture, [128, 128, 128, 255]);
+  uploadSolidTexture(gl, gl.TEXTURE2, cityLightsTexture, [0, 0, 0, 255]);
+  uploadSolidTexture(gl, gl.TEXTURE3, cityLightsGlowTexture, [0, 0, 0, 255]);
+  uploadSolidTexture(
+    gl,
+    gl.TEXTURE4,
+    cityLightsPollutionTexture,
+    [0, 0, 0, 255],
   );
-  gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    1,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([0, 0, 0, 255]),
-  );
-  gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    1,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([255, 255, 255, 255]),
-  );
-  gl.activeTexture(gl.TEXTURE4);
-  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    1,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([0, 0, 0, 255]),
-  );
-  gl.activeTexture(gl.TEXTURE5);
-  gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    1,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([255, 255, 255, 255]),
-  );
+  uploadSolidTexture(gl, gl.TEXTURE5, dayTexture, [255, 255, 255, 255]);
+  uploadSolidTexture(gl, gl.TEXTURE6, nightTexture, [0, 0, 0, 255]);
+  uploadSolidTexture(gl, gl.TEXTURE7, waterMaskTexture, [255, 255, 255, 255]);
   gl.activeTexture(gl.TEXTURE0);
 
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
   gl.clearColor(0, 0, 0, 0);
 
+  const uniforms = {
+    atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
+    atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
+    auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
+    cityLightsColor: getUniformLocation(gl, program, 'u_cityLightsColor'),
+    cityLightsGlow: getUniformLocation(gl, program, 'u_cityLightsGlow'),
+    cityLightsGlowTexture: getUniformLocation(
+      gl,
+      program,
+      'u_cityLightsGlowTexture',
+    ),
+    cityLightsIntensity: getUniformLocation(
+      gl,
+      program,
+      'u_cityLightsIntensity',
+    ),
+    cityLightsPollutionTexture: getUniformLocation(
+      gl,
+      program,
+      'u_cityLightsPollutionTexture',
+    ),
+    cityLightsTexture: getUniformLocation(gl, program, 'u_cityLightsTexture'),
+    cityLightsThreshold: getUniformLocation(
+      gl,
+      program,
+      'u_cityLightsThreshold',
+    ),
+    dayTexture: getUniformLocation(gl, program, 'u_dayTexture'),
+    gridColor: getUniformLocation(gl, program, 'u_gridColor'),
+    gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
+    lightPollutionColor: getUniformLocation(
+      gl,
+      program,
+      'u_lightPollutionColor',
+    ),
+    lightPollutionIntensity: getUniformLocation(
+      gl,
+      program,
+      'u_lightPollutionIntensity',
+    ),
+    lightPollutionSpread: getUniformLocation(
+      gl,
+      program,
+      'u_lightPollutionSpread',
+    ),
+    nightTexture: getUniformLocation(gl, program, 'u_nightTexture'),
+    nightAlpha: getUniformLocation(gl, program, 'u_nightAlpha'),
+    nightColor: getUniformLocation(gl, program, 'u_nightColor'),
+    noiseStrength: getUniformLocation(gl, program, 'u_noiseStrength'),
+    penumbra: getUniformLocation(gl, program, 'u_penumbra'),
+    reliefStrength: getUniformLocation(gl, program, 'u_reliefStrength'),
+    reliefTexture: getUniformLocation(gl, program, 'u_reliefTexture'),
+    reliefTexelSize: getUniformLocation(gl, program, 'u_reliefTexelSize'),
+    rimLightColor: getUniformLocation(gl, program, 'u_rimLightColor'),
+    rimLightStrength: getUniformLocation(gl, program, 'u_rimLightStrength'),
+    rotationMatrix: getUniformLocation(gl, program, 'u_rotationMatrix'),
+    scale: getUniformLocation(gl, program, 'u_scale'),
+    scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
+    slowScanlineStrength: getUniformLocation(
+      gl,
+      program,
+      'u_slowScanlineStrength',
+    ),
+    scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
+    specularColor: getUniformLocation(gl, program, 'u_specularColor'),
+    specularPower: getUniformLocation(gl, program, 'u_specularPower'),
+    specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
+    sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
+    surfaceDistortionStrength: getUniformLocation(
+      gl,
+      program,
+      'u_surfaceDistortionStrength',
+    ),
+    surfaceScale: getUniformLocation(gl, program, 'u_surfaceScale'),
+    surfaceTextureStrength: getUniformLocation(
+      gl,
+      program,
+      'u_surfaceTextureStrength',
+    ),
+    texture: getUniformLocation(gl, program, 'u_texture'),
+    time: getUniformLocation(gl, program, 'u_time'),
+    umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
+    useCityLights: getUniformLocation(gl, program, 'u_useCityLights'),
+    useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
+    useLightPollution: getUniformLocation(
+      gl,
+      program,
+      'u_useLightPollution',
+    ),
+    useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
+    useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
+    waterMaskTexture: getUniformLocation(gl, program, 'u_waterMaskTexture'),
+  };
+  gl.uniform1i(uniforms.texture, 0);
+  gl.uniform1i(uniforms.reliefTexture, 1);
+  gl.uniform1i(uniforms.cityLightsTexture, 2);
+  gl.uniform1i(uniforms.cityLightsGlowTexture, 3);
+  gl.uniform1i(uniforms.cityLightsPollutionTexture, 4);
+  gl.uniform1i(uniforms.dayTexture, 5);
+  gl.uniform1i(uniforms.nightTexture, 6);
+  gl.uniform1i(uniforms.waterMaskTexture, 7);
+
   return {
+    cityLightsGlowTexture,
+    cityLightsPollutionTexture,
     cityLightsTexture,
     dayTexture,
     gl,
     indexCount: mesh.indices.length,
-    lastRotation: null,
-    mesh,
     nightTexture,
-    overlayPositionBuffer,
-    overlayPositions,
     overlayTexture,
-    positionBuffer,
     program,
     reliefTexture,
     texture,
     waterMaskTexture,
-    uniforms: {
-      atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
-      atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
-      auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
-      cityLightsColor: getUniformLocation(gl, program, 'u_cityLightsColor'),
-      cityLightsGlow: getUniformLocation(gl, program, 'u_cityLightsGlow'),
-      cityLightsIntensity: getUniformLocation(
-        gl,
-        program,
-        'u_cityLightsIntensity',
-      ),
-      cityLightsTexelSize: getUniformLocation(
-        gl,
-        program,
-        'u_cityLightsTexelSize',
-      ),
-      cityLightsTexture: getUniformLocation(gl, program, 'u_cityLightsTexture'),
-      cityLightsThreshold: getUniformLocation(
-        gl,
-        program,
-        'u_cityLightsThreshold',
-      ),
-      dayTexture: getUniformLocation(gl, program, 'u_dayTexture'),
-      gridColor: getUniformLocation(gl, program, 'u_gridColor'),
-      gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
-      lightPollutionColor: getUniformLocation(
-        gl,
-        program,
-        'u_lightPollutionColor',
-      ),
-      lightPollutionIntensity: getUniformLocation(
-        gl,
-        program,
-        'u_lightPollutionIntensity',
-      ),
-      lightPollutionSpread: getUniformLocation(
-        gl,
-        program,
-        'u_lightPollutionSpread',
-      ),
-      nightTexture: getUniformLocation(gl, program, 'u_nightTexture'),
-      nightAlpha: getUniformLocation(gl, program, 'u_nightAlpha'),
-      nightColor: getUniformLocation(gl, program, 'u_nightColor'),
-      noiseStrength: getUniformLocation(gl, program, 'u_noiseStrength'),
-      penumbra: getUniformLocation(gl, program, 'u_penumbra'),
-      rimLightColor: getUniformLocation(gl, program, 'u_rimLightColor'),
-      rimLightStrength: getUniformLocation(gl, program, 'u_rimLightStrength'),
-      scale: getUniformLocation(gl, program, 'u_scale'),
-      scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
-      scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
-      surfaceDistortionStrength: getUniformLocation(
-        gl,
-        program,
-        'u_surfaceDistortionStrength',
-      ),
-      surfaceTextureStrength: getUniformLocation(
-        gl,
-        program,
-        'u_surfaceTextureStrength',
-      ),
-      reliefStrength: getUniformLocation(gl, program, 'u_reliefStrength'),
-      reliefTexture: getUniformLocation(gl, program, 'u_reliefTexture'),
-      reliefTexelSize: getUniformLocation(gl, program, 'u_reliefTexelSize'),
-      specularColor: getUniformLocation(gl, program, 'u_specularColor'),
-      specularPower: getUniformLocation(gl, program, 'u_specularPower'),
-      specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
-      sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
-      texture: getUniformLocation(gl, program, 'u_texture'),
-      time: getUniformLocation(gl, program, 'u_time'),
-      umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
-      useCityLights: getUniformLocation(gl, program, 'u_useCityLights'),
-      useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
-      useLightPollution: getUniformLocation(
-        gl,
-        program,
-        'u_useLightPollution',
-      ),
-      useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
-      useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
-      waterMaskTexture: getUniformLocation(gl, program, 'u_waterMaskTexture'),
-    },
+    uniforms,
   };
 }
 
@@ -1862,21 +2035,19 @@ function drawGlobe(
   currentRotation: [number, number],
   palette: GlobePalette,
   quality: GlobeQualityConfig,
+  slowScanlineStrength: number,
   effectTimeSeconds: number,
-  cityLightsTexelSize: [number, number],
   reliefStrength: number,
   reliefTexelSize: [number, number],
 ) {
   const {
+    cityLightsGlowTexture,
+    cityLightsPollutionTexture,
     cityLightsTexture,
     dayTexture,
     gl,
     indexCount,
-    mesh,
     nightTexture,
-    overlayPositionBuffer,
-    overlayPositions,
-    positionBuffer,
     uniforms,
     waterMaskTexture,
   } = resources;
@@ -1897,6 +2068,7 @@ function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
+  const rotationMatrix = createRotationMatrix(currentRotation);
   const sunDirection = getRotatedSunDirection(currentRotation);
   const [atmosphereRed, atmosphereGreen, atmosphereBlue] = cssColorToVec3(
     palette.atmosphereTint,
@@ -1917,50 +2089,8 @@ function drawGlobe(
   );
   const hasRaisedCountries = palette.countryElevation > 0;
 
-  if (
-    !resources.lastRotation ||
-    resources.lastRotation[0] !== currentRotation[0] ||
-    resources.lastRotation[1] !== currentRotation[1]
-  ) {
-    const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
-
-    for (let index = 0; index < mesh.sourceCoordinates.length; index += 2) {
-      const rotated = rotate([
-        mesh.sourceCoordinates[index]!,
-        mesh.sourceCoordinates[index + 1]!,
-      ]);
-      const position = geoToSpherePosition(rotated[0], rotated[1]);
-      const targetIndex = (index / 2) * 3;
-      const elevatedScale = 1 + palette.countryElevation;
-      mesh.positions[targetIndex] = position.x;
-      mesh.positions[targetIndex + 1] = position.y;
-      mesh.positions[targetIndex + 2] = position.z;
-      overlayPositions[targetIndex] = position.x * elevatedScale;
-      overlayPositions[targetIndex + 1] = position.y * elevatedScale;
-      overlayPositions[targetIndex + 2] = position.z * elevatedScale;
-    }
-
-    resources.lastRotation = [...currentRotation];
-  }
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.useProgram(resources.program);
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positions);
-  gl.vertexAttribPointer(
-    gl.getAttribLocation(resources.program, 'a_position'),
-    3,
-    gl.FLOAT,
-    false,
-    0,
-    0,
-  );
-  gl.uniform1i(uniforms.texture, 0);
-  gl.uniform1i(uniforms.reliefTexture, 1);
-  gl.uniform1i(uniforms.cityLightsTexture, 2);
-  gl.uniform1i(uniforms.dayTexture, 3);
-  gl.uniform1i(uniforms.nightTexture, 4);
-  gl.uniform1i(uniforms.waterMaskTexture, 5);
   gl.uniform3f(
     uniforms.cityLightsColor,
     cityLightsRed,
@@ -1969,11 +2099,6 @@ function drawGlobe(
   );
   gl.uniform1f(uniforms.cityLightsGlow, quality.cityLightsGlow);
   gl.uniform1f(uniforms.cityLightsIntensity, quality.cityLightsIntensity);
-  gl.uniform2f(
-    uniforms.cityLightsTexelSize,
-    cityLightsTexelSize[0],
-    cityLightsTexelSize[1],
-  );
   gl.uniform1f(uniforms.cityLightsThreshold, quality.cityLightsThreshold);
   gl.uniform1f(uniforms.reliefStrength, reliefStrength);
   gl.uniform1f(uniforms.umbraDarkness, quality.umbraDarkness);
@@ -2018,12 +2143,14 @@ function drawGlobe(
     nightRgb[2] / 255,
   );
   gl.uniform1f(uniforms.noiseStrength, palette.noiseStrength);
+  gl.uniformMatrix3fv(uniforms.rotationMatrix, false, rotationMatrix);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
   gl.uniform1f(uniforms.penumbra, getTerminatorHalfAngleRadians());
   gl.uniform3f(uniforms.rimLightColor, rimRed, rimGreen, rimBlue);
   gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
   gl.uniform1f(uniforms.scanlineStrength, palette.scanlineStrength);
+  gl.uniform1f(uniforms.slowScanlineStrength, slowScanlineStrength);
   gl.uniform1f(
     uniforms.surfaceDistortionStrength,
     palette.surfaceDistortionStrength,
@@ -2046,6 +2173,7 @@ function drawGlobe(
     sunDirection.y,
     sunDirection.z,
   );
+  gl.uniform1f(uniforms.surfaceScale, 1);
   gl.uniform1f(uniforms.time, effectTimeSeconds);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, resources.texture);
@@ -2054,37 +2182,22 @@ function drawGlobe(
   gl.activeTexture(gl.TEXTURE2);
   gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
   gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+  gl.bindTexture(gl.TEXTURE_2D, cityLightsGlowTexture);
   gl.activeTexture(gl.TEXTURE4);
-  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.bindTexture(gl.TEXTURE_2D, cityLightsPollutionTexture);
   gl.activeTexture(gl.TEXTURE5);
+  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+  gl.activeTexture(gl.TEXTURE6);
+  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.activeTexture(gl.TEXTURE7);
   gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
   gl.activeTexture(gl.TEXTURE0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
   if (hasRaisedCountries) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, overlayPositionBuffer);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, overlayPositions);
-    gl.vertexAttribPointer(
-      gl.getAttribLocation(resources.program, 'a_position'),
-      3,
-      gl.FLOAT,
-      false,
-      0,
-      0,
-    );
+    gl.uniform1f(uniforms.surfaceScale, 1 + palette.countryElevation);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
-    gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, dayTexture);
-    gl.activeTexture(gl.TEXTURE4);
-    gl.bindTexture(gl.TEXTURE_2D, nightTexture);
-    gl.activeTexture(gl.TEXTURE5);
-    gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -2225,10 +2338,13 @@ export function WebGlGlobe({
   themeId,
 }: WebGlGlobeProps) {
   const isAtlas = themeId === 'atlas';
+  const slowScanlineStrength = themeId === 'cipher' ? 1 : 0;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
-  const drawCurrentFrameRef = useRef<(now?: number) => void>(() => undefined);
+  const drawCurrentFrameRef = useRef<
+    (now?: number, includeOverlay?: boolean) => void
+  >(() => undefined);
   const targetFeatureRef = useRef<CountryFeature>(country);
   const lakesDataRef = useRef<HydroFeatureCollection | null>(null);
   const riversDataRef = useRef<HydroFeatureCollection | null>(null);
@@ -2246,6 +2362,8 @@ export function WebGlGlobe({
     useState<HTMLImageElement | null>(null);
   const [cityLightsImage, setCityLightsImage] =
     useState<HTMLImageElement | null>(null);
+  const [preparedCityLightsMaps, setPreparedCityLightsMaps] =
+    useState<PreparedCityLightsMaps | null>(null);
   const [dayImageryImage, setDayImageryImage] =
     useState<HTMLImageElement | null>(null);
   const [nightImageryImage, setNightImageryImage] =
@@ -2540,13 +2658,80 @@ export function WebGlGlobe({
     };
   }, [quality.showRivers]);
 
-  const drawCurrentFrame = useCallback((now = performance.now()) => {
-    const canvas = canvasRef.current;
+  useEffect(() => {
+    if (
+      !cityLightsImage ||
+      (!quality.cityLightsEnabled && !quality.lightPollutionEnabled)
+    ) {
+      const timeoutId = window.setTimeout(() => {
+        setPreparedCityLightsMaps(null);
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+
+      try {
+        setPreparedCityLightsMaps(
+          prepareCityLightsMaps(cityLightsImage, {
+            cityLightsGlow: quality.cityLightsGlow,
+            lightPollutionSpread: quality.lightPollutionSpread,
+          }),
+        );
+      } catch {
+        setPreparedCityLightsMaps(null);
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    cityLightsImage,
+    quality.cityLightsEnabled,
+    quality.cityLightsGlow,
+    quality.lightPollutionEnabled,
+    quality.lightPollutionSpread,
+  ]);
+
+  const drawOverlayFrame = useCallback((now = performance.now()) => {
     const overlayCanvas = overlayCanvasRef.current;
+    const frameState = frameStateRef.current;
+
+    if (!overlayCanvas) {
+      return;
+    }
+
+    drawSelectedCountryOverlay({
+      canvas: overlayCanvas,
+      country: targetFeatureRef.current,
+      currentRotation: frameState.currentRotation,
+      height: frameState.height,
+      mode,
+      nowMs: now,
+      palette: paletteRef.current,
+      width: frameState.width,
+      zoomScale: frameState.zoomScale,
+    });
+  }, [mode]);
+
+  const drawCurrentFrame = useCallback((
+    now = performance.now(),
+    includeOverlay = true,
+  ) => {
+    const canvas = canvasRef.current;
     const resources = resourcesRef.current;
     const frameState = frameStateRef.current;
 
-    if (!canvas || !overlayCanvas || !resources) {
+    if (!canvas || !resources) {
       return;
     }
 
@@ -2565,28 +2750,18 @@ export function WebGlGlobe({
       frameState.currentRotation,
       paletteRef.current,
       currentQuality,
+      slowScanlineStrength,
       now * 0.001,
-      cityLightsImage
-        ? [1 / cityLightsImage.naturalWidth, 1 / cityLightsImage.naturalHeight]
-        : [1 / 3600, 1 / 1800],
       reliefStrength,
       reliefImage
         ? [1 / reliefImage.naturalWidth, 1 / reliefImage.naturalHeight]
         : [1 / 2048, 1 / 1024],
     );
 
-    drawSelectedCountryOverlay({
-      canvas: overlayCanvas,
-      country: targetFeatureRef.current,
-      currentRotation: frameState.currentRotation,
-      height: frameState.height,
-      mode,
-      nowMs: now,
-      palette: paletteRef.current,
-      width: frameState.width,
-      zoomScale: frameState.zoomScale,
-    });
-  }, [cityLightsImage, isAtlas, mode, reliefImage]);
+    if (includeOverlay) {
+      drawOverlayFrame(now);
+    }
+  }, [drawOverlayFrame, isAtlas, reliefImage, slowScanlineStrength]);
 
   useEffect(() => {
     drawCurrentFrameRef.current = drawCurrentFrame;
@@ -2736,8 +2911,45 @@ export function WebGlGlobe({
       gl.activeTexture(gl.TEXTURE0);
     }
 
-    if (dayImageryImage) {
+    if (preparedCityLightsMaps) {
       gl.activeTexture(gl.TEXTURE3);
+      configureTexture(
+        gl,
+        resources.cityLightsGlowTexture,
+        preparedCityLightsMaps.glow.width,
+        preparedCityLightsMaps.glow.height,
+      );
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        preparedCityLightsMaps.glow,
+      );
+
+      gl.activeTexture(gl.TEXTURE4);
+      configureTexture(
+        gl,
+        resources.cityLightsPollutionTexture,
+        preparedCityLightsMaps.pollution.width,
+        preparedCityLightsMaps.pollution.height,
+      );
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        preparedCityLightsMaps.pollution,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
+    if (dayImageryImage) {
+      gl.activeTexture(gl.TEXTURE5);
       configureTexture(
         gl,
         resources.dayTexture,
@@ -2757,7 +2969,7 @@ export function WebGlGlobe({
     }
 
     if (nightImageryImage) {
-      gl.activeTexture(gl.TEXTURE4);
+      gl.activeTexture(gl.TEXTURE6);
       configureTexture(
         gl,
         resources.nightTexture,
@@ -2777,7 +2989,7 @@ export function WebGlGlobe({
     }
 
     if (waterMaskImage) {
-      gl.activeTexture(gl.TEXTURE5);
+      gl.activeTexture(gl.TEXTURE7);
       configureTexture(
         gl,
         resources.waterMaskTexture,
@@ -2818,6 +3030,7 @@ export function WebGlGlobe({
     lakesData,
     nightImageryImage,
     palette,
+    preparedCityLightsMaps,
     quality,
     reliefImage,
     riversData,
@@ -2852,7 +3065,7 @@ export function WebGlGlobe({
     };
 
     const renderLoop = (now: number) => {
-      drawCurrentFrame(now);
+      drawCurrentFrame(now, hasCapitalBlipAnimation);
       scheduleNextFrame();
     };
 
