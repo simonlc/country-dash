@@ -3,5 +3,7 @@ dist
 coverage
 playwright-report
 test-results
+.env
+.env.local
 *.tsbuildinfo
 yarn-error.log

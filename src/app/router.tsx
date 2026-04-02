@@ -6,13 +6,17 @@ import {
 } from '@tanstack/react-router';
 import { Box } from '@mui/material';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { GamePage } from '@/features/game/routes/GamePage';
+import { GamePage } from '@/routes/GamePage';
 
 function RootLayout() {
+  const showDevtools = import.meta.env.DEV;
+
   return (
     <Box sx={{ minHeight: '100vh' }}>
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      {showDevtools ? (
+        <TanStackRouterDevtools position="bottom-right" />
+      ) : null}
     </Box>
   );
 }

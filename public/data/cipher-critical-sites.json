@@ -1,0 +1,98 @@
+[
+  {
+    "id": "three-gorges",
+    "name": "Three Gorges",
+    "kind": "power",
+    "latitude": 30.823,
+    "longitude": 111.003,
+    "source": "static-curated"
+  },
+  {
+    "id": "itaipu",
+    "name": "Itaipu",
+    "kind": "power",
+    "latitude": -25.407,
+    "longitude": -54.588,
+    "source": "static-curated"
+  },
+  {
+    "id": "bruce",
+    "name": "Bruce Nuclear",
+    "kind": "power",
+    "latitude": 44.325,
+    "longitude": -81.599,
+    "source": "static-curated"
+  },
+  {
+    "id": "palo-verde",
+    "name": "Palo Verde",
+    "kind": "power",
+    "latitude": 33.389,
+    "longitude": -112.865,
+    "source": "static-curated"
+  },
+  {
+    "id": "kashiwazaki",
+    "name": "Kashiwazaki",
+    "kind": "power",
+    "latitude": 37.427,
+    "longitude": 138.601,
+    "source": "static-curated"
+  },
+  {
+    "id": "surgut-2",
+    "name": "Surgut-2",
+    "kind": "power",
+    "latitude": 61.258,
+    "longitude": 73.441,
+    "source": "static-curated"
+  },
+  {
+    "id": "tuas-water",
+    "name": "Tuas WRP",
+    "kind": "water",
+    "latitude": 1.279,
+    "longitude": 103.617,
+    "source": "static-curated"
+  },
+  {
+    "id": "blue-plains",
+    "name": "Blue Plains",
+    "kind": "water",
+    "latitude": 38.809,
+    "longitude": -77.017,
+    "source": "static-curated"
+  },
+  {
+    "id": "deer-island",
+    "name": "Deer Island",
+    "kind": "water",
+    "latitude": 42.394,
+    "longitude": -70.959,
+    "source": "static-curated"
+  },
+  {
+    "id": "beckton",
+    "name": "Beckton Works",
+    "kind": "water",
+    "latitude": 51.516,
+    "longitude": 0.086,
+    "source": "static-curated"
+  },
+  {
+    "id": "sorek",
+    "name": "Sorek Plant",
+    "kind": "water",
+    "latitude": 31.931,
+    "longitude": 34.699,
+    "source": "static-curated"
+  },
+  {
+    "id": "western-treatment",
+    "name": "Western Treatment",
+    "kind": "water",
+    "latitude": -37.83,
+    "longitude": 144.66,
+    "source": "static-curated"
+  }
+]
