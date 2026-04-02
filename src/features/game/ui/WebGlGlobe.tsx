@@ -331,7 +331,7 @@ const fragmentShaderSource = `
     float slowScanlineStrength = u_scanlineStrength * u_slowScanlineStrength;
     vec3 earthAxis = vec3(0.0, 1.0, 0.0);
     vec3 slowScanlineAxis = normalize(earthAxis + vec3(0.22, 0.0, 0.08));
-    float slowScanlineOffset = sin(u_time * 0.08) * 0.88;
+    float slowScanlineOffset = sin(u_time * 0.05) * 0.88;
     float slowScanlineDistance = abs(
       dot(sweepSurfaceNormal, slowScanlineAxis) - slowScanlineOffset
     );
@@ -1452,15 +1452,95 @@ function buildOceanTextureCanvas(
 
 function drawHydroLayers(args: {
   context: CanvasRenderingContext2D;
+  isCipher: boolean;
   lakesData: HydroFeatureCollection | null;
   path: ReturnType<typeof geoPath>;
   quality: GlobeQualityConfig;
   riversData: HydroFeatureCollection | null;
   textureCanvas: HTMLCanvasElement;
 }) {
-  const { context, lakesData, path, quality, riversData, textureCanvas } = args;
+  const {
+    context,
+    isCipher,
+    lakesData,
+    path,
+    quality,
+    riversData,
+    textureCanvas,
+  } = args;
 
   if (quality.showLakes && lakesData) {
+    if (isCipher) {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.shadowColor = withOpacity(quality.lakesColor, 0.52);
+      context.shadowBlur = Math.max(textureCanvas.width / 180, 6);
+      context.fillStyle = withOpacity(
+        quality.lakesColor,
+        quality.lakesOpacity * 0.42,
+      );
+      for (const feature of lakesData.features) {
+        context.beginPath();
+        path(feature as GeoPermissibleObjects);
+        context.fill();
+      }
+      context.restore();
+
+      context.save();
+      for (const feature of lakesData.features) {
+        context.beginPath();
+        path(feature as GeoPermissibleObjects);
+      }
+      context.clip();
+
+      const lakeWash = context.createLinearGradient(
+        0,
+        0,
+        textureCanvas.width,
+        textureCanvas.height,
+      );
+      lakeWash.addColorStop(
+        0,
+        shiftColor(quality.lakesColor, 120, 0, 18, 0.16),
+      );
+      lakeWash.addColorStop(
+        0.5,
+        shiftColor(quality.lakesColor, 10, -10, -18, 0.08),
+      );
+      lakeWash.addColorStop(
+        1,
+        shiftColor(quality.lakesColor, 130, 8, 22, 0.14),
+      );
+      context.globalCompositeOperation = 'screen';
+      context.fillStyle = lakeWash;
+      context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+
+      context.strokeStyle = withOpacity(quality.lakesColor, 0.08);
+      context.lineWidth = Math.max(textureCanvas.width / 6144, 0.5);
+      const spacing = Math.max(Math.floor(textureCanvas.width / 70), 16);
+      for (
+        let offset = -textureCanvas.height;
+        offset < textureCanvas.width + textureCanvas.height;
+        offset += spacing
+      ) {
+        context.beginPath();
+        context.moveTo(offset, 0);
+        context.lineTo(offset - textureCanvas.height * 0.55, textureCanvas.height);
+        context.stroke();
+      }
+      context.restore();
+
+      context.save();
+      context.strokeStyle = shiftColor(quality.lakesColor, 135, 0, 24, 0.26);
+      context.lineWidth = Math.max(textureCanvas.width / 4096, 0.8);
+      for (const feature of lakesData.features) {
+        context.beginPath();
+        path(feature as GeoPermissibleObjects);
+        context.stroke();
+      }
+      context.restore();
+    }
+
     context.fillStyle = withOpacity(quality.lakesColor, quality.lakesOpacity);
     for (const feature of lakesData.features) {
       context.beginPath();
@@ -1470,6 +1550,26 @@ function drawHydroLayers(args: {
   }
 
   if (quality.showRivers && riversData) {
+    if (isCipher) {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.strokeStyle = withOpacity(quality.riversColor, 0.48);
+      context.shadowColor = withOpacity(quality.riversColor, 0.7);
+      context.shadowBlur = Math.max(textureCanvas.width / 200, 5);
+      context.lineWidth = Math.max(
+        textureCanvas.width / 2048,
+        quality.riversWidth * 3.4,
+      );
+      for (const feature of riversData.features) {
+        context.beginPath();
+        path(feature as GeoPermissibleObjects);
+        context.stroke();
+      }
+      context.restore();
+    }
+
     context.globalAlpha = Math.max(0, Math.min(1, quality.riversOpacity));
     context.lineCap = 'round';
     context.lineJoin = 'round';
@@ -1484,6 +1584,24 @@ function drawHydroLayers(args: {
       context.stroke();
     }
     context.globalAlpha = 1;
+
+    if (isCipher) {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.strokeStyle = shiftColor(quality.riversColor, 140, 0, 26, 0.58);
+      context.lineWidth = Math.max(
+        textureCanvas.width / 8192,
+        quality.riversWidth * 1.7,
+      );
+      for (const feature of riversData.features) {
+        context.beginPath();
+        path(feature as GeoPermissibleObjects);
+        context.stroke();
+      }
+      context.restore();
+    }
   }
 }
 
@@ -1517,6 +1635,7 @@ function buildCombinedTextureCanvas(
   quality: GlobeQualityConfig,
   textureSize: number,
   isAtlas: boolean,
+  isCipher: boolean,
   atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
@@ -1578,6 +1697,7 @@ function buildCombinedTextureCanvas(
     );
     drawHydroLayers({
       context,
+      isCipher,
       lakesData,
       path,
       quality,
@@ -1630,6 +1750,7 @@ function buildCountryTextureCanvas(
   quality: GlobeQualityConfig,
   textureSize: number,
   isAtlas: boolean,
+  isCipher: boolean,
   atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
@@ -1685,6 +1806,7 @@ function buildCountryTextureCanvas(
     );
     drawHydroLayers({
       context,
+      isCipher,
       lakesData,
       path,
       quality,
@@ -2206,6 +2328,151 @@ function drawGlobe(
   }
 }
 
+function drawCipherSelectedCountryOverlay(args: {
+  context: CanvasRenderingContext2D;
+  country: CountryFeature;
+  nowMs: number;
+  palette: GlobePalette;
+  path: ReturnType<typeof geoPath>;
+  projection: ReturnType<typeof geoOrthographic>;
+}) {
+  const { context, country, nowMs, palette, path, projection } = args;
+  const countryShape = country as GeoPermissibleObjects;
+  const measurePath = geoPath(projection);
+  const [[minX, minY], [maxX, maxY]] = measurePath.bounds(countryShape);
+  const [centroidX, centroidY] = measurePath.centroid(countryShape);
+
+  if (
+    !Number.isFinite(minX) ||
+    !Number.isFinite(minY) ||
+    !Number.isFinite(maxX) ||
+    !Number.isFinite(maxY)
+  ) {
+    return;
+  }
+
+  const boundsWidth = Math.max(maxX - minX, 18);
+  const boundsHeight = Math.max(maxY - minY, 18);
+  const sweepProgress = (nowMs * 0.00012) % 1;
+  const pulseProgress = (nowMs * 0.00072) % 1;
+  const pulseAlpha = 1 - pulseProgress;
+  const ringPaths = getCountryHighlightRings(country).map((ring) =>
+    geoCircle().center(ring.center).radius(ring.radius)(),
+  );
+
+  context.save();
+  context.beginPath();
+  path(countryShape);
+  context.clip();
+
+  const baseFill = context.createLinearGradient(minX, minY, maxX, maxY);
+  baseFill.addColorStop(0, withOpacity(palette.selectedFill, 0.16));
+  baseFill.addColorStop(0.52, shiftColor(palette.selectedFill, -46, -8, -18, 0.08));
+  baseFill.addColorStop(1, withOpacity(palette.selectedFill, 0.14));
+  context.fillStyle = baseFill;
+  context.fillRect(minX - 6, minY - 6, boundsWidth + 12, boundsHeight + 12);
+
+  context.globalCompositeOperation = 'screen';
+  context.strokeStyle = withOpacity(palette.smallCountryCircle, 0.08);
+  context.lineWidth = 1;
+  const cellSpacing = Math.max(Math.min(boundsWidth, boundsHeight) / 5, 9);
+  for (let x = minX - cellSpacing; x <= maxX + cellSpacing; x += cellSpacing) {
+    context.beginPath();
+    context.moveTo(x, minY - 4);
+    context.lineTo(x, maxY + 4);
+    context.stroke();
+  }
+  for (let y = minY - cellSpacing; y <= maxY + cellSpacing; y += cellSpacing) {
+    context.beginPath();
+    context.moveTo(minX - 4, y);
+    context.lineTo(maxX + 4, y);
+    context.stroke();
+  }
+
+  context.save();
+  context.translate((minX + maxX) / 2, (minY + maxY) / 2);
+  context.rotate(-0.24);
+  const sweepX = -boundsWidth * 0.95 + sweepProgress * boundsWidth * 1.9;
+  const sweepHalfWidth = Math.max(boundsWidth * 0.24, 18);
+  const sweep = context.createLinearGradient(
+    sweepX - sweepHalfWidth,
+    0,
+    sweepX + sweepHalfWidth,
+    0,
+  );
+  sweep.addColorStop(0, withOpacity(palette.selectedFill, 0));
+  sweep.addColorStop(0.42, withOpacity(palette.selectedFill, 0.03));
+  sweep.addColorStop(0.5, withOpacity(palette.selectedFill, 0.22));
+  sweep.addColorStop(0.58, withOpacity(palette.smallCountryCircle, 0.08));
+  sweep.addColorStop(1, withOpacity(palette.selectedFill, 0));
+  context.fillStyle = sweep;
+  context.fillRect(
+    -boundsWidth * 1.5,
+    -boundsHeight * 1.9,
+    boundsWidth * 3,
+    boundsHeight * 3.8,
+  );
+  context.restore();
+  context.restore();
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.shadowColor = withOpacity(palette.selectedFill, 0.46);
+  context.shadowBlur = 12;
+  context.strokeStyle = withOpacity(palette.selectedFill, 0.9);
+  context.lineWidth = 1.7;
+  context.beginPath();
+  path(countryShape);
+  context.stroke();
+  context.restore();
+
+  if (Number.isFinite(centroidX) && Number.isFinite(centroidY)) {
+    context.save();
+    context.globalCompositeOperation = 'screen';
+    context.shadowColor = withOpacity(palette.selectedFill, 0.6);
+    context.shadowBlur = 12;
+    context.fillStyle = withOpacity(palette.selectedFill, 0.95);
+    context.beginPath();
+    context.arc(centroidX, centroidY, 2.6, 0, Math.PI * 2);
+    context.fill();
+
+    context.strokeStyle = withOpacity(palette.selectedFill, 0.38 * pulseAlpha);
+    context.lineWidth = Math.max(0.8, 1.9 - pulseProgress);
+    context.beginPath();
+    context.arc(centroidX, centroidY, 7 + pulseProgress * 22, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
+
+  context.save();
+  context.strokeStyle = withOpacity(palette.selectedFill, 0.16 + pulseAlpha * 0.08);
+  context.lineWidth = 3.1 + pulseAlpha * 1.2;
+  for (const ringPath of ringPaths) {
+    context.beginPath();
+    path(ringPath);
+    context.stroke();
+  }
+  context.restore();
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.shadowColor = withOpacity(palette.smallCountryCircle, 0.28);
+  context.shadowBlur = 10;
+  context.strokeStyle = withOpacity(
+    palette.smallCountryCircle,
+    0.22 + pulseAlpha * 0.1,
+  );
+  context.setLineDash([8, 10]);
+  context.lineDashOffset = -nowMs * 0.018;
+  context.lineWidth = 1.3 + pulseAlpha * 0.7;
+  for (const ringPath of ringPaths) {
+    context.beginPath();
+    path(ringPath);
+    context.stroke();
+  }
+  context.restore();
+}
+
 function drawSelectedCountryOverlay(args: {
   canvas: HTMLCanvasElement;
   country: CountryFeature;
@@ -2214,6 +2481,7 @@ function drawSelectedCountryOverlay(args: {
   mode: GameMode;
   nowMs: number;
   palette: GlobePalette;
+  themeId: AppThemeId;
   width: number;
   zoomScale: number;
 }) {
@@ -2225,6 +2493,7 @@ function drawSelectedCountryOverlay(args: {
     mode,
     nowMs,
     palette,
+    themeId,
     width,
     zoomScale,
   } = args;
@@ -2298,26 +2567,37 @@ function drawSelectedCountryOverlay(args: {
       }
     }
   } else {
-    const ringPaths = getCountryHighlightRings(country).map((ring) =>
-      geoCircle().center(ring.center).radius(ring.radius)(),
-    );
+    if (themeId === 'cipher') {
+      drawCipherSelectedCountryOverlay({
+        context,
+        country,
+        nowMs,
+        palette,
+        path,
+        projection,
+      });
+    } else {
+      const ringPaths = getCountryHighlightRings(country).map((ring) =>
+        geoCircle().center(ring.center).radius(ring.radius)(),
+      );
 
-    context.beginPath();
-    path(country as GeoPermissibleObjects);
-    context.fillStyle = palette.selectedFill;
-    context.strokeStyle = palette.selectedFill;
-    context.globalAlpha = 0.9;
-    context.lineWidth = 0.18;
-    context.fill();
-    context.stroke();
-    context.globalAlpha = 1;
-
-    context.strokeStyle = palette.smallCountryCircle;
-    context.lineWidth = 1.7;
-    for (const ringPath of ringPaths) {
       context.beginPath();
-      path(ringPath);
+      path(country as GeoPermissibleObjects);
+      context.fillStyle = palette.selectedFill;
+      context.strokeStyle = palette.selectedFill;
+      context.globalAlpha = 0.9;
+      context.lineWidth = 0.18;
+      context.fill();
       context.stroke();
+      context.globalAlpha = 1;
+
+      context.strokeStyle = palette.smallCountryCircle;
+      context.lineWidth = 1.7;
+      for (const ringPath of ringPaths) {
+        context.beginPath();
+        path(ringPath);
+        context.stroke();
+      }
     }
   }
 
@@ -2338,6 +2618,8 @@ export function WebGlGlobe({
   themeId,
 }: WebGlGlobeProps) {
   const isAtlas = themeId === 'atlas';
+  const isCipher = themeId === 'cipher';
+  const hasCipherOverlayAnimation = isCipher && mode !== 'capitals';
   const slowScanlineStrength = themeId === 'cipher' ? 1 : 0;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -2718,10 +3000,11 @@ export function WebGlGlobe({
       mode,
       nowMs: now,
       palette: paletteRef.current,
+      themeId,
       width: frameState.width,
       zoomScale: frameState.zoomScale,
     });
-  }, [mode]);
+  }, [mode, themeId]);
 
   const drawCurrentFrame = useCallback((
     now = performance.now(),
@@ -2816,6 +3099,7 @@ export function WebGlGlobe({
           quality,
           textureResolution,
           isAtlas,
+          isCipher,
           isAtlas ? atlasPaperImage : null,
           isAtlas ? atlasImageryImage : null,
           lakesData,
@@ -2829,6 +3113,7 @@ export function WebGlGlobe({
           quality,
           textureResolution,
           isAtlas,
+          isCipher,
           isAtlas ? atlasPaperImage : null,
           isAtlas ? atlasImageryImage : null,
           lakesData,
@@ -3027,6 +3312,7 @@ export function WebGlGlobe({
     drawCurrentFrame,
     height,
     isAtlas,
+    isCipher,
     lakesData,
     nightImageryImage,
     palette,
@@ -3057,7 +3343,11 @@ export function WebGlGlobe({
         return;
       }
 
-      if (ambientAnimationEnabled || hasCapitalBlipAnimation) {
+      if (
+        ambientAnimationEnabled ||
+        hasCapitalBlipAnimation ||
+        hasCipherOverlayAnimation
+      ) {
         timeoutId = window.setTimeout(() => {
           frameId = window.requestAnimationFrame(renderLoop);
         }, 1000 / ambientAnimationFps);
@@ -3065,7 +3355,7 @@ export function WebGlGlobe({
     };
 
     const renderLoop = (now: number) => {
-      drawCurrentFrame(now, hasCapitalBlipAnimation);
+      drawCurrentFrame(now, hasCapitalBlipAnimation || hasCipherOverlayAnimation);
       scheduleNextFrame();
     };
 
@@ -3092,6 +3382,7 @@ export function WebGlGlobe({
     ambientAnimationEnabled,
     drawCurrentFrame,
     hasCapitalBlipAnimation,
+    hasCipherOverlayAnimation,
     isAnimating,
   ]);
 
