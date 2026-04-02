@@ -83,6 +83,8 @@ interface WebGlResources {
     scale: WebGLUniformLocation;
     scanlineDensity: WebGLUniformLocation;
     scanlineStrength: WebGLUniformLocation;
+    surfaceDistortionStrength: WebGLUniformLocation;
+    surfaceTextureStrength: WebGLUniformLocation;
     reliefStrength: WebGLUniformLocation;
     reliefTexture: WebGLUniformLocation;
     reliefTexelSize: WebGLUniformLocation;
@@ -152,6 +154,8 @@ const fragmentShaderSource = `
   uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
   uniform float u_scanlineStrength;
+  uniform float u_surfaceDistortionStrength;
+  uniform float u_surfaceTextureStrength;
   uniform float u_reliefStrength;
   uniform float u_umbraDarkness;
   uniform sampler2D u_reliefTexture;
@@ -209,26 +213,37 @@ const fragmentShaderSource = `
   float sampleCityLightsBlur(vec2 uv, vec2 texelSize, float radius) {
     vec2 eastWest = vec2(texelSize.x * radius, 0.0);
     vec2 northSouth = vec2(0.0, texelSize.y * radius);
+    vec2 eastWestHalf = eastWest * 0.5;
+    vec2 northSouthHalf = northSouth * 0.5;
     vec2 diagonal = texelSize * radius * 0.70710678;
+    vec2 diagonalHalf = diagonal * 0.5;
 
-    float value = sampleCityLights(uv) * 0.28;
-    value += sampleCityLights(uv + eastWest) * 0.13;
-    value += sampleCityLights(uv - eastWest) * 0.13;
-    value += sampleCityLights(uv + northSouth) * 0.13;
-    value += sampleCityLights(uv - northSouth) * 0.13;
-    value += sampleCityLights(uv + vec2(diagonal.x, diagonal.y)) * 0.05;
-    value += sampleCityLights(uv + vec2(diagonal.x, -diagonal.y)) * 0.05;
-    value += sampleCityLights(uv + vec2(-diagonal.x, diagonal.y)) * 0.05;
-    value += sampleCityLights(uv - diagonal) * 0.05;
+    float value = sampleCityLights(uv) * 0.18;
+    value += sampleCityLights(uv + eastWestHalf) * 0.1;
+    value += sampleCityLights(uv - eastWestHalf) * 0.1;
+    value += sampleCityLights(uv + northSouthHalf) * 0.1;
+    value += sampleCityLights(uv - northSouthHalf) * 0.1;
+    value += sampleCityLights(uv + eastWest) * 0.07;
+    value += sampleCityLights(uv - eastWest) * 0.07;
+    value += sampleCityLights(uv + northSouth) * 0.07;
+    value += sampleCityLights(uv - northSouth) * 0.07;
+    value += sampleCityLights(uv + diagonalHalf) * 0.045;
+    value += sampleCityLights(uv + vec2(diagonalHalf.x, -diagonalHalf.y)) * 0.045;
+    value += sampleCityLights(uv + vec2(-diagonalHalf.x, diagonalHalf.y)) * 0.045;
+    value += sampleCityLights(uv - diagonalHalf) * 0.045;
+    value += sampleCityLights(uv + diagonal) * 0.025;
+    value += sampleCityLights(uv + vec2(diagonal.x, -diagonal.y)) * 0.025;
+    value += sampleCityLights(uv + vec2(-diagonal.x, diagonal.y)) * 0.025;
+    value += sampleCityLights(uv - diagonal) * 0.025;
     return value;
   }
 
   float sampleCityLightsBloom(vec2 uv, vec2 texelSize, float radius) {
-    float tight = sampleCityLightsBlur(uv, texelSize, max(radius * 0.45, 0.8));
-    float medium = sampleCityLightsBlur(uv, texelSize, max(radius, 1.2));
-    float wide = sampleCityLightsBlur(uv, texelSize, max(radius * 2.4, 2.4));
-    float horizon = sampleCityLightsBlur(uv, texelSize, max(radius * 5.2, 5.2));
-    return tight * 0.34 + medium * 0.30 + wide * 0.22 + horizon * 0.14;
+    float tight = sampleCityLightsBlur(uv, texelSize, max(radius * 0.38, 0.55));
+    float medium = sampleCityLightsBlur(uv, texelSize, max(radius * 0.78, 0.95));
+    float wide = sampleCityLightsBlur(uv, texelSize, max(radius * 1.45, 1.45));
+    float outer = sampleCityLightsBlur(uv, texelSize, max(radius * 2.2, 2.2));
+    return tight * 0.36 + medium * 0.31 + wide * 0.21 + outer * 0.12;
   }
 
   float compressRadiance(float radiance, float exposure) {
@@ -285,7 +300,10 @@ const fragmentShaderSource = `
     float paperTooth = fbm(v_uv * vec2(2800.0, 1360.0));
     normal = normalize(
       normal +
-      (paperTooth - 0.5) * (east * 0.065 + north * 0.045) * (1.0 - umbraShade * 0.7)
+      (paperTooth - 0.5) *
+      (east * 0.065 + north * 0.045) *
+      u_surfaceDistortionStrength *
+      (1.0 - umbraShade * 0.7)
     );
     light = dot(normal, sunDirection);
     daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
@@ -319,7 +337,8 @@ const fragmentShaderSource = `
     float aurora = smoothstep(0.15, 1.0, auroraWave) * u_auroraStrength * rim * daylight;
 
     float grain = (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) * u_noiseStrength * (0.75 - umbraShade * 0.45);
-    float parchmentSpeckle = (paperFiber - 0.5) * (0.06 + u_noiseStrength * 1.3);
+    float parchmentSpeckle =
+      (paperFiber - 0.5) * (0.06 + u_noiseStrength * 1.3) * u_surfaceTextureStrength;
     float reliefLight =
       (dot(reliefNormal, sunDirection) - dot(normalize(v_normal), sunDirection)) * reliefMask;
     float reliefHighlight = max(reliefLight, 0.0);
@@ -340,17 +359,17 @@ const fragmentShaderSource = `
       float glowRadiance = sampleCityLightsBloom(
         v_uv,
         u_cityLightsTexelSize,
-        1.0 + u_cityLightsGlow * 1.6
+        0.85 + u_cityLightsGlow * 1.1
       );
       float pollutionRadiance = sampleCityLightsBloom(
         v_uv,
         u_cityLightsTexelSize,
-        4.6 + u_lightPollutionSpread * 6.2
+        2.6 + u_lightPollutionSpread * 3.1
       );
       float farPollutionRadiance = sampleCityLightsBloom(
         v_uv,
         u_cityLightsTexelSize,
-        12.0 + u_lightPollutionSpread * 13.0
+        5.2 + u_lightPollutionSpread * 5.1
       );
       float cityResponse = compressRadiance(cityRadiance, 448.0);
       float glowResponse = compressRadiance(glowRadiance, 320.0);
@@ -363,8 +382,8 @@ const fragmentShaderSource = `
         1.0
       );
       float cityCoreSignal = pow(normalizedCityLights, 0.42);
-      float cityGlowSignal = max(glowResponse - cityResponse * 0.18, 0.0);
-      float pollutionBase = mix(pollutionResponse, farPollutionResponse, 0.64);
+      float cityGlowSignal = max(glowResponse - cityResponse * 0.22, 0.0);
+      float pollutionBase = mix(pollutionResponse, farPollutionResponse, 0.48);
       float pollutionField = max(pollutionBase - cityResponse * 0.10, 0.0);
       float pollutionSignal = pow(pollutionField, 0.68);
 
@@ -1798,6 +1817,16 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       scale: getUniformLocation(gl, program, 'u_scale'),
       scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
       scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
+      surfaceDistortionStrength: getUniformLocation(
+        gl,
+        program,
+        'u_surfaceDistortionStrength',
+      ),
+      surfaceTextureStrength: getUniformLocation(
+        gl,
+        program,
+        'u_surfaceTextureStrength',
+      ),
       reliefStrength: getUniformLocation(gl, program, 'u_reliefStrength'),
       reliefTexture: getUniformLocation(gl, program, 'u_reliefTexture'),
       reliefTexelSize: getUniformLocation(gl, program, 'u_reliefTexelSize'),
@@ -1993,6 +2022,14 @@ function drawGlobe(
   gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
   gl.uniform1f(uniforms.scanlineStrength, palette.scanlineStrength);
+  gl.uniform1f(
+    uniforms.surfaceDistortionStrength,
+    palette.surfaceDistortionStrength,
+  );
+  gl.uniform1f(
+    uniforms.surfaceTextureStrength,
+    palette.surfaceTextureStrength,
+  );
   gl.uniform3f(
     uniforms.specularColor,
     specularRed,

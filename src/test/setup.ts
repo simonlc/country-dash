@@ -24,14 +24,25 @@ vi.mock('leva', () => ({
   }),
   useControls: (
     _folder: string,
-    schema: Record<string, unknown>,
-  ): Record<string, boolean | number | string> => {
+    schemaOrFactory: Record<string, unknown> | (() => Record<string, unknown>),
+  ):
+    | Record<string, boolean | number | string>
+    | [
+        Record<string, boolean | number | string>,
+        (patch: Record<string, boolean | number | string>) => void,
+      ] => {
+    const schema =
+      typeof schemaOrFactory === 'function' ? schemaOrFactory() : schemaOrFactory;
     const next: Record<string, boolean | number | string> = {};
 
     for (const [key, value] of Object.entries(schema)) {
       if (isLevaControlValue(value)) {
         next[key] = value.value;
       }
+    }
+
+    if (typeof schemaOrFactory === 'function') {
+      return [next, () => undefined];
     }
 
     return next;

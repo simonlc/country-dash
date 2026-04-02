@@ -15,9 +15,9 @@ export function GlobeAdminPanel({
   themeLabel,
   onReset,
 }: GlobeAdminPanelProps) {
-  const controls = useControls(
+  const [controls, setControls] = useControls(
     `${themeLabel} Globe Quality`,
-    {
+    () => ({
       reliefMapEnabled: {
         value: quality.reliefMapEnabled,
       },
@@ -117,7 +117,7 @@ export function GlobeAdminPanel({
       reset: button(() => {
         onReset();
       }),
-    },
+    }),
     [
       quality.dayImageryEnabled,
       quality.cityLightsEnabled,
@@ -144,6 +144,57 @@ export function GlobeAdminPanel({
       themeLabel,
     ],
   );
+
+  useEffect(() => {
+    setControls({
+      cityLightsColor: quality.cityLightsColor,
+      cityLightsEnabled: quality.cityLightsEnabled,
+      cityLightsGlow: quality.cityLightsGlow,
+      cityLightsIntensity: quality.cityLightsIntensity,
+      cityLightsThreshold: quality.cityLightsThreshold,
+      dayImageryEnabled: quality.dayImageryEnabled,
+      lakesColor: quality.lakesColor,
+      lakesOpacity: quality.lakesOpacity,
+      lightPollutionColor: quality.lightPollutionColor,
+      lightPollutionEnabled: quality.lightPollutionEnabled,
+      lightPollutionIntensity: quality.lightPollutionIntensity,
+      lightPollutionSpread: quality.lightPollutionSpread,
+      nightImageryEnabled: quality.nightImageryEnabled,
+      reliefHeight: quality.reliefHeight,
+      reliefMapEnabled: quality.reliefMapEnabled,
+      riversColor: quality.riversColor,
+      riversOpacity: quality.riversOpacity,
+      riversWidth: quality.riversWidth,
+      showLakes: quality.showLakes,
+      showRivers: quality.showRivers,
+      umbraDarkness: quality.umbraDarkness,
+      waterMaskEnabled: quality.waterMaskEnabled,
+    });
+  }, [
+    quality.cityLightsColor,
+    quality.cityLightsEnabled,
+    quality.cityLightsGlow,
+    quality.cityLightsIntensity,
+    quality.cityLightsThreshold,
+    quality.dayImageryEnabled,
+    quality.lakesColor,
+    quality.lakesOpacity,
+    quality.lightPollutionColor,
+    quality.lightPollutionEnabled,
+    quality.lightPollutionIntensity,
+    quality.lightPollutionSpread,
+    quality.nightImageryEnabled,
+    quality.reliefHeight,
+    quality.reliefMapEnabled,
+    quality.riversColor,
+    quality.riversOpacity,
+    quality.riversWidth,
+    quality.showLakes,
+    quality.showRivers,
+    quality.umbraDarkness,
+    quality.waterMaskEnabled,
+    setControls,
+  ]);
 
   useEffect(() => {
     const patch: Partial<GlobeQualityConfig> = {};
