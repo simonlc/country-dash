@@ -21,7 +21,10 @@ import {
   drawAtlasExpeditionDetails,
 } from '@/utils/globeAtlasTextures';
 import { parseCssColor } from '@/utils/globeColors';
-import { drawHydroLayers, type HydroFeatureCollection } from '@/utils/globeHydroOverlays';
+import {
+  drawHydroLayers,
+  type HydroFeatureCollection,
+} from '@/utils/globeHydroOverlays';
 import { getCountryHighlightRings } from '@/utils/globeShared';
 
 export interface PreparedCityLightsMaps {
@@ -36,10 +39,7 @@ function createCanvas(width: number, height: number) {
   return canvas;
 }
 
-function getScaledImageDimensions(
-  image: HTMLImageElement,
-  maxWidth: number,
-) {
+function getScaledImageDimensions(image: HTMLImageElement, maxWidth: number) {
   const scale = Math.min(1, maxWidth / Math.max(image.naturalWidth, 1));
 
   return {
@@ -91,7 +91,17 @@ function buildWrappedBlurPassCanvas(
     throw new Error('Failed to create city lights pass canvas.');
   }
 
-  passContext.drawImage(blurredCanvas, width, 0, width, height, 0, 0, width, height);
+  passContext.drawImage(
+    blurredCanvas,
+    width,
+    0,
+    width,
+    height,
+    0,
+    0,
+    width,
+    height,
+  );
 
   return passCanvas;
 }
@@ -443,7 +453,9 @@ export function buildCombinedTextureCanvas(
     context.setLineDash([]);
 
     applyCountryShadow(context, path, world, palette);
-    drawFeatureFills(context, path, world, palette.countryFill);
+    if (!isAtlas) {
+      drawFeatureFills(context, path, world, palette.countryFill);
+    }
     drawHydroLayers({
       context,
       isCipher,
@@ -541,7 +553,9 @@ export function buildCountryTextureCanvas(
     context.stroke();
     context.setLineDash([]);
 
-    drawFeatureFills(context, path, world, palette.countryFill);
+    if (!isAtlas) {
+      drawFeatureFills(context, path, world, palette.countryFill);
+    }
     drawHydroLayers({
       context,
       isCipher,

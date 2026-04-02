@@ -146,12 +146,13 @@ export function applyAtlasSatelliteWatercolor(
     const red = pixels[index] ?? 0;
     const green = pixels[index + 1] ?? 0;
     const blue = pixels[index + 2] ?? 0;
+    const normalizedRed = red / 255;
+    const normalizedGreen = green / 255;
+    const normalizedBlue = blue / 255;
     const x = (index / 4) % width;
     const y = Math.floor(index / 4 / width);
     const luma = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
     const posterized = Math.round(luma * (levels - 1)) / (levels - 1);
-    const coolBias = Math.max(0, Math.min(1, (blue - red + 96) / 192));
-    const warmBias = Math.max(0, Math.min(1, (red - blue + 96) / 192));
     const pigmentNoise =
       (Math.sin(x * 0.053 + y * 0.031) + Math.sin(x * 0.11 - y * 0.046)) * 0.02;
     const granulation =
@@ -162,12 +163,84 @@ export function applyAtlasSatelliteWatercolor(
       Math.min(1, posterized + pigmentNoise + granulation),
     );
     const wash = 0.84 + paperMapped * 0.24;
-
-    pixels[index] = Math.round((168 + coolBias * 10 - warmBias * 12) * wash);
-    pixels[index + 1] = Math.round((177 + coolBias * 8 + warmBias * 4) * wash);
-    pixels[index + 2] = Math.round(
-      (184 + coolBias * 18 - warmBias * 10) * wash,
+    const vegetation = Math.max(
+      0,
+      Math.min(
+        1,
+        (normalizedGreen -
+          normalizedRed * 0.72 -
+          normalizedBlue * 0.22 +
+          0.22) *
+          2.1,
+      ),
     );
+    const arid = Math.max(
+      0,
+      Math.min(
+        1,
+        (normalizedRed * 0.92 +
+          normalizedGreen * 0.28 -
+          normalizedBlue * 0.7 -
+          vegetation * 0.48 -
+          0.08) *
+          1.7,
+      ),
+    );
+    const snow = Math.max(
+      0,
+      Math.min(
+        1,
+        (posterized - 0.64 + normalizedBlue * 0.12 + (1 - vegetation) * 0.08) *
+          1.9,
+      ),
+    );
+    const mountain = Math.max(
+      0,
+      Math.min(
+        1,
+        ((1 - Math.abs(normalizedRed - normalizedGreen) * 1.7) * 0.7 +
+          (1 - Math.abs(normalizedGreen - normalizedBlue) * 1.3) * 0.3 -
+          vegetation * 0.6 -
+          arid * 0.22 +
+          (0.62 - Math.abs(posterized - 0.46)) * 0.45) *
+          0.92,
+      ),
+    );
+    const baseTone: [number, number, number] = [212, 200, 171];
+    const vegetationTone: [number, number, number] = [111, 125, 70];
+    const aridTone: [number, number, number] = [194, 151, 91];
+    const mountainTone: [number, number, number] = [128, 117, 108];
+    const snowTone: [number, number, number] = [233, 226, 213];
+    const tintWeight = Math.min(
+      1,
+      vegetation * 0.7 + arid * 0.64 + mountain * 0.48 + snow * 0.34,
+    );
+    const biomeRed =
+      vegetationTone[0] * vegetation +
+      aridTone[0] * arid +
+      mountainTone[0] * mountain +
+      snowTone[0] * snow;
+    const biomeGreen =
+      vegetationTone[1] * vegetation +
+      aridTone[1] * arid +
+      mountainTone[1] * mountain +
+      snowTone[1] * snow;
+    const biomeBlue =
+      vegetationTone[2] * vegetation +
+      aridTone[2] * arid +
+      mountainTone[2] * mountain +
+      snowTone[2] * snow;
+    const colorMix = 0.64 + paperMapped * 0.18;
+    const paintedRed =
+      baseTone[0] * (1 - tintWeight * colorMix) + biomeRed * colorMix;
+    const paintedGreen =
+      baseTone[1] * (1 - tintWeight * colorMix) + biomeGreen * colorMix;
+    const paintedBlue =
+      baseTone[2] * (1 - tintWeight * colorMix) + biomeBlue * colorMix;
+
+    pixels[index] = Math.round(paintedRed * wash);
+    pixels[index + 1] = Math.round(paintedGreen * wash);
+    pixels[index + 2] = Math.round(paintedBlue * wash);
     pixels[index + 3] = 255;
   }
 
@@ -183,17 +256,17 @@ export function applyAtlasSatelliteWatercolor(
   context.clip();
 
   context.globalCompositeOperation = 'multiply';
-  context.globalAlpha = 0.62;
+  context.globalAlpha = 0.82;
   context.drawImage(imageryCanvas, 0, 0);
-  context.fillStyle = shiftColor(palette.countryFill, -12, -10, -6, 0.28);
+  context.fillStyle = shiftColor(palette.countryFill, -8, -7, -3, 0.16);
   context.fillRect(0, 0, width, height);
   context.globalCompositeOperation = 'soft-light';
-  context.globalAlpha = 0.34;
-  context.fillStyle = shiftColor(palette.countryFill, 24, 22, 12, 0.32);
+  context.globalAlpha = 0.18;
+  context.fillStyle = shiftColor(palette.countryFill, 20, 18, 10, 0.2);
   context.fillRect(0, 0, width, height);
   context.globalCompositeOperation = 'screen';
-  context.globalAlpha = 0.1;
-  context.fillStyle = 'rgba(248, 242, 226, 0.18)';
+  context.globalAlpha = 0.08;
+  context.fillStyle = 'rgba(248, 242, 226, 0.12)';
   context.fillRect(0, 0, width, height);
 
   context.restore();
@@ -311,14 +384,17 @@ export function applyAtlasWatercolorLand(
   context.clip();
 
   const landWash = context.createLinearGradient(0, 0, width, height);
-  landWash.addColorStop(0, shiftColor(palette.countryFill, 8, 6, 2, 0.11));
-  landWash.addColorStop(0.45, shiftColor(palette.countryFill, -8, -7, -4, 0.1));
-  landWash.addColorStop(1, shiftColor(palette.countryFill, 6, 5, 2, 0.1));
+  landWash.addColorStop(0, shiftColor(palette.countryFill, 10, 8, 3, 0.06));
+  landWash.addColorStop(
+    0.45,
+    shiftColor(palette.countryFill, -6, -5, -3, 0.05),
+  );
+  landWash.addColorStop(1, shiftColor(palette.countryFill, 7, 6, 3, 0.05));
   context.fillStyle = landWash;
   context.fillRect(0, 0, width, height);
 
   context.globalCompositeOperation = 'multiply';
-  for (let index = 0; index < 18; index += 1) {
+  for (let index = 0; index < 12; index += 1) {
     const x = ((index * 181) % width) + (index % 4) * 9;
     const y = ((index * 127) % height) + (index % 6) * 7;
     const radius = width * (0.028 + (index % 6) * 0.004);
@@ -330,7 +406,7 @@ export function applyAtlasWatercolorLand(
       y,
       radius,
     );
-    blot.addColorStop(0, shiftColor(palette.countryFill, -14, -12, -8, 0.045));
+    blot.addColorStop(0, shiftColor(palette.countryFill, -10, -8, -6, 0.03));
     blot.addColorStop(1, shiftColor(palette.countryFill, 2, 2, 1, 0));
     context.fillStyle = blot;
     context.beginPath();
@@ -339,12 +415,12 @@ export function applyAtlasWatercolorLand(
   }
 
   context.globalCompositeOperation = 'soft-light';
-  for (let index = 0; index < 16; index += 1) {
+  for (let index = 0; index < 10; index += 1) {
     const x = ((index * 149) % width) + 5;
     const y = ((index * 113) % height) + 5;
     const radius = width * (0.016 + (index % 5) * 0.0035);
     const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-    blot.addColorStop(0, shiftColor(palette.countryFill, 14, 12, 7, 0.05));
+    blot.addColorStop(0, shiftColor(palette.countryFill, 10, 9, 5, 0.03));
     blot.addColorStop(1, shiftColor(palette.countryFill, 0, 0, 0, 0));
     context.fillStyle = blot;
     context.beginPath();
@@ -353,48 +429,9 @@ export function applyAtlasWatercolorLand(
   }
 
   context.globalCompositeOperation = 'screen';
-  context.globalAlpha = 0.08;
-  context.fillStyle = 'rgba(248, 243, 229, 0.18)';
+  context.globalAlpha = 0.05;
+  context.fillStyle = 'rgba(248, 243, 229, 0.12)';
   context.fillRect(0, 0, width, height);
-
-  context.restore();
-}
-
-function drawAtlasCoffeeStains(
-  context: CanvasRenderingContext2D,
-  textureCanvas: HTMLCanvasElement,
-) {
-  const { width, height } = textureCanvas;
-
-  context.save();
-  context.globalCompositeOperation = 'multiply';
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-
-  for (const stain of [
-    { x: 0.2, y: 0.24, radius: 0.12, alpha: 0.1, gap: 0.018 },
-    { x: 0.74, y: 0.7, radius: 0.1, alpha: 0.08, gap: 0.014 },
-  ]) {
-    const cx = width * stain.x;
-    const cy = height * stain.y;
-    const radius = width * stain.radius;
-    context.strokeStyle = `rgba(118, 84, 48, ${stain.alpha})`;
-    context.lineWidth = Math.max(width * stain.gap, 1.2);
-    context.beginPath();
-    context.arc(cx, cy, radius, 0.2, Math.PI * 1.82);
-    context.stroke();
-    context.strokeStyle = `rgba(161, 122, 76, ${stain.alpha * 0.56})`;
-    context.lineWidth = Math.max(width * stain.gap * 0.52, 0.8);
-    context.beginPath();
-    context.arc(
-      cx + radius * 0.06,
-      cy - radius * 0.04,
-      radius * 0.76,
-      0.78,
-      Math.PI * 1.92,
-    );
-    context.stroke();
-  }
 
   context.restore();
 }
@@ -608,7 +645,6 @@ export function drawAtlasExpeditionDetails(
   }
 
   context.setLineDash([]);
-  drawAtlasCoffeeStains(context, textureCanvas);
   drawAtlasMarginNotes(context, textureCanvas);
 
   context.restore();
