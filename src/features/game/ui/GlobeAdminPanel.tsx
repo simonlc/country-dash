@@ -1,8 +1,9 @@
 import { Leva, button, useControls } from 'leva';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { GlobeQualityConfig } from '@/app/theme';
 
 interface GlobeAdminPanelProps {
+  defaultQuality: GlobeQualityConfig;
   quality: GlobeQualityConfig;
   setQualityPatch: (patch: Partial<GlobeQualityConfig>) => void;
   themeLabel: string;
@@ -10,11 +11,23 @@ interface GlobeAdminPanelProps {
 }
 
 export function GlobeAdminPanel({
+  defaultQuality,
   quality,
   setQualityPatch,
   themeLabel,
   onReset,
 }: GlobeAdminPanelProps) {
+  const suppressPatchRef = useRef(false);
+  const suppressFrameRef = useRef<number | null>(null);
+  const schedulePatchResume = useCallback(() => {
+    if (suppressFrameRef.current !== null) {
+      window.cancelAnimationFrame(suppressFrameRef.current);
+    }
+    suppressFrameRef.current = window.requestAnimationFrame(() => {
+      suppressPatchRef.current = false;
+      suppressFrameRef.current = null;
+    });
+  }, []);
   const [controls, setControls] = useControls(
     `${themeLabel} Globe Quality`,
     () => ({
@@ -115,10 +128,14 @@ export function GlobeAdminPanel({
         value: quality.umbraDarkness,
       },
       reset: button(() => {
+        suppressPatchRef.current = true;
+        setControls(defaultQuality);
         onReset();
+        schedulePatchResume();
       }),
     }),
     [
+      defaultQuality,
       quality.dayImageryEnabled,
       quality.cityLightsEnabled,
       quality.cityLightsIntensity,
@@ -146,30 +163,9 @@ export function GlobeAdminPanel({
   );
 
   useEffect(() => {
-    setControls({
-      cityLightsColor: quality.cityLightsColor,
-      cityLightsEnabled: quality.cityLightsEnabled,
-      cityLightsGlow: quality.cityLightsGlow,
-      cityLightsIntensity: quality.cityLightsIntensity,
-      cityLightsThreshold: quality.cityLightsThreshold,
-      dayImageryEnabled: quality.dayImageryEnabled,
-      lakesColor: quality.lakesColor,
-      lakesOpacity: quality.lakesOpacity,
-      lightPollutionColor: quality.lightPollutionColor,
-      lightPollutionEnabled: quality.lightPollutionEnabled,
-      lightPollutionIntensity: quality.lightPollutionIntensity,
-      lightPollutionSpread: quality.lightPollutionSpread,
-      nightImageryEnabled: quality.nightImageryEnabled,
-      reliefHeight: quality.reliefHeight,
-      reliefMapEnabled: quality.reliefMapEnabled,
-      riversColor: quality.riversColor,
-      riversOpacity: quality.riversOpacity,
-      riversWidth: quality.riversWidth,
-      showLakes: quality.showLakes,
-      showRivers: quality.showRivers,
-      umbraDarkness: quality.umbraDarkness,
-      waterMaskEnabled: quality.waterMaskEnabled,
-    });
+    suppressPatchRef.current = true;
+    setControls(quality);
+    schedulePatchResume();
   }, [
     quality.cityLightsColor,
     quality.cityLightsEnabled,
@@ -193,10 +189,23 @@ export function GlobeAdminPanel({
     quality.showRivers,
     quality.umbraDarkness,
     quality.waterMaskEnabled,
+    schedulePatchResume,
     setControls,
   ]);
 
   useEffect(() => {
+    return () => {
+      if (suppressFrameRef.current !== null) {
+        window.cancelAnimationFrame(suppressFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (suppressPatchRef.current) {
+      return;
+    }
+
     const patch: Partial<GlobeQualityConfig> = {};
 
     if (controls.reliefMapEnabled !== quality.reliefMapEnabled) {

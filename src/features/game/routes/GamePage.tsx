@@ -152,6 +152,7 @@ export function GamePage() {
     adminEnabled,
     effectiveQuality,
     resetAdminOverride,
+    resetRevision,
     setAdminOverridePatch,
   } = useGlobeAdminTuning({
     defaults: activeTheme.qualityDefaults,
@@ -658,6 +659,8 @@ export function GamePage() {
       />
       {adminEnabled ? (
         <GlobeAdminPanel
+          key={`${activeTheme.id}:${resetRevision}`}
+          defaultQuality={activeTheme.qualityDefaults}
           quality={effectiveQuality}
           setQualityPatch={setAdminOverridePatch}
           themeLabel={activeTheme.label}

@@ -290,8 +290,6 @@ const fragmentShaderSource = `
     float nightImageryMix = nightBlend * u_useNightImagery * imageryMask;
     vec3 shaded = mix(dayColor, fallbackNight, umbraMix);
     shaded = mix(shaded, nightImagery, nightImageryMix);
-    float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
-    float directLight = clamp(light, 0.0, 1.0);
     float umbra = umbraMix;
     float umbraShade = umbraMix;
     vec3 viewDirection = vec3(0.0, 0.0, 1.0);
@@ -306,9 +304,13 @@ const fragmentShaderSource = `
       (1.0 - umbraShade * 0.7)
     );
     light = dot(normal, sunDirection);
-    daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
-    directLight = clamp(light, 0.0, 1.0);
-    float sunVisibility = smoothstep(-u_penumbra * 0.2, u_penumbra * 0.6, light);
+    float rawDaylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
+    float rawDirectLight = clamp(light, 0.0, 1.0);
+    float rawSunVisibility = smoothstep(-u_penumbra * 0.2, u_penumbra * 0.6, light);
+    float lightingPresence = u_umbraDarkness;
+    float daylight = mix(1.0, rawDaylight, lightingPresence);
+    float directLight = mix(1.0, rawDirectLight, lightingPresence);
+    float sunVisibility = rawSunVisibility * lightingPresence;
 
     float facing = clamp(normal.z, 0.0, 1.0);
     float rim = pow(1.0 - facing, 2.5) * u_rimLightStrength * (0.22 + daylight * 0.48) * sunVisibility;
@@ -345,7 +347,7 @@ const fragmentShaderSource = `
     float reliefShadow = min(reliefLight, 0.0);
     float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18) * sunVisibility;
     float cityNightMask = clamp(
-      nightBlend * (1.0 - sunVisibility * 0.97),
+      nightBlend * (1.0 - rawSunVisibility * 0.97),
       0.0,
       1.0
     );

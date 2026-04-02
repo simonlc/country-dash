@@ -209,6 +209,7 @@ describe('useGlobeAdminTuning', () => {
     });
 
     expect(result.current.effectiveQuality).toEqual(defaults);
+    expect(result.current.resetRevision).toBe(1);
     expect(window.localStorage.getItem(getStorageKey('midnight'))).toBeNull();
   });
 

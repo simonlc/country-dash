@@ -10,6 +10,7 @@ interface UseGlobeAdminTuningResult {
   adminEnabled: boolean;
   effectiveQuality: GlobeQualityConfig;
   resetAdminOverride: () => void;
+  resetRevision: number;
   setAdminOverridePatch: (patch: Partial<GlobeQualityConfig>) => void;
 }
 
@@ -168,6 +169,7 @@ export function useGlobeAdminTuning({
   const adminEnabled = true;
 
   const storageKey = useMemo(() => getStorageKey(themeId), [themeId]);
+  const [resetRevision, setResetRevision] = useState(0);
   const [adminOverride, setAdminOverride] = useState<
     Partial<GlobeQualityConfig>
   >(() => parseStoredOverride(storageKey));
@@ -206,6 +208,7 @@ export function useGlobeAdminTuning({
 
   const resetAdminOverride = useCallback(() => {
     setAdminOverride({});
+    setResetRevision((value) => value + 1);
     if (isBrowser()) {
       window.localStorage.removeItem(storageKey);
     }
@@ -226,6 +229,7 @@ export function useGlobeAdminTuning({
     adminEnabled,
     effectiveQuality,
     resetAdminOverride,
+    resetRevision,
     setAdminOverridePatch,
   };
 }
