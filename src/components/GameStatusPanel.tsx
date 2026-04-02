@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { designTokens } from '@/app/designSystem';
-import {
+import type {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
@@ -57,7 +57,7 @@ export function GameStatusPanel({
         panelSurface,
         {
           alignSelf: 'end',
-          borderRadius: designTokens.radius.md,
+          borderRadius: designTokens.radius.xs,
           maxWidth: 560,
           mb: { md: 4, xs: 2 },
           p: {
@@ -121,8 +121,8 @@ export function GameStatusPanel({
               </>
             ) : (
               <Typography variant="body1">
-                Final score: {gameState.score} with {gameState.correct} correct
-                {' '}out of {totalRounds}.
+                Final score: {gameState.score} with {gameState.correct} correct{' '}
+                out of {totalRounds}.
               </Typography>
             )}
             <Typography color="text.secondary" variant="body2">
@@ -161,8 +161,8 @@ export function GameStatusPanel({
             <Stack spacing={0.5}>
               <Typography variant="h4">
                 {isCapitalMode
-                  ? gameState.lastRound.capitalName ??
-                    gameState.lastRound.countryName
+                  ? (gameState.lastRound.capitalName ??
+                    gameState.lastRound.countryName)
                   : gameState.lastRound.countryName}
               </Typography>
               <Typography color="text.secondary" variant="body2">
@@ -188,7 +188,8 @@ export function GameStatusPanel({
             >
               <Stack spacing={0.6}>
                 <Typography color="text.secondary" variant="caption">
-                  You guessed: {gameState.lastRound.playerGuess.trim() || 'No answer'}
+                  You guessed:{' '}
+                  {gameState.lastRound.playerGuess.trim() || 'No answer'}
                 </Typography>
                 <Typography variant="body1">
                   {gameState.lastRound.playerGuess.trim() || 'No answer'}
