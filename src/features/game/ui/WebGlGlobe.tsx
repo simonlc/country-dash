@@ -223,6 +223,14 @@ const fragmentShaderSource = `
     return value;
   }
 
+  float sampleCityLightsBloom(vec2 uv, vec2 texelSize, float radius) {
+    float tight = sampleCityLightsBlur(uv, texelSize, max(radius * 0.45, 0.8));
+    float medium = sampleCityLightsBlur(uv, texelSize, max(radius, 1.2));
+    float wide = sampleCityLightsBlur(uv, texelSize, max(radius * 2.4, 2.4));
+    float horizon = sampleCityLightsBlur(uv, texelSize, max(radius * 5.2, 5.2));
+    return tight * 0.34 + medium * 0.30 + wide * 0.22 + horizon * 0.14;
+  }
+
   float compressRadiance(float radiance, float exposure) {
     return log2(1.0 + radiance * exposure) / log2(1.0 + exposure);
   }
@@ -264,12 +272,9 @@ const fragmentShaderSource = `
     vec3 dayColor = mix(baseColor.rgb, dayImagery, dayImageryMix);
     dayColor = mix(dayColor, dayImagery, u_useWaterMask * waterMask * 0.85);
     vec3 fallbackNight = mix(dayColor, u_nightColor, 0.72);
-    vec3 nightTarget = mix(
-      fallbackNight,
-      nightImagery,
-      u_useNightImagery * imageryMask
-    );
-    vec3 shaded = mix(dayColor, nightTarget, umbraMix);
+    float nightImageryMix = nightBlend * u_useNightImagery * imageryMask;
+    vec3 shaded = mix(dayColor, fallbackNight, umbraMix);
+    shaded = mix(shaded, nightImagery, nightImageryMix);
     float daylight = clamp(light * 0.5 + 0.5, 0.0, 1.0);
     float directLight = clamp(light, 0.0, 1.0);
     float umbra = umbraMix;
@@ -321,7 +326,7 @@ const fragmentShaderSource = `
     float reliefShadow = min(reliefLight, 0.0);
     float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18) * sunVisibility;
     float cityNightMask = clamp(
-      max(umbraMix, nightBlend * 0.65) * (1.0 - sunVisibility * 0.97),
+      nightBlend * (1.0 - sunVisibility * 0.97),
       0.0,
       1.0
     );
@@ -332,19 +337,25 @@ const fragmentShaderSource = `
 
     if (u_useCityLights > 0.0 || u_useLightPollution > 0.0) {
       float cityRadiance = sampleCityLights(v_uv);
-      float glowRadiance = sampleCityLightsBlur(
+      float glowRadiance = sampleCityLightsBloom(
         v_uv,
         u_cityLightsTexelSize,
-        1.2 + u_cityLightsGlow * 1.8
+        1.0 + u_cityLightsGlow * 1.6
       );
-      float pollutionRadiance = sampleCityLightsBlur(
+      float pollutionRadiance = sampleCityLightsBloom(
         v_uv,
         u_cityLightsTexelSize,
-        4.0 + u_lightPollutionSpread * 6.0
+        4.6 + u_lightPollutionSpread * 6.2
+      );
+      float farPollutionRadiance = sampleCityLightsBloom(
+        v_uv,
+        u_cityLightsTexelSize,
+        12.0 + u_lightPollutionSpread * 13.0
       );
       float cityResponse = compressRadiance(cityRadiance, 448.0);
       float glowResponse = compressRadiance(glowRadiance, 320.0);
-      float pollutionResponse = compressRadiance(pollutionRadiance, 160.0);
+      float pollutionResponse = compressRadiance(pollutionRadiance, 128.0);
+      float farPollutionResponse = compressRadiance(farPollutionRadiance, 56.0);
       float normalizedCityLights = clamp(
         (cityResponse - u_cityLightsThreshold) /
         max(1.0 - u_cityLightsThreshold, 0.0001),
@@ -352,8 +363,10 @@ const fragmentShaderSource = `
         1.0
       );
       float cityCoreSignal = pow(normalizedCityLights, 0.42);
-      float cityGlowSignal = max(glowResponse - cityResponse * 0.26, 0.0);
-      float pollutionSignal = max(pollutionResponse - glowResponse * 0.84, 0.0);
+      float cityGlowSignal = max(glowResponse - cityResponse * 0.18, 0.0);
+      float pollutionBase = mix(pollutionResponse, farPollutionResponse, 0.64);
+      float pollutionField = max(pollutionBase - cityResponse * 0.10, 0.0);
+      float pollutionSignal = pow(pollutionField, 0.68);
 
       cityEmission =
         u_cityLightsColor *
@@ -366,10 +379,11 @@ const fragmentShaderSource = `
         u_useCityLights;
       pollutionEmission =
         u_lightPollutionColor *
-        pollutionSignal *
+        pow(pollutionSignal, 0.74) *
         u_lightPollutionIntensity *
         cityNightMask *
         atmosphericPath *
+        (0.55 + 0.45 * citySurfaceVisibility) *
         u_useLightPollution;
     }
 
