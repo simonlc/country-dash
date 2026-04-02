@@ -21,7 +21,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
         '&::before': isAtlas
           ? {
               background:
-                'radial-gradient(circle at 16% 28%, rgba(121, 71, 28, 0.18) 0, rgba(121, 71, 28, 0.1) 10%, rgba(121, 71, 28, 0) 20%), radial-gradient(circle at 82% 78%, rgba(101, 61, 20, 0.12) 0, rgba(101, 61, 20, 0.06) 12%, rgba(101, 61, 20, 0) 24%)',
+                'radial-gradient(circle at 16% 28%, rgba(126, 92, 61, 0.16) 0, rgba(126, 92, 61, 0.08) 11%, rgba(126, 92, 61, 0) 22%), radial-gradient(circle at 82% 78%, rgba(63, 78, 92, 0.14) 0, rgba(63, 78, 92, 0.06) 14%, rgba(63, 78, 92, 0) 26%), linear-gradient(180deg, rgba(255,255,255,0.14), rgba(120,99,73,0.08))',
               content: '""',
               inset: 0,
               mixBlendMode: 'multiply',
@@ -31,11 +31,11 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
         '&::after': isAtlas
           ? {
               backgroundImage:
-                'linear-gradient(90deg, rgba(95, 61, 28, 0.08) 0, rgba(95, 61, 28, 0.08) 1px, transparent 1px), linear-gradient(rgba(95, 61, 28, 0.08) 0, rgba(95, 61, 28, 0.08) 1px, transparent 1px)',
-              backgroundSize: '16px 16px',
+                'linear-gradient(90deg, rgba(82, 62, 43, 0.08) 0, rgba(82, 62, 43, 0.08) 1px, transparent 1px), linear-gradient(rgba(82, 62, 43, 0.07) 0, rgba(82, 62, 43, 0.07) 1px, transparent 1px), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 32%)',
+              backgroundSize: '16px 16px, 16px 16px, 100% 100%',
               content: '""',
               inset: 0,
-              opacity: 0.45,
+              opacity: 0.4,
               position: 'absolute',
             }
           : undefined,
@@ -43,11 +43,15 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
     >
       <Box
         sx={{
-          background: `radial-gradient(circle at 36% 34%, ${theme.preview.glow}, transparent 38%), ${theme.preview.ocean}`,
+          background: isAtlas
+            ? `radial-gradient(circle at 34% 30%, rgba(255,255,255,0.2), transparent 22%), radial-gradient(circle at 54% 36%, ${theme.preview.glow}, transparent 42%), linear-gradient(180deg, rgba(78, 95, 112, 0.3), rgba(245, 238, 221, 0) 58%), ${theme.preview.ocean}`
+            : `radial-gradient(circle at 36% 34%, ${theme.preview.glow}, transparent 38%), ${theme.preview.ocean}`,
           border: `1px solid ${theme.globe.countryStroke}`,
           borderRadius: '50%',
           bottom: -12,
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+          boxShadow: isAtlas
+            ? 'inset 0 0 0 1px rgba(255,255,255,0.12), inset 0 -12px 24px rgba(61, 77, 87, 0.14)'
+            : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
           height: 76,
           left: '50%',
           position: 'absolute',
@@ -57,8 +61,13 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
       >
         <Box
           sx={{
-            backgroundColor: theme.preview.land,
+            background: isAtlas
+              ? `linear-gradient(160deg, rgba(237, 231, 208, 0.22), rgba(237, 231, 208, 0)), ${theme.preview.land}`
+              : theme.preview.land,
             borderRadius: '46% 54% 47% 53% / 37% 54% 46% 63%',
+            boxShadow: isAtlas
+              ? `0 0 0 1px ${theme.globe.countryStroke}`
+              : undefined,
             height: 16,
             left: 15,
             position: 'absolute',
@@ -69,8 +78,13 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
         />
         <Box
           sx={{
-            backgroundColor: theme.preview.land,
+            background: isAtlas
+              ? `linear-gradient(160deg, rgba(237, 231, 208, 0.22), rgba(237, 231, 208, 0)), ${theme.preview.land}`
+              : theme.preview.land,
             borderRadius: '49% 51% 65% 35% / 50% 36% 64% 50%',
+            boxShadow: isAtlas
+              ? `0 0 0 1px ${theme.globe.countryStroke}`
+              : undefined,
             height: 18,
             position: 'absolute',
             right: 12,

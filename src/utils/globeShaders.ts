@@ -176,7 +176,6 @@ export const fragmentShaderSource = `
     shaded = mix(shaded, nightImagery, nightImageryMix);
     float umbraShade = umbraMix;
     vec3 viewDirection = vec3(0.0, 0.0, 1.0);
-
     float paperFiber = fbm(v_uv * vec2(1100.0, 540.0));
     float paperTooth = fbm(v_uv * vec2(2800.0, 1360.0));
     normal = normalize(
