@@ -1,6 +1,6 @@
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { designTokens } from '@/app/designSystem';
-import {
+import type {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
@@ -64,16 +64,15 @@ export function GameHud({
           alignItems: 'center',
           display: 'grid',
           gap: 1,
+          paddingLeft: { md: 3, xs: 0 },
+          paddingRight: { md: 1, xs: 0 },
           gridTemplateColumns: {
             md: 'minmax(0, 1.3fr) auto auto auto auto auto auto',
             xs: 'repeat(4, minmax(0, 1fr))',
           },
         }}
       >
-        <Stack
-          spacing={0.15}
-          sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}
-        >
+        <Stack spacing={0.15} sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
           <Typography
             color="text.secondary"
             letterSpacing="0.12em"
@@ -85,7 +84,11 @@ export function GameHud({
           <Stack direction="row" flexWrap="wrap" gap={0.75}>
             <Typography variant="h6">{sessionModeLabel}</Typography>
             {sessionSummaryLabel ? (
-              <Typography color="text.secondary" lineHeight={1.3} variant="body2">
+              <Typography
+                color="text.secondary"
+                lineHeight={1.3}
+                variant="body2"
+              >
                 {sessionSummaryLabel}
               </Typography>
             ) : null}
