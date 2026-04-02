@@ -4,7 +4,16 @@ import type { AppThemeId, GlobeQualityConfig } from '@/app/theme';
 import { useGlobeAdminTuning } from './useGlobeAdminTuning';
 
 const defaults: GlobeQualityConfig = {
+  cityLightsEnabled: true,
+  cityLightsIntensity: 2.25,
+  cityLightsThreshold: 0.04,
+  cityLightsGlow: 1.6,
+  cityLightsColor: '#fff3cf',
   dayImageryEnabled: false,
+  lightPollutionEnabled: true,
+  lightPollutionIntensity: 0.85,
+  lightPollutionSpread: 1.8,
+  lightPollutionColor: '#ffb46a',
   nightImageryEnabled: false,
   reliefHeight: 1,
   reliefMapEnabled: true,
@@ -151,6 +160,31 @@ describe('useGlobeAdminTuning', () => {
     });
 
     expect(result.current.effectiveQuality.umbraDarkness).toBe(0);
+  });
+
+  it('clamps city light and pollution controls to supported ranges', () => {
+    const { result } = renderHook(() =>
+      useGlobeAdminTuning({
+        defaults,
+        themeId: 'cipher',
+      }),
+    );
+
+    act(() => {
+      result.current.setAdminOverridePatch({
+        cityLightsIntensity: 9,
+        cityLightsThreshold: -1,
+        cityLightsGlow: 7,
+        lightPollutionIntensity: -2,
+        lightPollutionSpread: 12,
+      });
+    });
+
+    expect(result.current.effectiveQuality.cityLightsIntensity).toBe(4);
+    expect(result.current.effectiveQuality.cityLightsThreshold).toBe(0);
+    expect(result.current.effectiveQuality.cityLightsGlow).toBe(4);
+    expect(result.current.effectiveQuality.lightPollutionIntensity).toBe(0);
+    expect(result.current.effectiveQuality.lightPollutionSpread).toBe(6);
   });
 
   it('resets active theme override and clears storage', () => {

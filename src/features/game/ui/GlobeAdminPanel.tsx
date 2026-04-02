@@ -33,6 +33,48 @@ export function GlobeAdminPanel({
       nightImageryEnabled: {
         value: quality.nightImageryEnabled,
       },
+      cityLightsEnabled: {
+        value: quality.cityLightsEnabled,
+      },
+      cityLightsIntensity: {
+        max: 4,
+        min: 0,
+        step: 0.05,
+        value: quality.cityLightsIntensity,
+      },
+      cityLightsThreshold: {
+        max: 0.95,
+        min: 0,
+        step: 0.01,
+        value: quality.cityLightsThreshold,
+      },
+      cityLightsGlow: {
+        max: 4,
+        min: 0,
+        step: 0.05,
+        value: quality.cityLightsGlow,
+      },
+      cityLightsColor: {
+        value: quality.cityLightsColor,
+      },
+      lightPollutionEnabled: {
+        value: quality.lightPollutionEnabled,
+      },
+      lightPollutionIntensity: {
+        max: 4,
+        min: 0,
+        step: 0.05,
+        value: quality.lightPollutionIntensity,
+      },
+      lightPollutionSpread: {
+        max: 6,
+        min: 0.25,
+        step: 0.05,
+        value: quality.lightPollutionSpread,
+      },
+      lightPollutionColor: {
+        value: quality.lightPollutionColor,
+      },
       waterMaskEnabled: {
         value: quality.waterMaskEnabled,
       },
@@ -78,6 +120,15 @@ export function GlobeAdminPanel({
     },
     [
       quality.dayImageryEnabled,
+      quality.cityLightsEnabled,
+      quality.cityLightsIntensity,
+      quality.cityLightsThreshold,
+      quality.cityLightsGlow,
+      quality.cityLightsColor,
+      quality.lightPollutionEnabled,
+      quality.lightPollutionIntensity,
+      quality.lightPollutionSpread,
+      quality.lightPollutionColor,
       quality.nightImageryEnabled,
       quality.reliefHeight,
       quality.reliefMapEnabled,
@@ -108,6 +159,39 @@ export function GlobeAdminPanel({
     }
     if (controls.nightImageryEnabled !== quality.nightImageryEnabled) {
       patch.nightImageryEnabled = controls.nightImageryEnabled;
+    }
+    if (controls.cityLightsEnabled !== quality.cityLightsEnabled) {
+      patch.cityLightsEnabled = controls.cityLightsEnabled;
+    }
+    if (controls.cityLightsIntensity !== quality.cityLightsIntensity) {
+      patch.cityLightsIntensity = controls.cityLightsIntensity;
+    }
+    if (controls.cityLightsThreshold !== quality.cityLightsThreshold) {
+      patch.cityLightsThreshold = controls.cityLightsThreshold;
+    }
+    if (controls.cityLightsGlow !== quality.cityLightsGlow) {
+      patch.cityLightsGlow = controls.cityLightsGlow;
+    }
+    if (controls.cityLightsColor !== quality.cityLightsColor) {
+      patch.cityLightsColor = controls.cityLightsColor;
+    }
+    if (
+      controls.lightPollutionEnabled !== quality.lightPollutionEnabled
+    ) {
+      patch.lightPollutionEnabled = controls.lightPollutionEnabled;
+    }
+    if (
+      controls.lightPollutionIntensity !== quality.lightPollutionIntensity
+    ) {
+      patch.lightPollutionIntensity = controls.lightPollutionIntensity;
+    }
+    if (
+      controls.lightPollutionSpread !== quality.lightPollutionSpread
+    ) {
+      patch.lightPollutionSpread = controls.lightPollutionSpread;
+    }
+    if (controls.lightPollutionColor !== quality.lightPollutionColor) {
+      patch.lightPollutionColor = controls.lightPollutionColor;
     }
     if (controls.waterMaskEnabled !== quality.waterMaskEnabled) {
       patch.waterMaskEnabled = controls.waterMaskEnabled;
@@ -142,6 +226,15 @@ export function GlobeAdminPanel({
     }
   }, [
     controls.dayImageryEnabled,
+    controls.cityLightsEnabled,
+    controls.cityLightsIntensity,
+    controls.cityLightsThreshold,
+    controls.cityLightsGlow,
+    controls.cityLightsColor,
+    controls.lightPollutionEnabled,
+    controls.lightPollutionIntensity,
+    controls.lightPollutionSpread,
+    controls.lightPollutionColor,
     controls.nightImageryEnabled,
     controls.reliefHeight,
     controls.reliefMapEnabled,
@@ -155,6 +248,15 @@ export function GlobeAdminPanel({
     controls.riversColor,
     controls.umbraDarkness,
     quality.dayImageryEnabled,
+    quality.cityLightsEnabled,
+    quality.cityLightsIntensity,
+    quality.cityLightsThreshold,
+    quality.cityLightsGlow,
+    quality.cityLightsColor,
+    quality.lightPollutionEnabled,
+    quality.lightPollutionIntensity,
+    quality.lightPollutionSpread,
+    quality.lightPollutionColor,
     quality.nightImageryEnabled,
     quality.reliefHeight,
     quality.reliefMapEnabled,

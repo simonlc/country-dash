@@ -44,6 +44,57 @@ function sanitizeOverride(
   if (typeof value.waterMaskEnabled === 'boolean') {
     next.waterMaskEnabled = value.waterMaskEnabled;
   }
+  if (typeof value.cityLightsEnabled === 'boolean') {
+    next.cityLightsEnabled = value.cityLightsEnabled;
+  }
+  if (
+    typeof value.cityLightsIntensity === 'number' &&
+    Number.isFinite(value.cityLightsIntensity)
+  ) {
+    next.cityLightsIntensity = Math.max(0, Math.min(4, value.cityLightsIntensity));
+  }
+  if (
+    typeof value.cityLightsThreshold === 'number' &&
+    Number.isFinite(value.cityLightsThreshold)
+  ) {
+    next.cityLightsThreshold = Math.max(0, Math.min(0.95, value.cityLightsThreshold));
+  }
+  if (
+    typeof value.cityLightsGlow === 'number' &&
+    Number.isFinite(value.cityLightsGlow)
+  ) {
+    next.cityLightsGlow = Math.max(0, Math.min(4, value.cityLightsGlow));
+  }
+  if (
+    typeof value.cityLightsColor === 'string' &&
+    value.cityLightsColor.length > 0
+  ) {
+    next.cityLightsColor = value.cityLightsColor;
+  }
+  if (typeof value.lightPollutionEnabled === 'boolean') {
+    next.lightPollutionEnabled = value.lightPollutionEnabled;
+  }
+  if (
+    typeof value.lightPollutionIntensity === 'number' &&
+    Number.isFinite(value.lightPollutionIntensity)
+  ) {
+    next.lightPollutionIntensity = Math.max(
+      0,
+      Math.min(4, value.lightPollutionIntensity),
+    );
+  }
+  if (
+    typeof value.lightPollutionSpread === 'number' &&
+    Number.isFinite(value.lightPollutionSpread)
+  ) {
+    next.lightPollutionSpread = Math.max(0.25, Math.min(6, value.lightPollutionSpread));
+  }
+  if (
+    typeof value.lightPollutionColor === 'string' &&
+    value.lightPollutionColor.length > 0
+  ) {
+    next.lightPollutionColor = value.lightPollutionColor;
+  }
   if (
     typeof value.umbraDarkness === 'number' &&
     Number.isFinite(value.umbraDarkness)

@@ -42,6 +42,7 @@ interface SphereMesh {
 }
 
 interface WebGlResources {
+  cityLightsTexture: WebGLTexture;
   dayTexture: WebGLTexture;
   gl: WebGLRenderingContext;
   indexCount: number;
@@ -60,9 +61,18 @@ interface WebGlResources {
     atmosphereOpacity: WebGLUniformLocation;
     atmosphereTint: WebGLUniformLocation;
     auroraStrength: WebGLUniformLocation;
+    cityLightsColor: WebGLUniformLocation;
+    cityLightsGlow: WebGLUniformLocation;
+    cityLightsIntensity: WebGLUniformLocation;
+    cityLightsTexelSize: WebGLUniformLocation;
+    cityLightsTexture: WebGLUniformLocation;
+    cityLightsThreshold: WebGLUniformLocation;
     dayTexture: WebGLUniformLocation;
     gridColor: WebGLUniformLocation;
     gridStrength: WebGLUniformLocation;
+    lightPollutionColor: WebGLUniformLocation;
+    lightPollutionIntensity: WebGLUniformLocation;
+    lightPollutionSpread: WebGLUniformLocation;
     nightTexture: WebGLUniformLocation;
     nightAlpha: WebGLUniformLocation;
     nightColor: WebGLUniformLocation;
@@ -83,7 +93,9 @@ interface WebGlResources {
     texture: WebGLUniformLocation;
     time: WebGLUniformLocation;
     umbraDarkness: WebGLUniformLocation;
+    useCityLights: WebGLUniformLocation;
     useDayImagery: WebGLUniformLocation;
+    useLightPollution: WebGLUniformLocation;
     useNightImagery: WebGLUniformLocation;
     useWaterMask: WebGLUniformLocation;
     waterMaskTexture: WebGLUniformLocation;
@@ -114,15 +126,24 @@ const fragmentShaderSource = `
   precision mediump float;
 
   uniform vec3 u_atmosphereTint;
+  uniform vec3 u_cityLightsColor;
   uniform vec3 u_gridColor;
+  uniform vec3 u_lightPollutionColor;
   uniform vec3 u_rimLightColor;
   uniform vec3 u_specularColor;
   uniform float u_atmosphereOpacity;
   uniform float u_auroraStrength;
+  uniform float u_cityLightsGlow;
+  uniform float u_cityLightsIntensity;
+  uniform vec2 u_cityLightsTexelSize;
+  uniform float u_cityLightsThreshold;
   uniform float u_gridStrength;
+  uniform float u_lightPollutionIntensity;
+  uniform float u_lightPollutionSpread;
   uniform float u_nightAlpha;
   uniform float u_noiseStrength;
   uniform vec3 u_nightColor;
+  uniform sampler2D u_cityLightsTexture;
   uniform sampler2D u_dayTexture;
   uniform sampler2D u_nightTexture;
   uniform sampler2D u_texture;
@@ -137,7 +158,9 @@ const fragmentShaderSource = `
   uniform vec2 u_reliefTexelSize;
   uniform float u_specularPower;
   uniform float u_specularStrength;
+  uniform float u_useCityLights;
   uniform float u_useDayImagery;
+  uniform float u_useLightPollution;
   uniform float u_useNightImagery;
   uniform float u_useWaterMask;
   uniform vec3 u_sunDirection;
@@ -176,6 +199,32 @@ const fragmentShaderSource = `
   float sampleRelief(vec2 uv) {
     vec3 reliefSample = texture2D(u_reliefTexture, uv).rgb;
     return dot(reliefSample, vec3(0.299, 0.587, 0.114));
+  }
+
+  float sampleCityLights(vec2 uv) {
+    vec3 cityLightsSample = texture2D(u_cityLightsTexture, uv).rgb;
+    return dot(cityLightsSample, vec3(0.299, 0.587, 0.114));
+  }
+
+  float sampleCityLightsBlur(vec2 uv, vec2 texelSize, float radius) {
+    vec2 eastWest = vec2(texelSize.x * radius, 0.0);
+    vec2 northSouth = vec2(0.0, texelSize.y * radius);
+    vec2 diagonal = texelSize * radius * 0.70710678;
+
+    float value = sampleCityLights(uv) * 0.28;
+    value += sampleCityLights(uv + eastWest) * 0.13;
+    value += sampleCityLights(uv - eastWest) * 0.13;
+    value += sampleCityLights(uv + northSouth) * 0.13;
+    value += sampleCityLights(uv - northSouth) * 0.13;
+    value += sampleCityLights(uv + vec2(diagonal.x, diagonal.y)) * 0.05;
+    value += sampleCityLights(uv + vec2(diagonal.x, -diagonal.y)) * 0.05;
+    value += sampleCityLights(uv + vec2(-diagonal.x, diagonal.y)) * 0.05;
+    value += sampleCityLights(uv - diagonal) * 0.05;
+    return value;
+  }
+
+  float compressRadiance(float radiance, float exposure) {
+    return log2(1.0 + radiance * exposure) / log2(1.0 + exposure);
   }
 
   void main() {
@@ -271,6 +320,58 @@ const fragmentShaderSource = `
     float reliefHighlight = max(reliefLight, 0.0);
     float reliefShadow = min(reliefLight, 0.0);
     float atmosphere = u_atmosphereOpacity * (0.03 + directLight * 0.2 + rim * 0.18) * sunVisibility;
+    float cityNightMask = clamp(
+      max(umbraMix, nightBlend * 0.65) * (1.0 - sunVisibility * 0.97),
+      0.0,
+      1.0
+    );
+    float citySurfaceVisibility = 0.25 + 0.75 * pow(facing, 0.35);
+    float atmosphericPath = 0.35 + pow(1.0 - facing, 1.8) * 1.1;
+    vec3 cityEmission = vec3(0.0);
+    vec3 pollutionEmission = vec3(0.0);
+
+    if (u_useCityLights > 0.0 || u_useLightPollution > 0.0) {
+      float cityRadiance = sampleCityLights(v_uv);
+      float glowRadiance = sampleCityLightsBlur(
+        v_uv,
+        u_cityLightsTexelSize,
+        1.2 + u_cityLightsGlow * 1.8
+      );
+      float pollutionRadiance = sampleCityLightsBlur(
+        v_uv,
+        u_cityLightsTexelSize,
+        4.0 + u_lightPollutionSpread * 6.0
+      );
+      float cityResponse = compressRadiance(cityRadiance, 448.0);
+      float glowResponse = compressRadiance(glowRadiance, 320.0);
+      float pollutionResponse = compressRadiance(pollutionRadiance, 160.0);
+      float normalizedCityLights = clamp(
+        (cityResponse - u_cityLightsThreshold) /
+        max(1.0 - u_cityLightsThreshold, 0.0001),
+        0.0,
+        1.0
+      );
+      float cityCoreSignal = pow(normalizedCityLights, 0.42);
+      float cityGlowSignal = max(glowResponse - cityResponse * 0.26, 0.0);
+      float pollutionSignal = max(pollutionResponse - glowResponse * 0.84, 0.0);
+
+      cityEmission =
+        u_cityLightsColor *
+        (
+          cityCoreSignal * u_cityLightsIntensity +
+          cityGlowSignal * u_cityLightsGlow * 1.8
+        ) *
+        cityNightMask *
+        citySurfaceVisibility *
+        u_useCityLights;
+      pollutionEmission =
+        u_lightPollutionColor *
+        pollutionSignal *
+        u_lightPollutionIntensity *
+        cityNightMask *
+        atmosphericPath *
+        u_useLightPollution;
+    }
 
     vec3 color = shaded;
     color *= reliefOcclusion;
@@ -288,6 +389,8 @@ const fragmentShaderSource = `
     color += vec3(reliefShadow) * 0.24;
     color += parchmentSpeckle * (1.0 - umbraShade * 0.55);
     color += grain;
+    color += pollutionEmission;
+    color += cityEmission;
 
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), baseColor.a);
   }
@@ -460,22 +563,34 @@ async function loadHydroFeatureCollection(path: string) {
   return data;
 }
 
-function drawFeatureCollection(
+function drawFeatureFills(
   context: CanvasRenderingContext2D,
   path: ReturnType<typeof geoPath>,
   world: FeatureCollectionLike,
   fillStyle: string,
+) {
+  context.fillStyle = fillStyle;
+
+  for (const feature of world.features) {
+    context.beginPath();
+    path(feature as GeoPermissibleObjects);
+    context.fill();
+  }
+}
+
+function drawFeatureStrokes(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
   strokeStyle: string,
   lineWidth: number,
 ) {
-  context.fillStyle = fillStyle;
   context.strokeStyle = strokeStyle;
   context.lineWidth = lineWidth;
 
   for (const feature of world.features) {
     context.beginPath();
     path(feature as GeoPermissibleObjects);
-    context.fill();
     context.stroke();
   }
 }
@@ -1110,6 +1225,43 @@ function buildOceanTextureCanvas(
   return textureCanvas;
 }
 
+function drawHydroLayers(args: {
+  context: CanvasRenderingContext2D;
+  lakesData: HydroFeatureCollection | null;
+  path: ReturnType<typeof geoPath>;
+  quality: GlobeQualityConfig;
+  riversData: HydroFeatureCollection | null;
+  textureCanvas: HTMLCanvasElement;
+}) {
+  const { context, lakesData, path, quality, riversData, textureCanvas } = args;
+
+  if (quality.showLakes && lakesData) {
+    context.fillStyle = withOpacity(quality.lakesColor, quality.lakesOpacity);
+    for (const feature of lakesData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.fill();
+    }
+  }
+
+  if (quality.showRivers && riversData) {
+    context.globalAlpha = Math.max(0, Math.min(1, quality.riversOpacity));
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = Math.max(
+      textureCanvas.width / 4096,
+      quality.riversWidth,
+    );
+    context.strokeStyle = quality.riversColor;
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+    context.globalAlpha = 1;
+  }
+}
+
 function drawAtlasExpeditionDetails(
   context: CanvasRenderingContext2D,
   path: ReturnType<typeof geoPath>,
@@ -1137,10 +1289,13 @@ function buildCombinedTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature | null,
   palette: GlobePalette,
+  quality: GlobeQualityConfig,
   textureSize: number,
   isAtlas: boolean,
   atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
+  lakesData: HydroFeatureCollection | null,
+  riversData: HydroFeatureCollection | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -1190,11 +1345,24 @@ function buildCombinedTextureCanvas(
     context.setLineDash([]);
 
     applyCountryShadow(context, path, world, palette);
-    drawFeatureCollection(
+    drawFeatureFills(
       context,
       path,
       world,
       palette.countryFill,
+    );
+    drawHydroLayers({
+      context,
+      lakesData,
+      path,
+      quality,
+      riversData,
+      textureCanvas,
+    });
+    drawFeatureStrokes(
+      context,
+      path,
+      world,
       palette.countryStroke,
       isAtlas ? 1.4 : 1.2,
     );
@@ -1234,10 +1402,13 @@ function buildCountryTextureCanvas(
   world: FeatureCollectionLike,
   targetFeature: CountryFeature | null,
   palette: GlobePalette,
+  quality: GlobeQualityConfig,
   textureSize: number,
   isAtlas: boolean,
   atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
+  lakesData: HydroFeatureCollection | null,
+  riversData: HydroFeatureCollection | null,
 ) {
   const textureCanvas = document.createElement('canvas');
   textureCanvas.width = textureSize;
@@ -1281,11 +1452,24 @@ function buildCountryTextureCanvas(
     context.stroke();
     context.setLineDash([]);
 
-    drawFeatureCollection(
+    drawFeatureFills(
       context,
       path,
       world,
       palette.countryFill,
+    );
+    drawHydroLayers({
+      context,
+      lakesData,
+      path,
+      quality,
+      riversData,
+      textureCanvas,
+    });
+    drawFeatureStrokes(
+      context,
+      path,
+      world,
       palette.countryStroke,
       isAtlas ? 1.4 : 1.2,
     );
@@ -1333,11 +1517,25 @@ function getUniformLocation(
   return location;
 }
 
-function configureTexture(gl: WebGLRenderingContext, texture: WebGLTexture) {
+function isPowerOfTwo(value: number) {
+  return value > 0 && (value & (value - 1)) === 0;
+}
+
+function configureTexture(
+  gl: WebGLRenderingContext,
+  texture: WebGLTexture,
+  width = 1,
+  height = 1,
+) {
+  const isPowerOfTwoTexture = isPowerOfTwo(width) && isPowerOfTwo(height);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(
+    gl.TEXTURE_2D,
+    gl.TEXTURE_WRAP_S,
+    isPowerOfTwoTexture ? gl.REPEAT : gl.CLAMP_TO_EDGE,
+  );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
@@ -1397,6 +1595,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   const texture = gl.createTexture();
   const overlayTexture = gl.createTexture();
   const reliefTexture = gl.createTexture();
+  const cityLightsTexture = gl.createTexture();
   const dayTexture = gl.createTexture();
   const nightTexture = gl.createTexture();
   const waterMaskTexture = gl.createTexture();
@@ -1408,6 +1607,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     !texture ||
     !overlayTexture ||
     !reliefTexture ||
+    !cityLightsTexture ||
     !dayTexture ||
     !nightTexture ||
     !waterMaskTexture
@@ -1438,6 +1638,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   configureTexture(gl, texture);
   configureTexture(gl, overlayTexture);
   configureTexture(gl, reliefTexture);
+  configureTexture(gl, cityLightsTexture);
   configureTexture(gl, dayTexture);
   configureTexture(gl, nightTexture);
   configureTexture(gl, waterMaskTexture);
@@ -1456,6 +1657,20 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     new Uint8Array([128, 128, 128, 255]),
   );
   gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([0, 0, 0, 255]),
+  );
+  gl.activeTexture(gl.TEXTURE3);
   gl.bindTexture(gl.TEXTURE_2D, dayTexture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
   gl.texImage2D(
@@ -1469,7 +1684,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     gl.UNSIGNED_BYTE,
     new Uint8Array([255, 255, 255, 255]),
   );
-  gl.activeTexture(gl.TEXTURE3);
+  gl.activeTexture(gl.TEXTURE4);
   gl.bindTexture(gl.TEXTURE_2D, nightTexture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
   gl.texImage2D(
@@ -1483,7 +1698,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     gl.UNSIGNED_BYTE,
     new Uint8Array([0, 0, 0, 255]),
   );
-  gl.activeTexture(gl.TEXTURE4);
+  gl.activeTexture(gl.TEXTURE5);
   gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
   gl.texImage2D(
@@ -1504,6 +1719,7 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.clearColor(0, 0, 0, 0);
 
   return {
+    cityLightsTexture,
     dayTexture,
     gl,
     indexCount: mesh.indices.length,
@@ -1522,9 +1738,42 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
       atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
       auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
+      cityLightsColor: getUniformLocation(gl, program, 'u_cityLightsColor'),
+      cityLightsGlow: getUniformLocation(gl, program, 'u_cityLightsGlow'),
+      cityLightsIntensity: getUniformLocation(
+        gl,
+        program,
+        'u_cityLightsIntensity',
+      ),
+      cityLightsTexelSize: getUniformLocation(
+        gl,
+        program,
+        'u_cityLightsTexelSize',
+      ),
+      cityLightsTexture: getUniformLocation(gl, program, 'u_cityLightsTexture'),
+      cityLightsThreshold: getUniformLocation(
+        gl,
+        program,
+        'u_cityLightsThreshold',
+      ),
       dayTexture: getUniformLocation(gl, program, 'u_dayTexture'),
       gridColor: getUniformLocation(gl, program, 'u_gridColor'),
       gridStrength: getUniformLocation(gl, program, 'u_gridStrength'),
+      lightPollutionColor: getUniformLocation(
+        gl,
+        program,
+        'u_lightPollutionColor',
+      ),
+      lightPollutionIntensity: getUniformLocation(
+        gl,
+        program,
+        'u_lightPollutionIntensity',
+      ),
+      lightPollutionSpread: getUniformLocation(
+        gl,
+        program,
+        'u_lightPollutionSpread',
+      ),
       nightTexture: getUniformLocation(gl, program, 'u_nightTexture'),
       nightAlpha: getUniformLocation(gl, program, 'u_nightAlpha'),
       nightColor: getUniformLocation(gl, program, 'u_nightColor'),
@@ -1545,7 +1794,13 @@ function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       texture: getUniformLocation(gl, program, 'u_texture'),
       time: getUniformLocation(gl, program, 'u_time'),
       umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
+      useCityLights: getUniformLocation(gl, program, 'u_useCityLights'),
       useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
+      useLightPollution: getUniformLocation(
+        gl,
+        program,
+        'u_useLightPollution',
+      ),
       useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
       useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
       waterMaskTexture: getUniformLocation(gl, program, 'u_waterMaskTexture'),
@@ -1563,10 +1818,12 @@ function drawGlobe(
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   effectTimeSeconds: number,
+  cityLightsTexelSize: [number, number],
   reliefStrength: number,
   reliefTexelSize: [number, number],
 ) {
   const {
+    cityLightsTexture,
     dayTexture,
     gl,
     indexCount,
@@ -1599,7 +1856,15 @@ function drawGlobe(
   const [atmosphereRed, atmosphereGreen, atmosphereBlue] = cssColorToVec3(
     palette.atmosphereTint,
   );
+  const [cityLightsRed, cityLightsGreen, cityLightsBlue] = cssColorToVec3(
+    quality.cityLightsColor,
+  );
   const [gridRed, gridGreen, gridBlue] = cssColorToVec3(palette.gridColor);
+  const [
+    lightPollutionRed,
+    lightPollutionGreen,
+    lightPollutionBlue,
+  ] = cssColorToVec3(quality.lightPollutionColor);
   const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(palette.nightShade);
   const [rimRed, rimGreen, rimBlue] = cssColorToVec3(palette.rimLightColor);
   const [specularRed, specularGreen, specularBlue] = cssColorToVec3(
@@ -1647,13 +1912,47 @@ function drawGlobe(
   );
   gl.uniform1i(uniforms.texture, 0);
   gl.uniform1i(uniforms.reliefTexture, 1);
-  gl.uniform1i(uniforms.dayTexture, 2);
-  gl.uniform1i(uniforms.nightTexture, 3);
-  gl.uniform1i(uniforms.waterMaskTexture, 4);
+  gl.uniform1i(uniforms.cityLightsTexture, 2);
+  gl.uniform1i(uniforms.dayTexture, 3);
+  gl.uniform1i(uniforms.nightTexture, 4);
+  gl.uniform1i(uniforms.waterMaskTexture, 5);
+  gl.uniform3f(
+    uniforms.cityLightsColor,
+    cityLightsRed,
+    cityLightsGreen,
+    cityLightsBlue,
+  );
+  gl.uniform1f(uniforms.cityLightsGlow, quality.cityLightsGlow);
+  gl.uniform1f(uniforms.cityLightsIntensity, quality.cityLightsIntensity);
+  gl.uniform2f(
+    uniforms.cityLightsTexelSize,
+    cityLightsTexelSize[0],
+    cityLightsTexelSize[1],
+  );
+  gl.uniform1f(uniforms.cityLightsThreshold, quality.cityLightsThreshold);
   gl.uniform1f(uniforms.reliefStrength, reliefStrength);
   gl.uniform1f(uniforms.umbraDarkness, quality.umbraDarkness);
   gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
+  gl.uniform3f(
+    uniforms.lightPollutionColor,
+    lightPollutionRed,
+    lightPollutionGreen,
+    lightPollutionBlue,
+  );
+  gl.uniform1f(
+    uniforms.lightPollutionIntensity,
+    quality.lightPollutionIntensity,
+  );
+  gl.uniform1f(
+    uniforms.lightPollutionSpread,
+    quality.lightPollutionSpread,
+  );
+  gl.uniform1f(uniforms.useCityLights, quality.cityLightsEnabled ? 1 : 0);
   gl.uniform1f(uniforms.useDayImagery, quality.dayImageryEnabled ? 1 : 0);
+  gl.uniform1f(
+    uniforms.useLightPollution,
+    quality.lightPollutionEnabled ? 1 : 0,
+  );
   gl.uniform1f(uniforms.useNightImagery, quality.nightImageryEnabled ? 1 : 0);
   gl.uniform1f(uniforms.useWaterMask, quality.waterMaskEnabled ? 1 : 0);
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
@@ -1700,10 +1999,12 @@ function drawGlobe(
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
   gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+  gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
   gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.bindTexture(gl.TEXTURE_2D, dayTexture);
   gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+  gl.activeTexture(gl.TEXTURE5);
   gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
   gl.activeTexture(gl.TEXTURE0);
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
@@ -1724,10 +2025,12 @@ function drawGlobe(
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, resources.reliefTexture);
     gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, dayTexture);
+    gl.bindTexture(gl.TEXTURE_2D, cityLightsTexture);
     gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+    gl.bindTexture(gl.TEXTURE_2D, dayTexture);
     gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, nightTexture);
+    gl.activeTexture(gl.TEXTURE5);
     gl.bindTexture(gl.TEXTURE_2D, waterMaskTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.BLEND);
@@ -1742,12 +2045,9 @@ function drawSelectedCountryOverlay(args: {
   country: CountryFeature;
   currentRotation: [number, number];
   height: number;
-  lakesData: HydroFeatureCollection | null;
   mode: GameMode;
   nowMs: number;
   palette: GlobePalette;
-  quality: GlobeQualityConfig;
-  riversData: HydroFeatureCollection | null;
   width: number;
   zoomScale: number;
 }) {
@@ -1756,12 +2056,9 @@ function drawSelectedCountryOverlay(args: {
     country,
     currentRotation,
     height,
-    lakesData,
     mode,
     nowMs,
     palette,
-    quality,
-    riversData,
     width,
     zoomScale,
   } = args;
@@ -1797,29 +2094,6 @@ function drawSelectedCountryOverlay(args: {
   context.beginPath();
   path({ type: 'Sphere' });
   context.clip();
-
-  if (quality.showLakes && lakesData) {
-    context.fillStyle = withOpacity(quality.lakesColor, quality.lakesOpacity);
-    for (const feature of lakesData.features) {
-      context.beginPath();
-      path(feature as GeoPermissibleObjects);
-      context.fill();
-    }
-  }
-
-  if (quality.showRivers && riversData) {
-    context.globalAlpha = Math.max(0, Math.min(1, quality.riversOpacity));
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.lineWidth = quality.riversWidth;
-    context.strokeStyle = quality.riversColor;
-    for (const feature of riversData.features) {
-      context.beginPath();
-      path(feature as GeoPermissibleObjects);
-      context.stroke();
-    }
-    context.globalAlpha = 1;
-  }
 
   if (mode === 'capitals') {
     if (
@@ -1916,6 +2190,8 @@ export function WebGlGlobe({
   const [atlasPaperImage, setAtlasPaperImage] =
     useState<HTMLImageElement | null>(null);
   const [atlasImageryImage, setAtlasImageryImage] =
+    useState<HTMLImageElement | null>(null);
+  const [cityLightsImage, setCityLightsImage] =
     useState<HTMLImageElement | null>(null);
   const [dayImageryImage, setDayImageryImage] =
     useState<HTMLImageElement | null>(null);
@@ -2066,6 +2342,31 @@ export function WebGlGlobe({
   }, [isAtlas]);
 
   useEffect(() => {
+    if (!quality.cityLightsEnabled && !quality.lightPollutionEnabled) {
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      if (!cancelled) {
+        setCityLightsImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setCityLightsImage(null);
+      }
+    };
+    image.src = '/textures/world-city-lights.jpg';
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quality.cityLightsEnabled, quality.lightPollutionEnabled]);
+
+  useEffect(() => {
     if (!quality.dayImageryEnabled) {
       return;
     }
@@ -2212,6 +2513,9 @@ export function WebGlGlobe({
       paletteRef.current,
       currentQuality,
       now * 0.001,
+      cityLightsImage
+        ? [1 / cityLightsImage.naturalWidth, 1 / cityLightsImage.naturalHeight]
+        : [1 / 3600, 1 / 1800],
       reliefStrength,
       reliefImage
         ? [1 / reliefImage.naturalWidth, 1 / reliefImage.naturalHeight]
@@ -2223,16 +2527,13 @@ export function WebGlGlobe({
       country: targetFeatureRef.current,
       currentRotation: frameState.currentRotation,
       height: frameState.height,
-      lakesData: lakesDataRef.current,
       mode,
       nowMs: now,
       palette: paletteRef.current,
-      quality: currentQuality,
-      riversData: riversDataRef.current,
       width: frameState.width,
       zoomScale: frameState.zoomScale,
     });
-  }, [isAtlas, mode, reliefImage]);
+  }, [cityLightsImage, isAtlas, mode, reliefImage]);
 
   useEffect(() => {
     drawCurrentFrameRef.current = drawCurrentFrame;
@@ -2284,24 +2585,35 @@ export function WebGlGlobe({
           world,
           null,
           palette,
+          quality,
           textureResolution,
           isAtlas,
           isAtlas ? atlasPaperImage : null,
           isAtlas ? atlasImageryImage : null,
+          lakesData,
+          riversData,
         );
     const countryTextureCanvas = hasRaisedCountries
       ? buildCountryTextureCanvas(
           world,
           null,
           palette,
+          quality,
           textureResolution,
           isAtlas,
           isAtlas ? atlasPaperImage : null,
           isAtlas ? atlasImageryImage : null,
+          lakesData,
+          riversData,
         )
       : null;
     gl.activeTexture(gl.TEXTURE0);
-    configureTexture(gl, resources.texture);
+    configureTexture(
+      gl,
+      resources.texture,
+      baseTextureCanvas.width,
+      baseTextureCanvas.height,
+    );
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -2314,7 +2626,12 @@ export function WebGlGlobe({
 
     if (countryTextureCanvas) {
       gl.activeTexture(gl.TEXTURE0);
-      configureTexture(gl, resources.overlayTexture);
+      configureTexture(
+        gl,
+        resources.overlayTexture,
+        countryTextureCanvas.width,
+        countryTextureCanvas.height,
+      );
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -2328,7 +2645,12 @@ export function WebGlGlobe({
 
     if (reliefImage) {
       gl.activeTexture(gl.TEXTURE1);
-      configureTexture(gl, resources.reliefTexture);
+      configureTexture(
+        gl,
+        resources.reliefTexture,
+        reliefImage.naturalWidth,
+        reliefImage.naturalHeight,
+      );
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -2341,9 +2663,34 @@ export function WebGlGlobe({
       gl.activeTexture(gl.TEXTURE0);
     }
 
-    if (dayImageryImage) {
+    if (cityLightsImage) {
       gl.activeTexture(gl.TEXTURE2);
-      configureTexture(gl, resources.dayTexture);
+      configureTexture(
+        gl,
+        resources.cityLightsTexture,
+        cityLightsImage.naturalWidth,
+        cityLightsImage.naturalHeight,
+      );
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        cityLightsImage,
+      );
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
+    if (dayImageryImage) {
+      gl.activeTexture(gl.TEXTURE3);
+      configureTexture(
+        gl,
+        resources.dayTexture,
+        dayImageryImage.naturalWidth,
+        dayImageryImage.naturalHeight,
+      );
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -2357,8 +2704,13 @@ export function WebGlGlobe({
     }
 
     if (nightImageryImage) {
-      gl.activeTexture(gl.TEXTURE3);
-      configureTexture(gl, resources.nightTexture);
+      gl.activeTexture(gl.TEXTURE4);
+      configureTexture(
+        gl,
+        resources.nightTexture,
+        nightImageryImage.naturalWidth,
+        nightImageryImage.naturalHeight,
+      );
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -2372,8 +2724,13 @@ export function WebGlGlobe({
     }
 
     if (waterMaskImage) {
-      gl.activeTexture(gl.TEXTURE4);
-      configureTexture(gl, resources.waterMaskTexture);
+      gl.activeTexture(gl.TEXTURE5);
+      configureTexture(
+        gl,
+        resources.waterMaskTexture,
+        waterMaskImage.naturalWidth,
+        waterMaskImage.naturalHeight,
+      );
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -2400,13 +2757,17 @@ export function WebGlGlobe({
   }, [
     atlasImageryImage,
     atlasPaperImage,
+    cityLightsImage,
     dayImageryImage,
     drawCurrentFrame,
     height,
     isAtlas,
+    lakesData,
     nightImageryImage,
     palette,
+    quality,
     reliefImage,
+    riversData,
     waterMaskImage,
     width,
     world,
