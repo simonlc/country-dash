@@ -5,6 +5,7 @@ import {
   geoToSpherePosition,
   getRotatedSunDirection,
   getTerminatorHalfAngleRadians,
+  getTwilightHalfAngleRadians,
 } from '@/utils/globeShared';
 import {
   fragmentShaderSource,
@@ -71,6 +72,7 @@ export interface WebGlResources {
     surfaceTextureStrength: WebGLUniformLocation;
     texture: WebGLUniformLocation;
     time: WebGLUniformLocation;
+    twilightPenumbra: WebGLUniformLocation;
     umbraDarkness: WebGLUniformLocation;
     useCityLights: WebGLUniformLocation;
     useDayImagery: WebGLUniformLocation;
@@ -465,6 +467,7 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     ),
     texture: getUniformLocation(gl, program, 'u_texture'),
     time: getUniformLocation(gl, program, 'u_time'),
+    twilightPenumbra: getUniformLocation(gl, program, 'u_twilightPenumbra'),
     umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
     useCityLights: getUniformLocation(gl, program, 'u_useCityLights'),
     useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
@@ -623,6 +626,7 @@ export function drawGlobe(
   gl.uniformMatrix3fv(uniforms.rotationMatrix, false, rotationMatrix);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
   gl.uniform1f(uniforms.penumbra, getTerminatorHalfAngleRadians());
+  gl.uniform1f(uniforms.twilightPenumbra, getTwilightHalfAngleRadians());
   gl.uniform3f(uniforms.rimLightColor, rimRed, rimGreen, rimBlue);
   gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);

@@ -29,6 +29,7 @@ export interface GlobeViewProps {
 export const tau = 2 * Math.PI;
 export const earthRadiusKm = 6371;
 export const terminatorHalfWidthKilometers = 100;
+export const civilTwilightDegrees = 6;
 
 export function getTerminatorHalfAngleRadians() {
   return terminatorHalfWidthKilometers / earthRadiusKm;
@@ -36,6 +37,14 @@ export function getTerminatorHalfAngleRadians() {
 
 export function getTerminatorHalfWidthKilometers() {
   return terminatorHalfWidthKilometers;
+}
+
+export function getTwilightHalfAngleRadians() {
+  return (civilTwilightDegrees * Math.PI) / 180;
+}
+
+export function getTwilightHalfWidthKilometers() {
+  return earthRadiusKm * getTwilightHalfAngleRadians();
 }
 
 export function getProjectedTerminatorHalfWidthPx(globeRadiusPx: number) {

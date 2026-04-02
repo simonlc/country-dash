@@ -65,6 +65,7 @@ export const fragmentShaderSource = `
   uniform vec2 u_reliefTexelSize;
   uniform float u_specularPower;
   uniform float u_specularStrength;
+  uniform float u_twilightPenumbra;
   uniform float u_useCityLights;
   uniform float u_useDayImagery;
   uniform float u_useLightPollution;
@@ -160,7 +161,9 @@ export const fragmentShaderSource = `
     normal = normalize(mix(normal, reliefNormal, reliefMask));
 
     float light = dot(normal, sunDirection);
-    float twilight = smoothstep(u_penumbra, -u_penumbra, light) * u_nightAlpha;
+    float twilight =
+      smoothstep(u_twilightPenumbra, -u_twilightPenumbra, light) *
+      u_nightAlpha;
     float nightSide = 1.0 - smoothstep(-u_penumbra, u_penumbra, light);
     float nightBlend = clamp(max(twilight, nightSide), 0.0, 1.0);
     float umbraMix = nightBlend * u_umbraDarkness;

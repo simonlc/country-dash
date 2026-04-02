@@ -4,6 +4,8 @@ import {
   getProjectedTerminatorHalfWidthPx,
   getTerminatorHalfAngleRadians,
   getTerminatorHalfWidthKilometers,
+  getTwilightHalfAngleRadians,
+  getTwilightHalfWidthKilometers,
 } from '@/utils/globeShared';
 import type { CountryFeature } from '@/types/game';
 
@@ -88,6 +90,14 @@ describe('terminator helpers', () => {
     expect(getProjectedTerminatorHalfWidthPx(200)).toBeCloseTo(
       200 * (100 / 6371),
       8,
+    );
+  });
+
+  it('uses a broader earth-scale twilight band for the visible day-night falloff', () => {
+    expect(getTwilightHalfAngleRadians()).toBeCloseTo((6 * Math.PI) / 180, 8);
+    expect(getTwilightHalfWidthKilometers()).toBeCloseTo(
+      6371 * ((6 * Math.PI) / 180),
+      6,
     );
   });
 });
