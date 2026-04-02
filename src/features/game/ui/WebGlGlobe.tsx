@@ -331,7 +331,8 @@ const fragmentShaderSource = `
     float slowScanlineStrength = u_scanlineStrength * u_slowScanlineStrength;
     vec3 earthAxis = vec3(0.0, 1.0, 0.0);
     vec3 slowScanlineAxis = normalize(earthAxis + vec3(0.22, 0.0, 0.08));
-    float slowScanlineOffset = sin(u_time * 0.05) * 0.88;
+    float slowScanlineTravel = fract(u_time * 0.028);
+    float slowScanlineOffset = 1.12 - slowScanlineTravel * 2.24;
     float slowScanlineDistance = abs(
       dot(sweepSurfaceNormal, slowScanlineAxis) - slowScanlineOffset
     );
@@ -2473,14 +2474,200 @@ function drawCipherSelectedCountryOverlay(args: {
   context.restore();
 }
 
+function drawCipherHydroOverlay(args: {
+  context: CanvasRenderingContext2D;
+  height: number;
+  lakesData: HydroFeatureCollection | null;
+  nowMs: number;
+  path: ReturnType<typeof geoPath>;
+  projection: ReturnType<typeof geoOrthographic>;
+  quality: GlobeQualityConfig;
+  riversData: HydroFeatureCollection | null;
+  width: number;
+}) {
+  const {
+    context,
+    height,
+    lakesData,
+    nowMs,
+    path,
+    projection,
+    quality,
+    riversData,
+    width,
+  } = args;
+  const measurePath = geoPath(projection);
+
+  if (quality.showLakes && lakesData) {
+    context.save();
+    for (const feature of lakesData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+    }
+    context.clip();
+
+    context.globalCompositeOperation = 'screen';
+    context.strokeStyle = shiftColor(quality.lakesColor, 145, 4, 32, 0.18);
+    context.lineWidth = 1.4;
+    const stripeSpacing = Math.max(Math.min(width, height) / 11, 18);
+    const stripeDrift = (nowMs * 0.012) % stripeSpacing;
+    for (
+      let offset = -stripeSpacing * 2;
+      offset <= height + stripeSpacing * 2;
+      offset += stripeSpacing
+    ) {
+      const y = offset + stripeDrift;
+      context.beginPath();
+      for (let x = -24; x <= width + 24; x += 24) {
+        const wave =
+          Math.sin(x * 0.034 + y * 0.075 + nowMs * 0.0014) * 3.4 +
+          Math.sin(x * 0.012 - y * 0.042 + nowMs * 0.00095) * 1.8;
+        const py = y + wave;
+        if (x === -24) {
+          context.moveTo(x, py);
+        } else {
+          context.lineTo(x, py);
+        }
+      }
+      context.stroke();
+    }
+    context.restore();
+
+    let visibleLakeCount = 0;
+    for (const feature of lakesData.features) {
+      const lakeShape = feature as GeoPermissibleObjects;
+      const [[minX, minY], [maxX, maxY]] = measurePath.bounds(lakeShape);
+      const boundsWidth = maxX - minX;
+      const boundsHeight = maxY - minY;
+
+      if (
+        !Number.isFinite(minX) ||
+        !Number.isFinite(minY) ||
+        !Number.isFinite(maxX) ||
+        !Number.isFinite(maxY) ||
+        boundsWidth < 12 ||
+        boundsHeight < 12
+      ) {
+        continue;
+      }
+
+      const sweepProgress =
+        ((nowMs * 0.00024 + visibleLakeCount * 0.19) % 1 + 1) % 1;
+      const sweepWidth = Math.max(boundsWidth * 0.22, 18);
+      const travelWidth = boundsWidth + boundsHeight * 0.65;
+      const sweepX = -travelWidth * 0.55 + sweepProgress * travelWidth * 1.65;
+
+      context.save();
+      context.beginPath();
+      path(lakeShape);
+      context.clip();
+      context.globalCompositeOperation = 'screen';
+      context.translate((minX + maxX) / 2, (minY + maxY) / 2);
+      context.rotate(-0.34);
+      context.shadowColor = shiftColor(quality.lakesColor, 165, 8, 38, 0.28);
+      context.shadowBlur = 16;
+      const sweep = context.createLinearGradient(
+        sweepX - sweepWidth,
+        0,
+        sweepX + sweepWidth,
+        0,
+      );
+      sweep.addColorStop(0, withOpacity(quality.lakesColor, 0));
+      sweep.addColorStop(0.3, shiftColor(quality.lakesColor, 90, 0, 18, 0.05));
+      sweep.addColorStop(0.5, shiftColor(quality.lakesColor, 170, 12, 42, 0.24));
+      sweep.addColorStop(0.7, shiftColor(quality.lakesColor, 90, 0, 18, 0.05));
+      sweep.addColorStop(1, withOpacity(quality.lakesColor, 0));
+      context.fillStyle = sweep;
+      context.fillRect(
+        -travelWidth,
+        -boundsHeight * 1.7,
+        travelWidth * 2,
+        boundsHeight * 3.4,
+      );
+      context.restore();
+
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.strokeStyle = shiftColor(
+        quality.lakesColor,
+        165,
+        10,
+        40,
+        0.3,
+      );
+      context.lineWidth = 1.2;
+      context.beginPath();
+      path(lakeShape);
+      context.stroke();
+      context.restore();
+
+      visibleLakeCount += 1;
+      if (visibleLakeCount >= 18) {
+        break;
+      }
+    }
+  }
+
+  if (quality.showRivers && riversData) {
+    context.save();
+    context.globalCompositeOperation = 'screen';
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = withOpacity(quality.riversColor, 0.14);
+    context.lineWidth = Math.max(1, quality.riversWidth * 3 + 0.6);
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+
+    context.strokeStyle = shiftColor(quality.riversColor, 165, 12, 40, 0.72);
+    context.shadowColor = shiftColor(quality.riversColor, 170, 14, 42, 0.5);
+    context.shadowBlur = 14;
+    context.lineWidth = Math.max(1.4, quality.riversWidth * 2.5 + 1.05);
+    context.setLineDash([4.2, 14]);
+    context.lineDashOffset = -nowMs * 0.022;
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+
+    context.shadowBlur = 10;
+    context.strokeStyle = shiftColor(quality.riversColor, 190, 28, 54, 0.42);
+    context.lineWidth = Math.max(1, quality.riversWidth * 1.55 + 0.45);
+    context.setLineDash([1.2, 21]);
+    context.lineDashOffset = -nowMs * 0.014 + 9;
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+
+    context.shadowBlur = 0;
+    context.strokeStyle = withOpacity(quality.riversColor, 0.16);
+    context.lineWidth = Math.max(0.9, quality.riversWidth * 1.35 + 0.25);
+    context.setLineDash([]);
+    for (const feature of riversData.features) {
+      context.beginPath();
+      path(feature as GeoPermissibleObjects);
+      context.stroke();
+    }
+    context.restore();
+  }
+}
+
 function drawSelectedCountryOverlay(args: {
   canvas: HTMLCanvasElement;
   country: CountryFeature;
   currentRotation: [number, number];
   height: number;
+  lakesData: HydroFeatureCollection | null;
   mode: GameMode;
   nowMs: number;
   palette: GlobePalette;
+  quality: GlobeQualityConfig;
+  riversData: HydroFeatureCollection | null;
   themeId: AppThemeId;
   width: number;
   zoomScale: number;
@@ -2490,9 +2677,12 @@ function drawSelectedCountryOverlay(args: {
     country,
     currentRotation,
     height,
+    lakesData,
     mode,
     nowMs,
     palette,
+    quality,
+    riversData,
     themeId,
     width,
     zoomScale,
@@ -2529,6 +2719,20 @@ function drawSelectedCountryOverlay(args: {
   context.beginPath();
   path({ type: 'Sphere' });
   context.clip();
+
+  if (themeId === 'cipher') {
+    drawCipherHydroOverlay({
+      context,
+      height,
+      lakesData,
+      nowMs,
+      path,
+      projection,
+      quality,
+      riversData,
+      width,
+    });
+  }
 
   if (mode === 'capitals') {
     if (
@@ -2997,9 +3201,12 @@ export function WebGlGlobe({
       country: targetFeatureRef.current,
       currentRotation: frameState.currentRotation,
       height: frameState.height,
+      lakesData: lakesDataRef.current,
       mode,
       nowMs: now,
       palette: paletteRef.current,
+      quality: qualityRef.current,
+      riversData: riversDataRef.current,
       themeId,
       width: frameState.width,
       zoomScale: frameState.zoomScale,
