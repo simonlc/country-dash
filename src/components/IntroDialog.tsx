@@ -549,7 +549,7 @@ export const IntroDialog = NiceModal.create(
                               background: 'transparent',
                               border: 'none',
                               color: item.selected
-                                ? 'text.primary'
+                                ? activeTheme.palette.primary
                                 : 'text.secondary',
                               cursor: 'pointer',
                               display: 'flex',
@@ -563,21 +563,23 @@ export const IntroDialog = NiceModal.create(
                                 'color 180ms ease, opacity 180ms ease',
                               '&::before': {
                                 backgroundColor: item.selected
-                                  ? 'text.primary'
+                                  ? activeTheme.palette.primary
                                   : 'divider',
                                 borderRadius: 999,
                                 content: '""',
-                                height: 6,
+                                height: item.selected ? 7 : 6,
                                 left: 0,
                                 opacity: item.selected ? 1 : 0.45,
                                 position: 'absolute',
-                                top: 11,
+                                top: 12,
                                 transition:
-                                  'background-color 180ms ease, opacity 180ms ease',
-                                width: 6,
+                                  'background-color 180ms ease, opacity 180ms ease, width 180ms ease, height 180ms ease',
+                                width: item.selected ? 16 : 6,
                               },
                               '&:hover': {
-                                color: 'text.primary',
+                                color: item.selected
+                                  ? activeTheme.palette.primary
+                                  : 'text.primary',
                               },
                             }}
                             onClick={() => {
@@ -585,7 +587,7 @@ export const IntroDialog = NiceModal.create(
                               setCountrySizeFilter('mixed');
                             }}
                           >
-                            <Stack spacing={0.1} sx={{ pl: 1.6 }}>
+                            <Stack spacing={0.15} sx={{ pl: item.selected ? 2.35 : 1.6 }}>
                               <Typography
                                 color="inherit"
                                 sx={{
