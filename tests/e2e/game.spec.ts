@@ -76,7 +76,7 @@ test('completes the daily challenge once and then locks it', async ({ page }) =>
   await expect(page.getByRole('button', { name: /Copied/i })).toBeVisible();
   await expect
     .poll(async () => page.evaluate(() => window.localStorage.getItem('copied-share-text')))
-    .toContain('🧭 Country Guesser Daily');
+    .toContain('🧭 Country Dash Daily');
   await page.getByRole('button', { name: /Main menu/i }).click();
   await expect(page.getByText(/Completed for today\./i)).toBeVisible();
 });

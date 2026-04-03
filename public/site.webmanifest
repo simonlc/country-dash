@@ -1,6 +1,6 @@
 {
-  "name": "Country Guesser",
-  "short_name": "Country Guesser",
+  "name": "Country Dash",
+  "short_name": "Country Dash",
   "description": "A globe-based geography game with daily challenges and custom runs.",
   "start_url": "/",
   "display": "standalone",

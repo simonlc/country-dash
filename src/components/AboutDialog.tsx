@@ -33,7 +33,7 @@ export const AboutDialog = NiceModal.create(() => {
           <Typography color="text.secondary" variant="overline">
             About
           </Typography>
-          <Typography variant="h4">Country Guesser</Typography>
+          <Typography variant="h4">Country Dash</Typography>
         </Stack>
       </DialogTitle>
       <DialogContent>

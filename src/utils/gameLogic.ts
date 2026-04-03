@@ -749,7 +749,7 @@ export function buildDailyShareText(result: DailyChallengeResult) {
     .join('');
 
   return [
-    `🧭 Country Guesser Daily ${result.date}`,
+    `🧭 Country Dash Daily ${result.date}`,
     `🌍 Score: ${result.correctCount}/${result.totalCount}`,
     emojiLine,
   ].join('\n');

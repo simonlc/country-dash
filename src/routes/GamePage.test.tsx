@@ -282,7 +282,7 @@ describe('GamePage', () => {
     expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
     await user.click(screen.getByRole('button', { name: /copy results/i }));
     expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(/^🧭 Country Guesser Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/),
+      expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/),
     );
     await user.click(screen.getByRole('button', { name: /main menu/i }));
     await waitFor(() => {

@@ -1,15 +1,21 @@
-import { screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test/render';
+import { HowToPlayDialog } from './HowToPlayDialog';
 import { IntroDialog } from './IntroDialog';
+
+const { showModalMock } = vi.hoisted(() => ({
+  showModalMock: vi.fn(),
+}));
 
 vi.mock('@ebay/nice-modal-react', () => ({
   __esModule: true,
   default: {
     create: <T,>(component: T) => component,
     Provider: ({ children }: { children: ReactNode }) => children,
+    show: showModalMock,
   },
   create: <T,>(component: T) => component,
   useModal: () => ({
@@ -19,6 +25,41 @@ vi.mock('@ebay/nice-modal-react', () => ({
 }));
 
 describe('IntroDialog', () => {
+  beforeEach(() => {
+    cleanup();
+    showModalMock.mockReset();
+  });
+
+  it('opens the how to play popup from the intro header', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <IntroDialog
+        categoryCounts={{
+          africa: 54,
+          asia: 48,
+          caribbean: 13,
+          europe: 44,
+          islandNations: 22,
+          microstates: 6,
+          middleEast: 14,
+          northAmerica: 23,
+          oceania: 14,
+          southAmerica: 12,
+        }}
+        id="intro-dialog"
+        counts={{ large: 12, mixed: 60, small: 18 }}
+        dailyResult={null}
+        onStartDaily={vi.fn()}
+        onStartRandom={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /how to play/i }));
+
+    expect(showModalMock).toHaveBeenCalledWith(HowToPlayDialog);
+  });
+
   it('shows a separate daily challenge panel and locks it when complete', () => {
     renderWithProviders(
       <IntroDialog
@@ -104,7 +145,7 @@ describe('IntroDialog', () => {
       countrySizeFilter: 'mixed',
     });
 
-    expect(screen.getAllByText(/Country Guesser/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Country Dash/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
         name: /Quick Run 18 countries 18 countries with lower difficulty\./i,

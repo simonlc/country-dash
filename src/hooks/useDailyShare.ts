@@ -62,7 +62,7 @@ export function useDailyShare({
     }
 
     const summary = [
-      `🧭 Country Guesser Daily ${todayDateKey}`,
+      `🧭 Country Dash Daily ${todayDateKey}`,
       `🌍 Score: ${gameState.correct}/${totalRounds}`,
     ].join('\n');
     const emojiLine = gameState.rounds

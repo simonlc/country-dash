@@ -335,7 +335,7 @@ describe('gameLogic', () => {
     });
 
     expect(shareText).toBe(
-      '🧭 Country Guesser Daily 2026-03-31\n🌍 Score: 3/5\n🟢⚫🟢',
+      '🧭 Country Dash Daily 2026-03-31\n🌍 Score: 3/5\n🟢⚫🟢',
     );
   });
 });
