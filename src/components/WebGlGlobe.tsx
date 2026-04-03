@@ -43,6 +43,8 @@ interface CachedTextureSet {
   countryTextureCanvas: HTMLCanvasElement | null;
 }
 
+const textureCacheVersion = 1;
+
 function getTextureCacheKey(args: {
   hasAtlasImagery: boolean;
   hasAtlasPaper: boolean;
@@ -55,7 +57,10 @@ function getTextureCacheKey(args: {
   themeId: AppThemeId;
   worldFeatureCount: number;
 }) {
-  return JSON.stringify(args);
+  return JSON.stringify({
+    textureCacheVersion,
+    ...args,
+  });
 }
 
 function setCachedTextures(

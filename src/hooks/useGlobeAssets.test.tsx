@@ -66,4 +66,23 @@ describe('useGlobeAssets', () => {
     expect(MockImage.instances).toBe(0);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('loads atlas paper and biome reference imagery for atlas rendering', () => {
+    const fetchSpy = vi.spyOn(window, 'fetch');
+
+    renderHook(() =>
+      useGlobeAssets({
+        quality: {
+          ...appThemes[3]!.qualityDefaults,
+          reliefMapEnabled: false,
+          showLakes: false,
+          showRivers: false,
+        },
+        themeId: 'atlas',
+      }),
+    );
+
+    expect(MockImage.instances).toBe(2);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

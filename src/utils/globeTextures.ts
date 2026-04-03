@@ -8,6 +8,7 @@ import {
 import type { GlobePalette, GlobeQualityConfig } from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/types/game';
 import {
+  applyAtlasBiomeWatercolor,
   applyAtlasCoastalWash,
   applyAtlasInkBleed,
   applyAtlasInkCoastline,
@@ -15,7 +16,6 @@ import {
   applyAtlasOceanCurrentHatching,
   applyAtlasPaperTexture,
   applyAtlasParchmentAging,
-  applyAtlasSatelliteWatercolor,
   applyAtlasWatercolorLand,
   applyAtlasWatercolorOcean,
   drawAtlasExpeditionDetails,
@@ -362,7 +362,7 @@ export function buildOceanTextureCanvas(
         .translate([textureCanvas.width / 2, textureCanvas.height / 2])
         .scale(textureCanvas.width / (2 * Math.PI));
       const path = geoPath(projection, context);
-      applyAtlasSatelliteWatercolor(
+      applyAtlasBiomeWatercolor(
         context,
         path,
         world,
@@ -424,7 +424,11 @@ export function buildCombinedTextureCanvas(
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
     if (isAtlas) {
-      applyAtlasSatelliteWatercolor(
+      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+      applyAtlasParchmentAging(context, textureCanvas, palette);
+      drawAtlasExpeditionDetails(context, path, textureCanvas);
+      applyAtlasWatercolorLand(context, path, world, textureCanvas);
+      applyAtlasBiomeWatercolor(
         context,
         path,
         world,
@@ -432,12 +436,6 @@ export function buildCombinedTextureCanvas(
         palette,
         atlasImageryImage,
       );
-      applyAtlasWatercolorOcean(context, textureCanvas, palette);
-      applyAtlasOceanCurrentHatching(context, textureCanvas);
-      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
-      applyAtlasParchmentAging(context, textureCanvas, palette);
-      drawAtlasExpeditionDetails(context, path, textureCanvas);
-      applyAtlasWatercolorLand(context, path, world, textureCanvas, palette);
       applyAtlasLandHachure(context, path, world, textureCanvas);
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
@@ -526,7 +524,11 @@ export function buildCountryTextureCanvas(
     const path = geoPath(projection, context);
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
     if (isAtlas) {
-      applyAtlasSatelliteWatercolor(
+      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+      applyAtlasParchmentAging(context, textureCanvas, palette);
+      drawAtlasExpeditionDetails(context, path, textureCanvas);
+      applyAtlasWatercolorLand(context, path, world, textureCanvas);
+      applyAtlasBiomeWatercolor(
         context,
         path,
         world,
@@ -534,12 +536,6 @@ export function buildCountryTextureCanvas(
         palette,
         atlasImageryImage,
       );
-      applyAtlasWatercolorOcean(context, textureCanvas, palette);
-      applyAtlasOceanCurrentHatching(context, textureCanvas);
-      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
-      applyAtlasParchmentAging(context, textureCanvas, palette);
-      drawAtlasExpeditionDetails(context, path, textureCanvas);
-      applyAtlasWatercolorLand(context, path, world, textureCanvas, palette);
       applyAtlasLandHachure(context, path, world, textureCanvas);
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }

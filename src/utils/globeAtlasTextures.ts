@@ -3,6 +3,18 @@ import type { GlobePalette } from '@/app/theme';
 import type { FeatureCollectionLike } from '@/types/game';
 import { shiftColor } from '@/utils/globeColors';
 
+function clipToAtlasLand(
+  context: CanvasRenderingContext2D,
+  path: ReturnType<typeof geoPath>,
+  world: FeatureCollectionLike,
+) {
+  context.beginPath();
+  for (const feature of world.features) {
+    path(feature as GeoPermissibleObjects);
+  }
+  context.clip();
+}
+
 export function applyAtlasPaperTexture(
   context: CanvasRenderingContext2D,
   textureCanvas: HTMLCanvasElement,
@@ -116,7 +128,7 @@ export function applyAtlasParchmentAging(
   context.restore();
 }
 
-export function applyAtlasSatelliteWatercolor(
+export function applyAtlasBiomeWatercolor(
   context: CanvasRenderingContext2D,
   path: ReturnType<typeof geoPath>,
   world: FeatureCollectionLike,
@@ -124,149 +136,111 @@ export function applyAtlasSatelliteWatercolor(
   palette: GlobePalette,
   atlasImageryImage: HTMLImageElement | null,
 ) {
-  if (!atlasImageryImage) {
-    return;
-  }
-
   const { width, height } = textureCanvas;
-  const imageryCanvas = document.createElement('canvas');
-  imageryCanvas.width = width;
-  imageryCanvas.height = height;
-  const imageryContext = imageryCanvas.getContext('2d');
-  if (!imageryContext) {
-    return;
-  }
-
-  imageryContext.drawImage(atlasImageryImage, 0, 0, width, height);
-  const imageryData = imageryContext.getImageData(0, 0, width, height);
-  const pixels = imageryData.data;
-  const levels = 9;
-
-  for (let index = 0; index < pixels.length; index += 4) {
-    const red = pixels[index] ?? 0;
-    const green = pixels[index + 1] ?? 0;
-    const blue = pixels[index + 2] ?? 0;
-    const normalizedRed = red / 255;
-    const normalizedGreen = green / 255;
-    const normalizedBlue = blue / 255;
-    const x = (index / 4) % width;
-    const y = Math.floor(index / 4 / width);
-    const luma = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
-    const posterized = Math.round(luma * (levels - 1)) / (levels - 1);
-    const pigmentNoise =
-      (Math.sin(x * 0.053 + y * 0.031) + Math.sin(x * 0.11 - y * 0.046)) * 0.02;
-    const granulation =
-      Math.sin(x * 0.012 - y * 0.018) * 0.024 +
-      Math.sin(x * 0.031 + y * 0.009) * 0.014;
-    const paperMapped = Math.max(
-      0,
-      Math.min(1, posterized + pigmentNoise + granulation),
-    );
-    const wash = 0.84 + paperMapped * 0.24;
-    const vegetation = Math.max(
-      0,
-      Math.min(
-        1,
-        (normalizedGreen -
-          normalizedRed * 0.72 -
-          normalizedBlue * 0.22 +
-          0.22) *
-          2.1,
-      ),
-    );
-    const arid = Math.max(
-      0,
-      Math.min(
-        1,
-        (normalizedRed * 0.92 +
-          normalizedGreen * 0.28 -
-          normalizedBlue * 0.7 -
-          vegetation * 0.48 -
-          0.08) *
-          1.7,
-      ),
-    );
-    const snow = Math.max(
-      0,
-      Math.min(
-        1,
-        (posterized - 0.64 + normalizedBlue * 0.12 + (1 - vegetation) * 0.08) *
-          1.9,
-      ),
-    );
-    const mountain = Math.max(
-      0,
-      Math.min(
-        1,
-        ((1 - Math.abs(normalizedRed - normalizedGreen) * 1.7) * 0.7 +
-          (1 - Math.abs(normalizedGreen - normalizedBlue) * 1.3) * 0.3 -
-          vegetation * 0.6 -
-          arid * 0.22 +
-          (0.62 - Math.abs(posterized - 0.46)) * 0.45) *
-          0.92,
-      ),
-    );
-    const baseTone: [number, number, number] = [212, 200, 171];
-    const vegetationTone: [number, number, number] = [111, 125, 70];
-    const aridTone: [number, number, number] = [194, 151, 91];
-    const mountainTone: [number, number, number] = [128, 117, 108];
-    const snowTone: [number, number, number] = [233, 226, 213];
-    const tintWeight = Math.min(
-      1,
-      vegetation * 0.7 + arid * 0.64 + mountain * 0.48 + snow * 0.34,
-    );
-    const biomeRed =
-      vegetationTone[0] * vegetation +
-      aridTone[0] * arid +
-      mountainTone[0] * mountain +
-      snowTone[0] * snow;
-    const biomeGreen =
-      vegetationTone[1] * vegetation +
-      aridTone[1] * arid +
-      mountainTone[1] * mountain +
-      snowTone[1] * snow;
-    const biomeBlue =
-      vegetationTone[2] * vegetation +
-      aridTone[2] * arid +
-      mountainTone[2] * mountain +
-      snowTone[2] * snow;
-    const colorMix = 0.64 + paperMapped * 0.18;
-    const paintedRed =
-      baseTone[0] * (1 - tintWeight * colorMix) + biomeRed * colorMix;
-    const paintedGreen =
-      baseTone[1] * (1 - tintWeight * colorMix) + biomeGreen * colorMix;
-    const paintedBlue =
-      baseTone[2] * (1 - tintWeight * colorMix) + biomeBlue * colorMix;
-
-    pixels[index] = Math.round(paintedRed * wash);
-    pixels[index + 1] = Math.round(paintedGreen * wash);
-    pixels[index + 2] = Math.round(paintedBlue * wash);
-    pixels[index + 3] = 255;
-  }
-
-  imageryContext.putImageData(imageryData, 0, 0);
-
   context.save();
-
   context.save();
-  for (const feature of world.features) {
-    context.beginPath();
-    path(feature as GeoPermissibleObjects);
+  clipToAtlasLand(context, path, world);
+
+  if (atlasImageryImage) {
+    context.globalCompositeOperation = 'source-over';
+    context.globalAlpha = 0.72;
+    context.filter =
+      'blur(1.4px) sepia(0.48) saturate(0.88) hue-rotate(-16deg) contrast(0.98) brightness(1.08)';
+    context.drawImage(atlasImageryImage, 0, 0, width, height);
+    context.filter = 'none';
+
+    context.globalCompositeOperation = 'multiply';
+    context.globalAlpha = 0.18;
+    context.fillStyle = 'rgba(130, 97, 60, 0.42)';
+    context.fillRect(0, 0, width, height);
+
+    context.globalCompositeOperation = 'screen';
+    context.globalAlpha = 0.18;
+    context.fillStyle = 'rgba(244, 236, 214, 0.4)';
+    context.fillRect(0, 0, width, height);
   }
-  context.clip();
+
+  const toTexturePoint = (longitude: number, latitude: number) => ({
+    x: ((longitude + 180) / 360) * width,
+    y: ((90 - latitude) / 180) * height,
+  });
+
+  const paintBiomeBlobs = (
+    color: string,
+    regions: Array<{
+      latitude: number;
+      longitude: number;
+      radius: number;
+      strength: number;
+    }>,
+  ) => {
+    context.globalCompositeOperation = 'source-over';
+    context.filter = `blur(${Math.max(width / 170, 8)}px)`;
+    for (const region of regions) {
+      const { x, y } = toTexturePoint(region.longitude, region.latitude);
+      const radius = width * region.radius;
+      const gradient = context.createRadialGradient(
+        x,
+        y,
+        radius * 0.18,
+        x,
+        y,
+        radius,
+      );
+      gradient.addColorStop(0, color.replace('ALPHA', String(region.strength)));
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.filter = 'none';
+  };
+
+  paintBiomeBlobs('rgba(116, 132, 72, ALPHA)', [
+    { longitude: -63, latitude: -7, radius: 0.095, strength: 0.22 },
+    { longitude: 22, latitude: 0, radius: 0.07, strength: 0.18 },
+    { longitude: 105, latitude: 11, radius: 0.082, strength: 0.17 },
+    { longitude: -84, latitude: 37, radius: 0.072, strength: 0.12 },
+    { longitude: 18, latitude: 50, radius: 0.052, strength: 0.1 },
+  ]);
+
+  paintBiomeBlobs('rgba(196, 154, 98, ALPHA)', [
+    { longitude: 13, latitude: 23, radius: 0.12, strength: 0.28 },
+    { longitude: 48, latitude: 24, radius: 0.068, strength: 0.22 },
+    { longitude: 133, latitude: -24, radius: 0.088, strength: 0.28 },
+    { longitude: 102, latitude: 42, radius: 0.062, strength: 0.14 },
+    { longitude: -112, latitude: 34, radius: 0.046, strength: 0.14 },
+  ]);
+
+  paintBiomeBlobs('rgba(128, 116, 108, ALPHA)', [
+    { longitude: -71, latitude: -19, radius: 0.052, strength: 0.16 },
+    { longitude: -110, latitude: 42, radius: 0.058, strength: 0.14 },
+    { longitude: 86, latitude: 31, radius: 0.078, strength: 0.22 },
+    { longitude: 11, latitude: 46, radius: 0.03, strength: 0.1 },
+  ]);
+
+  paintBiomeBlobs('rgba(239, 236, 230, ALPHA)', [
+    { longitude: -42, latitude: 74, radius: 0.095, strength: 0.4 },
+    { longitude: -102, latitude: 69, radius: 0.09, strength: 0.24 },
+    { longitude: 105, latitude: 71, radius: 0.13, strength: 0.22 },
+  ]);
+
+  const antarcticSnow = context.createLinearGradient(0, height * 0.78, 0, height);
+  antarcticSnow.addColorStop(0, 'rgba(235, 232, 225, 0)');
+  antarcticSnow.addColorStop(1, 'rgba(235, 232, 225, 0.42)');
+  context.globalCompositeOperation = 'screen';
+  context.globalAlpha = 1;
+  context.fillStyle = antarcticSnow;
+  context.fillRect(0, 0, width, height);
 
   context.globalCompositeOperation = 'multiply';
-  context.globalAlpha = 0.82;
-  context.drawImage(imageryCanvas, 0, 0);
-  context.fillStyle = shiftColor(palette.countryFill, -8, -7, -3, 0.16);
-  context.fillRect(0, 0, width, height);
-  context.globalCompositeOperation = 'soft-light';
-  context.globalAlpha = 0.18;
-  context.fillStyle = shiftColor(palette.countryFill, 20, 18, 10, 0.2);
+  context.globalAlpha = 0.14;
+  context.fillStyle = 'rgba(122, 96, 64, 0.28)';
   context.fillRect(0, 0, width, height);
   context.globalCompositeOperation = 'screen';
   context.globalAlpha = 0.08;
-  context.fillStyle = 'rgba(248, 242, 226, 0.12)';
+  context.fillStyle = 'rgba(248, 242, 226, 0.22)';
   context.fillRect(0, 0, width, height);
 
   context.restore();
@@ -372,29 +346,21 @@ export function applyAtlasWatercolorLand(
   path: ReturnType<typeof geoPath>,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
-  palette: GlobePalette,
 ) {
   const { width, height } = textureCanvas;
 
   context.save();
-  for (const feature of world.features) {
-    context.beginPath();
-    path(feature as GeoPermissibleObjects);
-  }
-  context.clip();
+  clipToAtlasLand(context, path, world);
 
   const landWash = context.createLinearGradient(0, 0, width, height);
-  landWash.addColorStop(0, shiftColor(palette.countryFill, 10, 8, 3, 0.06));
-  landWash.addColorStop(
-    0.45,
-    shiftColor(palette.countryFill, -6, -5, -3, 0.05),
-  );
-  landWash.addColorStop(1, shiftColor(palette.countryFill, 7, 6, 3, 0.05));
+  landWash.addColorStop(0, 'rgba(194, 186, 153, 0.11)');
+  landWash.addColorStop(0.45, 'rgba(145, 136, 108, 0.1)');
+  landWash.addColorStop(1, 'rgba(188, 180, 148, 0.1)');
   context.fillStyle = landWash;
   context.fillRect(0, 0, width, height);
 
   context.globalCompositeOperation = 'multiply';
-  for (let index = 0; index < 12; index += 1) {
+  for (let index = 0; index < 18; index += 1) {
     const x = ((index * 181) % width) + (index % 4) * 9;
     const y = ((index * 127) % height) + (index % 6) * 7;
     const radius = width * (0.028 + (index % 6) * 0.004);
@@ -406,8 +372,8 @@ export function applyAtlasWatercolorLand(
       y,
       radius,
     );
-    blot.addColorStop(0, shiftColor(palette.countryFill, -10, -8, -6, 0.03));
-    blot.addColorStop(1, shiftColor(palette.countryFill, 2, 2, 1, 0));
+    blot.addColorStop(0, 'rgba(121, 110, 82, 0.045)');
+    blot.addColorStop(1, 'rgba(0, 0, 0, 0)');
     context.fillStyle = blot;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
@@ -415,13 +381,13 @@ export function applyAtlasWatercolorLand(
   }
 
   context.globalCompositeOperation = 'soft-light';
-  for (let index = 0; index < 10; index += 1) {
+  for (let index = 0; index < 16; index += 1) {
     const x = ((index * 149) % width) + 5;
     const y = ((index * 113) % height) + 5;
     const radius = width * (0.016 + (index % 5) * 0.0035);
     const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-    blot.addColorStop(0, shiftColor(palette.countryFill, 10, 9, 5, 0.03));
-    blot.addColorStop(1, shiftColor(palette.countryFill, 0, 0, 0, 0));
+    blot.addColorStop(0, 'rgba(214, 198, 160, 0.05)');
+    blot.addColorStop(1, 'rgba(0, 0, 0, 0)');
     context.fillStyle = blot;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
@@ -429,8 +395,8 @@ export function applyAtlasWatercolorLand(
   }
 
   context.globalCompositeOperation = 'screen';
-  context.globalAlpha = 0.05;
-  context.fillStyle = 'rgba(248, 243, 229, 0.12)';
+  context.globalAlpha = 0.08;
+  context.fillStyle = 'rgba(248, 243, 229, 0.16)';
   context.fillRect(0, 0, width, height);
 
   context.restore();
@@ -591,11 +557,7 @@ export function applyAtlasLandHachure(
   const spacing = Math.max(Math.floor(width / 96), 14);
 
   context.save();
-  for (const feature of world.features) {
-    context.beginPath();
-    path(feature as GeoPermissibleObjects);
-  }
-  context.clip();
+  clipToAtlasLand(context, path, world);
 
   context.globalAlpha = 0.2;
   context.strokeStyle = 'rgba(93, 58, 28, 0.24)';
