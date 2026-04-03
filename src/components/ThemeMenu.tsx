@@ -1,4 +1,15 @@
-import { Box, Button, Collapse, Paper, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material';
 import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
 import { useState } from 'react';
 import { useAppearance } from '@/app/appearance';
@@ -27,6 +38,7 @@ export function ThemeMenu({
   onRestart,
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
+  const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const menuPanelId = 'theme-menu-panel';
@@ -37,7 +49,11 @@ export function ThemeMenu({
       onClick: onRefocus,
     },
     { icon: RotateCcw, label: 'Retry', onClick: onRestart },
-    { icon: XCircle, label: 'Quit', onClick: onQuit },
+    {
+      icon: XCircle,
+      label: 'Quit',
+      onClick: () => setConfirmQuitOpen(true),
+    },
     { icon: Info, label: 'About', onClick: onAbout },
   ];
 
@@ -162,6 +178,39 @@ export function ThemeMenu({
           </Paper>
         </Collapse>
       </Stack>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        open={confirmQuitOpen}
+        PaperProps={{
+          sx: {
+            ...panelSurface,
+            borderRadius: designTokens.radius.md,
+            backgroundImage: 'none',
+          },
+        }}
+        onClose={() => setConfirmQuitOpen(false)}
+      >
+        <DialogTitle>Quit current run?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Return to the main menu? Your current run progress will be lost.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmQuitOpen(false)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              setConfirmQuitOpen(false);
+              onQuit();
+            }}
+          >
+            Quit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -1,4 +1,11 @@
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { PropsWithChildren } from 'react';
@@ -224,7 +231,7 @@ describe('GamePage', () => {
     expect(screen.queryByText(/^Hints$/i)).not.toBeInTheDocument();
   });
 
-  it('supports retry and quit from the menu', async () => {
+  it('supports retry and confirms quit from the menu', async () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
 
@@ -244,6 +251,21 @@ describe('GamePage', () => {
     expect(screen.getByText(/Type: Random Run/i)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /^quit$/i }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent(
+      /quit current run\?/i,
+    );
+    expect(showModalMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    await waitFor(() => {
+      expect(screen.queryByText(/quit current run\?/i)).not.toBeInTheDocument();
+    });
+    expect(showModalMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: /^quit$/i }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: /^quit$/i }),
+    );
     await waitFor(() => {
       expect(showModalMock).toHaveBeenCalledTimes(2);
     });
