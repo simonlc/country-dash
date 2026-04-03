@@ -1047,18 +1047,32 @@ export function createAppTheme(themeId: AppThemeId): Theme {
               definition.mode === 'light' ? 0.74 : 0.12,
             ),
             boxShadow: `inset 0 1px 0 ${lightInset}`,
+            transition: `background-color ${designTokens.motion.fast} ease, box-shadow ${designTokens.motion.fast} ease`,
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: definition.background.panelBorder,
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: hexToRgba(definition.palette.primary, 0.36),
             },
+            '&:hover': {
+              backgroundColor: hexToRgba(
+                definition.palette.backgroundPaper,
+                definition.mode === 'light' ? 0.86 : 0.16,
+              ),
+            },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               borderColor: definition.palette.primary,
-              borderWidth: 1,
+              borderWidth: 2,
             },
             '&.Mui-focused': {
-              boxShadow: `0 0 0 3px ${focusRing}`,
+              backgroundColor: hexToRgba(
+                definition.palette.primary,
+                definition.mode === 'light' ? 0.06 : 0.12,
+              ),
+              boxShadow: `inset 0 0 0 1px ${hexToRgba(
+                definition.palette.primary,
+                definition.mode === 'light' ? 0.12 : 0.24,
+              )}`,
             },
           },
           input: {
