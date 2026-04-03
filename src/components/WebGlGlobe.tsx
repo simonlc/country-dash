@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import type {
-  AppThemeId,
-  GlobePalette,
-  GlobeQualityConfig,
-} from '@/app/theme';
+import type { AppThemeId, GlobePalette, GlobeQualityConfig } from '@/app/theme';
 import {
   useCipherTraffic,
   type CipherTrafficState,
@@ -14,10 +10,7 @@ import type { CountryFeature } from '@/types/game';
 import type { CipherCriticalSite } from '@/utils/globeCipherOverlays';
 import type { HydroFeatureCollection } from '@/utils/globeHydroOverlays';
 import { drawSelectedCountryOverlay } from '@/utils/globeOverlays';
-import {
-  useGlobeInteraction,
-  type GlobeViewProps,
-} from '@/utils/globeShared';
+import { useGlobeInteraction, type GlobeViewProps } from '@/utils/globeShared';
 import {
   buildCombinedTextureCanvas,
   buildCountryTextureCanvas,
@@ -84,14 +77,7 @@ function updateTextureFromImage(
   gl.activeTexture(unit);
   configureTexture(gl, texture, image.naturalWidth, image.naturalHeight);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    image,
-  );
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
   gl.activeTexture(gl.TEXTURE0);
 }
 
@@ -104,14 +90,7 @@ function updateTextureFromCanvas(
   gl.activeTexture(unit);
   configureTexture(gl, texture, canvas.width, canvas.height);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    canvas,
-  );
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
   gl.activeTexture(gl.TEXTURE0);
 }
 
@@ -181,14 +160,9 @@ export function WebGlGlobe({
       ) ?? country,
     [country, world.features],
   );
-  const getViewRotation = useCallback(
-    () => frameStateRef.current.currentRotation,
-    [],
-  );
   const cipherTrafficState = useCipherTraffic({
     enabled: isCipher,
     endpoint: cipherTrafficEndpoint,
-    getViewRotation,
   });
   const hasCipherOverlayAnimation = isCipher && mode !== 'capitals';
   const hasCipherTrafficAnimation =
@@ -376,55 +350,66 @@ export function WebGlGlobe({
       worldFeatureCount: world.features.length,
     });
     const cachedTextures = textureCacheRef.current.get(textureCacheKey);
-    const { baseTextureCanvas, countryTextureCanvas } = cachedTextures ?? (() => {
-      const nextBaseTextureCanvas = hasRaisedCountries
-        ? buildOceanTextureCanvas(
-            world,
-            palette,
-            textureResolution,
-            isAtlas,
-            isAtlas ? atlasPaperImage : null,
-            isAtlas ? atlasImageryImage : null,
-          )
-        : buildCombinedTextureCanvas(
-            world,
-            null,
-            palette,
-            quality,
-            textureResolution,
-            isAtlas,
-            isCipher,
-            isAtlas ? atlasPaperImage : null,
-            isAtlas ? atlasImageryImage : null,
-            lakesData,
-            riversData,
-          );
-      const nextCountryTextureCanvas = hasRaisedCountries
-        ? buildCountryTextureCanvas(
-            world,
-            null,
-            palette,
-            quality,
-            textureResolution,
-            isAtlas,
-            isCipher,
-            isAtlas ? atlasPaperImage : null,
-            isAtlas ? atlasImageryImage : null,
-            lakesData,
-            riversData,
-          )
-        : null;
-      const nextTextures = {
-        baseTextureCanvas: nextBaseTextureCanvas,
-        countryTextureCanvas: nextCountryTextureCanvas,
-      };
+    const { baseTextureCanvas, countryTextureCanvas } =
+      cachedTextures ??
+      (() => {
+        const nextBaseTextureCanvas = hasRaisedCountries
+          ? buildOceanTextureCanvas(
+              world,
+              palette,
+              textureResolution,
+              isAtlas,
+              isAtlas ? atlasPaperImage : null,
+              isAtlas ? atlasImageryImage : null,
+            )
+          : buildCombinedTextureCanvas(
+              world,
+              null,
+              palette,
+              quality,
+              textureResolution,
+              isAtlas,
+              isCipher,
+              isAtlas ? atlasPaperImage : null,
+              isAtlas ? atlasImageryImage : null,
+              lakesData,
+              riversData,
+            );
+        const nextCountryTextureCanvas = hasRaisedCountries
+          ? buildCountryTextureCanvas(
+              world,
+              null,
+              palette,
+              quality,
+              textureResolution,
+              isAtlas,
+              isCipher,
+              isAtlas ? atlasPaperImage : null,
+              isAtlas ? atlasImageryImage : null,
+              lakesData,
+              riversData,
+            )
+          : null;
+        const nextTextures = {
+          baseTextureCanvas: nextBaseTextureCanvas,
+          countryTextureCanvas: nextCountryTextureCanvas,
+        };
 
-      setCachedTextures(textureCacheRef.current, textureCacheKey, nextTextures);
+        setCachedTextures(
+          textureCacheRef.current,
+          textureCacheKey,
+          nextTextures,
+        );
 
-      return nextTextures;
-    })();
+        return nextTextures;
+      })();
 
-    updateTextureFromCanvas(gl, resources.texture, gl.TEXTURE0, baseTextureCanvas);
+    updateTextureFromCanvas(
+      gl,
+      resources.texture,
+      gl.TEXTURE0,
+      baseTextureCanvas,
+    );
 
     if (countryTextureCanvas) {
       updateTextureFromCanvas(
@@ -436,7 +421,12 @@ export function WebGlGlobe({
     }
 
     if (reliefImage) {
-      updateTextureFromImage(gl, resources.reliefTexture, gl.TEXTURE1, reliefImage);
+      updateTextureFromImage(
+        gl,
+        resources.reliefTexture,
+        gl.TEXTURE1,
+        reliefImage,
+      );
     }
 
     if (cityLightsImage) {
@@ -464,7 +454,12 @@ export function WebGlGlobe({
     }
 
     if (dayImageryImage) {
-      updateTextureFromImage(gl, resources.dayTexture, gl.TEXTURE5, dayImageryImage);
+      updateTextureFromImage(
+        gl,
+        resources.dayTexture,
+        gl.TEXTURE5,
+        dayImageryImage,
+      );
     }
 
     if (nightImageryImage) {

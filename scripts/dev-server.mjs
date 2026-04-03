@@ -28,40 +28,107 @@ function json(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
-function projectStateRows(rows, categories, limit) {
-  return Array.isArray(rows)
-    ? rows
-        .map((row) => {
-          if (!Array.isArray(row)) {
-            return null;
-          }
+function normalizeLongitude(value) {
+  let normalized = value;
+  while (normalized < -180) {
+    normalized += 360;
+  }
+  while (normalized > 180) {
+    normalized -= 360;
+  }
+  return normalized;
+}
 
-          return {
-            baroAltitude: typeof row[7] === 'number' ? row[7] : null,
-            callsign: typeof row[1] === 'string' ? row[1].trim() || null : null,
-            category: typeof row[17] === 'number' ? row[17] : null,
-            icao24: typeof row[0] === 'string' ? row[0] : '',
-            lastContact: typeof row[4] === 'number' ? row[4] : null,
-            latitude: typeof row[6] === 'number' ? row[6] : null,
-            longitude: typeof row[5] === 'number' ? row[5] : null,
-            onGround: row[8] === true,
-            originCountry: typeof row[2] === 'string' ? row[2] : null,
-            trueTrack: typeof row[10] === 'number' ? row[10] : null,
-            velocity: typeof row[9] === 'number' ? row[9] : null,
-          };
-        })
-        .filter(
-          (state) =>
-            Boolean(state) &&
-            Boolean(state.icao24) &&
-            state.latitude !== null &&
-            state.longitude !== null &&
-            !state.onGround &&
-            (state.category === null || categories.includes(state.category)),
-        )
-        .sort((left, right) => (right.velocity ?? 0) - (left.velocity ?? 0))
-        .slice(0, limit)
-    : [];
+function getStateBucket(state) {
+  const latitudeBucket = Math.floor(
+    clamp(state.latitude + 90, 0, 180 - Number.EPSILON) / 20,
+  );
+  const longitudeBucket = Math.floor(
+    (normalizeLongitude(state.longitude) + 180) / 30,
+  );
+  return `${latitudeBucket}:${longitudeBucket}`;
+}
+
+function selectDiverseStates(states, limit) {
+  const buckets = new Map();
+
+  for (const state of states) {
+    const bucket = getStateBucket(state);
+    const bucketStates = buckets.get(bucket);
+    if (bucketStates) {
+      bucketStates.push(state);
+    } else {
+      buckets.set(bucket, [state]);
+    }
+  }
+
+  const bucketEntries = [...buckets.values()].sort(
+    (left, right) => (right[0]?.velocity ?? 0) - (left[0]?.velocity ?? 0),
+  );
+  const selected = [];
+
+  while (selected.length < limit) {
+    let addedInPass = false;
+
+    for (const bucketStates of bucketEntries) {
+      const nextState = bucketStates.shift();
+      if (!nextState) {
+        continue;
+      }
+
+      selected.push(nextState);
+      addedInPass = true;
+
+      if (selected.length >= limit) {
+        return selected;
+      }
+    }
+
+    if (!addedInPass) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
+function projectStateRows(rows, categories, limit) {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
+  const filteredStates = rows
+    .map((row) => {
+      if (!Array.isArray(row)) {
+        return null;
+      }
+
+      return {
+        baroAltitude: typeof row[7] === 'number' ? row[7] : null,
+        callsign: typeof row[1] === 'string' ? row[1].trim() || null : null,
+        category: typeof row[17] === 'number' ? row[17] : null,
+        icao24: typeof row[0] === 'string' ? row[0] : '',
+        lastContact: typeof row[4] === 'number' ? row[4] : null,
+        latitude: typeof row[6] === 'number' ? row[6] : null,
+        longitude: typeof row[5] === 'number' ? row[5] : null,
+        onGround: row[8] === true,
+        originCountry: typeof row[2] === 'string' ? row[2] : null,
+        trueTrack: typeof row[10] === 'number' ? row[10] : null,
+        velocity: typeof row[9] === 'number' ? row[9] : null,
+      };
+    })
+    .filter(
+      (state) =>
+        Boolean(state) &&
+        Boolean(state.icao24) &&
+        state.latitude !== null &&
+        state.longitude !== null &&
+        !state.onGround &&
+        (state.category === null || categories.includes(state.category)),
+    )
+    .sort((left, right) => (right.velocity ?? 0) - (left.velocity ?? 0));
+
+  return selectDiverseStates(filteredStates, limit);
 }
 
 const env = loadEnv('development', process.cwd(), '');
@@ -124,13 +191,25 @@ async function fetchStates(requestUrl) {
   const limit = clamp(
     Math.floor(parseNumericParam(requestUrl.searchParams.get('limit'), 24)),
     1,
-    48,
+    160,
   );
   const upstreamUrl = new URL('https://opensky-network.org/api/states/all');
-  upstreamUrl.searchParams.set('lamin', requestUrl.searchParams.get('lamin') ?? '-60');
-  upstreamUrl.searchParams.set('lamax', requestUrl.searchParams.get('lamax') ?? '60');
-  upstreamUrl.searchParams.set('lomin', requestUrl.searchParams.get('lomin') ?? '-180');
-  upstreamUrl.searchParams.set('lomax', requestUrl.searchParams.get('lomax') ?? '180');
+  upstreamUrl.searchParams.set(
+    'lamin',
+    requestUrl.searchParams.get('lamin') ?? '-60',
+  );
+  upstreamUrl.searchParams.set(
+    'lamax',
+    requestUrl.searchParams.get('lamax') ?? '60',
+  );
+  upstreamUrl.searchParams.set(
+    'lomin',
+    requestUrl.searchParams.get('lomin') ?? '-180',
+  );
+  upstreamUrl.searchParams.set(
+    'lomax',
+    requestUrl.searchParams.get('lomax') ?? '180',
+  );
   upstreamUrl.searchParams.set('extended', '1');
 
   const cacheKey = [
@@ -166,14 +245,18 @@ async function fetchStates(requestUrl) {
       });
 
       if (!upstreamResponse.ok) {
-        throw new Error(`OpenSky states request failed with ${upstreamResponse.status}.`);
+        throw new Error(
+          `OpenSky states request failed with ${upstreamResponse.status}.`,
+        );
       }
 
       const payload = await upstreamResponse.json();
       let filteredStates = projectStateRows(payload.states, categories, limit);
 
       if (filteredStates.length === 0) {
-        const fallbackUrl = new URL('https://opensky-network.org/api/states/all');
+        const fallbackUrl = new URL(
+          'https://opensky-network.org/api/states/all',
+        );
         fallbackUrl.searchParams.set('lamin', '-68');
         fallbackUrl.searchParams.set('lamax', '78');
         fallbackUrl.searchParams.set('lomin', '-180');
@@ -262,7 +345,8 @@ const proxyServer = createServer(async (request, response) => {
       json(response, 503, {
         authenticated: false,
         configured: Boolean(clientId && clientSecret),
-        error: error instanceof Error ? error.message : 'OpenSky relay unavailable.',
+        error:
+          error instanceof Error ? error.message : 'OpenSky relay unavailable.',
       });
     }
     return;

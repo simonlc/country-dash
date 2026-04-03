@@ -84,86 +84,116 @@ export function getProjectedDestination(args: {
     );
 
   return [
-    ((((destinationLon * 180) / Math.PI) + 540) % 360) - 180,
+    (((destinationLon * 180) / Math.PI + 540) % 360) - 180,
     (destinationLat * 180) / Math.PI,
   ] as const;
 }
 
 export function createGlobeVisibilityTester(currentRotation: [number, number]) {
-  const rotate = geoRotation([
-    currentRotation[0],
-    currentRotation[1],
-    0,
-  ]);
+  const rotate = geoRotation([currentRotation[0], currentRotation[1], 0]);
 
   return (longitude: number, latitude: number) => {
     const [rotatedLongitude, rotatedLatitude] = rotate([longitude, latitude]);
-    const spherePosition = geoToSpherePosition(rotatedLongitude, rotatedLatitude);
+    const spherePosition = geoToSpherePosition(
+      rotatedLongitude,
+      rotatedLatitude,
+    );
     return spherePosition.z <= 0.015;
   };
 }
 
-function buildCipherProjectedTrackPath(args: {
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+const cipherTrafficDisplayTimeScale = 28;
+const cipherTrafficDisplayLoopMinutes = 240;
+
+function getLatestSample(track: CipherTrafficTrack) {
+  return track.samples[track.samples.length - 1] ?? null;
+}
+
+function getTrackDisplayPriority(track: CipherTrafficTrack) {
+  const latestSample = getLatestSample(track);
+  if (!latestSample) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const freshness =
+    1 -
+    Math.min(
+      Math.max(Date.now() - latestSample.timestampMs, 0),
+      8 * 60 * 1000,
+    ) /
+      (8 * 60 * 1000);
+
+  return (
+    freshness * 4 +
+    Math.min(track.samples.length, 12) * 0.45 +
+    Math.min(Math.max(latestSample.velocity ?? 0, 0), 320) * 0.004
+  );
+}
+
+function buildVisibleTrackList(args: {
   currentRotation: [number, number];
-  projection: ReturnType<typeof geoOrthographic>;
-  sample: CipherTrafficSample;
+  nowMs: number;
+  tracks: CipherTrafficTrack[];
 }) {
-  const { currentRotation, projection, sample } = args;
-  if (
-    typeof sample.heading !== 'number' ||
-    typeof sample.velocity !== 'number' ||
-    !Number.isFinite(sample.heading) ||
-    !Number.isFinite(sample.velocity) ||
-    sample.velocity < 70
-  ) {
-    return [] as Array<[number, number]>;
-  }
-
+  const { currentRotation, nowMs, tracks } = args;
   const isVisible = createGlobeVisibilityTester(currentRotation);
-  const distancePerMinuteKm = sample.velocity * 0.06;
-  const projectedPoints: Array<[number, number]> = [];
 
-  for (let step = 4; step >= 1; step -= 1) {
-    const [longitude, latitude] = getProjectedDestination({
-      distanceKm: distancePerMinuteKm * step * 0.9,
-      headingDegrees: (sample.heading + 180) % 360,
-      latitude: sample.latitude,
-      longitude: sample.longitude,
-    });
-    if (!isVisible(longitude, latitude)) {
-      continue;
-    }
-    const projected = projection([longitude, latitude]);
-    if (projected) {
-      projectedPoints.push([projected[0], projected[1]]);
-    }
+  return tracks
+    .filter((track) => {
+      const latestSample = getAnimatedCipherSample(track, nowMs);
+      return (
+        latestSample !== null &&
+        isVisible(latestSample.longitude, latestSample.latitude)
+      );
+    })
+    .sort(
+      (left, right) =>
+        getTrackDisplayPriority(right) - getTrackDisplayPriority(left),
+    );
+}
+
+function getAnimatedCipherSample(
+  track: CipherTrafficTrack,
+  nowMs: number,
+): CipherTrafficSample | null {
+  const latestSample = getLatestSample(track);
+  if (!latestSample) {
+    return null;
   }
 
-  const currentPoint =
-    isVisible(sample.longitude, sample.latitude)
-      ? projection([sample.longitude, sample.latitude])
-      : null;
-  if (currentPoint) {
-    projectedPoints.push([currentPoint[0], currentPoint[1]]);
+  if (
+    typeof latestSample.heading !== 'number' ||
+    typeof latestSample.velocity !== 'number' ||
+    !Number.isFinite(latestSample.heading) ||
+    !Number.isFinite(latestSample.velocity) ||
+    latestSample.velocity < 70
+  ) {
+    return latestSample;
   }
 
-  for (let step = 1; step <= 7; step += 1) {
-    const [longitude, latitude] = getProjectedDestination({
-      distanceKm: distancePerMinuteKm * step * 1.4,
-      headingDegrees: sample.heading,
-      latitude: sample.latitude,
-      longitude: sample.longitude,
-    });
-    if (!isVisible(longitude, latitude)) {
-      continue;
-    }
-    const projected = projection([longitude, latitude]);
-    if (projected) {
-      projectedPoints.push([projected[0], projected[1]]);
-    }
-  }
+  const elapsedMinutes =
+    (Math.max(nowMs - latestSample.timestampMs, 0) / 60_000) *
+    cipherTrafficDisplayTimeScale;
+  const cycledMinutes = elapsedMinutes % cipherTrafficDisplayLoopMinutes;
+  const distanceKm =
+    clamp(latestSample.velocity, 165, 305) * 0.06 * cycledMinutes;
+  const [longitude, latitude] = getProjectedDestination({
+    distanceKm,
+    headingDegrees: latestSample.heading,
+    latitude: latestSample.latitude,
+    longitude: latestSample.longitude,
+  });
 
-  return projectedPoints;
+  return {
+    ...latestSample,
+    latitude,
+    longitude,
+    timestampMs: nowMs,
+  };
 }
 
 function formatCipherTrackCallsign(track: CipherTrafficTrack) {
@@ -298,7 +328,10 @@ export function drawCipherSelectedCountryOverlay(args: {
   }
 
   context.save();
-  context.strokeStyle = withOpacity(palette.selectedFill, 0.16 + pulseAlpha * 0.08);
+  context.strokeStyle = withOpacity(
+    palette.selectedFill,
+    0.16 + pulseAlpha * 0.08,
+  );
   context.lineWidth = 3.1 + pulseAlpha * 1.2;
   for (const ringPath of ringPaths) {
     context.beginPath();
@@ -395,11 +428,13 @@ export function drawCipherMapAnnotations(args: {
 
   context.shadowBlur = 0;
   context.fillStyle = withOpacity(palette.selectedFill, 0.92);
-  context.font = '600 10px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.font =
+    '600 10px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
   context.fillText('LOCK // REDACTED', labelX + 12, labelY + 15);
 
   context.fillStyle = withOpacity('#f6ff9e', 0.94);
-  context.font = '600 12px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.font =
+    '600 12px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
   context.fillText('VISUAL ONLY', labelX + 12, labelY + 30);
 
   context.fillStyle = withOpacity(palette.selectedFill, 0.28 + blink * 0.24);
@@ -430,7 +465,8 @@ function drawCipherCriticalSites(args: {
 
   context.save();
   context.globalCompositeOperation = 'screen';
-  context.font = '500 9px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+  context.font =
+    '500 9px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
 
   for (const [index, entry] of visibleSites.entries()) {
     const [x, y] = entry.point;
@@ -483,10 +519,14 @@ export function drawCipherTrafficOverlay(args: {
     projection,
     trafficState,
   } = args;
-  const visibleTracks = trafficState.tracks.slice(0, 18);
-  const labelTracks = visibleTracks.slice(0, 4);
-  const wallClockMs = Date.now();
   const isVisible = createGlobeVisibilityTester(currentRotation);
+  const wallClockMs = Date.now();
+  const visibleTracks = buildVisibleTrackList({
+    currentRotation,
+    nowMs: wallClockMs,
+    tracks: trafficState.tracks,
+  });
+  const labelTracks = visibleTracks.slice(0, 8);
 
   context.save();
   context.globalCompositeOperation = 'screen';
@@ -501,153 +541,18 @@ export function drawCipherTrafficOverlay(args: {
   });
 
   for (const [index, track] of visibleTracks.entries()) {
-    const segments: Array<Array<[number, number]>> = [];
-    let currentSegment: Array<[number, number]> = [];
-
-    for (const sample of track.samples) {
-      if (!isVisible(sample.longitude, sample.latitude)) {
-        if (currentSegment.length > 1) {
-          segments.push(currentSegment);
-        }
-        currentSegment = [];
-        continue;
-      }
-
-      const projected = projection([sample.longitude, sample.latitude]);
-      if (!projected) {
-        if (currentSegment.length > 1) {
-          segments.push(currentSegment);
-        }
-        currentSegment = [];
-        continue;
-      }
-
-      currentSegment.push([projected[0], projected[1]]);
-    }
-
-    if (currentSegment.length > 1) {
-      segments.push(currentSegment);
-    }
-
-    const latestSample = track.samples[track.samples.length - 1];
-    const latestPoint = latestSample
-      && isVisible(latestSample.longitude, latestSample.latitude)
-      ? projection([latestSample.longitude, latestSample.latitude])
-      : null;
-    const projectedTrackPath = latestSample
-      ? buildCipherProjectedTrackPath({
-          currentRotation,
-          projection,
-          sample: latestSample,
-        })
-      : [];
-    const freshness = latestSample
-      ? Math.max(0, 1 - (wallClockMs - latestSample.timestampMs) / (4 * 60 * 1000))
+    const sourceSample = getLatestSample(track);
+    const latestSample = getAnimatedCipherSample(track, wallClockMs);
+    const latestPoint =
+      latestSample && isVisible(latestSample.longitude, latestSample.latitude)
+        ? projection([latestSample.longitude, latestSample.latitude])
+        : null;
+    const freshness = sourceSample
+      ? Math.max(
+          0,
+          1 - (wallClockMs - sourceSample.timestampMs) / (4 * 60 * 1000),
+        )
       : 0;
-
-    if (segments.length > 0) {
-      context.shadowColor = withOpacity(palette.smallCountryCircle, 0.18);
-      context.shadowBlur = 10;
-      context.strokeStyle = withOpacity(
-        palette.smallCountryCircle,
-        0.06 + freshness * 0.1,
-      );
-      context.lineWidth = 1.1;
-      context.setLineDash([]);
-      for (const segment of segments) {
-        context.beginPath();
-        for (const [pointIndex, point] of segment.entries()) {
-          if (pointIndex === 0) {
-            context.moveTo(point[0], point[1]);
-          } else {
-            context.lineTo(point[0], point[1]);
-          }
-        }
-        context.stroke();
-      }
-
-      context.shadowColor = withOpacity(palette.selectedFill, 0.28);
-      context.shadowBlur = 14;
-      context.strokeStyle = withOpacity(
-        palette.selectedFill,
-        0.2 + freshness * 0.28,
-      );
-      context.lineWidth = 1.65;
-      context.setLineDash([7, 16]);
-      context.lineDashOffset = -nowMs * 0.028 - index * 7;
-      for (const segment of segments) {
-        context.beginPath();
-        for (const [pointIndex, point] of segment.entries()) {
-          if (pointIndex === 0) {
-            context.moveTo(point[0], point[1]);
-          } else {
-            context.lineTo(point[0], point[1]);
-          }
-        }
-        context.stroke();
-      }
-    }
-
-    if (projectedTrackPath.length > 1) {
-      context.shadowColor = withOpacity(palette.selectedFill, 0.2);
-      context.shadowBlur = 18;
-      context.strokeStyle = withOpacity(
-        palette.selectedFill,
-        0.08 + freshness * 0.08,
-      );
-      context.lineWidth = 4.4;
-      context.setLineDash([]);
-      context.beginPath();
-      for (const [pointIndex, point] of projectedTrackPath.entries()) {
-        if (pointIndex === 0) {
-          context.moveTo(point[0], point[1]);
-        } else {
-          context.lineTo(point[0], point[1]);
-        }
-      }
-      context.stroke();
-
-      context.shadowBlur = 0;
-      context.strokeStyle = withOpacity('#f6ff9e', 0.18 + freshness * 0.16);
-      context.lineWidth = 1.1;
-      context.setLineDash([4, 9]);
-      context.lineDashOffset = -nowMs * 0.01 - index * 5;
-      context.beginPath();
-      for (const [pointIndex, point] of projectedTrackPath.entries()) {
-        if (pointIndex === 0) {
-          context.moveTo(point[0], point[1]);
-        } else {
-          context.lineTo(point[0], point[1]);
-        }
-      }
-      context.stroke();
-    } else if (latestSample && latestPoint) {
-      const forecastDistanceKm = Math.min(
-        (latestSample.velocity ?? 0) * 0.54,
-        220,
-      );
-      const [forecastLongitude, forecastLatitude] = getProjectedDestination({
-        distanceKm: forecastDistanceKm,
-        headingDegrees: latestSample.heading ?? 0,
-        latitude: latestSample.latitude,
-        longitude: latestSample.longitude,
-      });
-      const forecastPoint = projection([forecastLongitude, forecastLatitude]);
-
-      if (forecastPoint) {
-        context.strokeStyle = withOpacity(
-          palette.smallCountryCircle,
-          0.18 + freshness * 0.16,
-        );
-        context.lineWidth = 1;
-        context.setLineDash([3, 7]);
-        context.lineDashOffset = -nowMs * 0.02;
-        context.beginPath();
-        context.moveTo(latestPoint[0], latestPoint[1]);
-        context.lineTo(forecastPoint[0], forecastPoint[1]);
-        context.stroke();
-      }
-    }
 
     if (!latestPoint) {
       continue;
@@ -689,7 +594,7 @@ export function drawCipherTrafficOverlay(args: {
   context.shadowBlur = 0;
   context.setLineDash([]);
   for (const track of labelTracks) {
-    const latestSample = track.samples[track.samples.length - 1];
+    const latestSample = getAnimatedCipherSample(track, wallClockMs);
     if (!latestSample) {
       continue;
     }
@@ -704,7 +609,8 @@ export function drawCipherTrafficOverlay(args: {
     }
 
     context.fillStyle = withOpacity('#f6ff9e', 0.84);
-    context.font = '500 9px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
+    context.font =
+      '500 9px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
     context.fillText(
       `${formatCipherTrackCallsign(track)}  ${formatCipherTrackVelocity(latestSample.velocity)}KT`,
       point[0] + 8,
