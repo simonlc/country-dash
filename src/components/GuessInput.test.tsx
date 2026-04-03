@@ -61,7 +61,7 @@ describe('GuessInput', () => {
     fireEvent.change(input, { target: { value: 'dom' } });
     fireEvent.keyDown(input, { key: 'Tab' });
 
-    expect(input).toHaveValue('Dominican Republic');
+    expect(input).toHaveValue('Dominica');
   });
 
   it('uses capital options in capital mode', async () => {
@@ -95,5 +95,33 @@ describe('GuessInput', () => {
     await user.tab();
 
     expect(input).toHaveValue('Ottawa');
+  });
+
+  it('keeps typed text stable while entering a guess character by character', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={[
+          {
+            isocode: 'CA',
+            isocode3: 'CAN',
+            nameEn: 'Canada',
+          },
+          {
+            isocode: 'CM',
+            isocode3: 'CMR',
+            nameEn: 'Cameroon',
+          },
+        ]}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'cam');
+
+    expect(input).toHaveValue('cam');
   });
 });

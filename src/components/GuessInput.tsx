@@ -212,8 +212,10 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
           }
         }}
         onClose={() => setOpen(false)}
-        onInputChange={(_event, nextInputValue) => {
-          syncInputState(nextInputValue);
+        onInputChange={(_event, nextInputValue, reason) => {
+          if (reason === 'input' || reason === 'clear') {
+            syncInputState(nextInputValue);
+          }
         }}
         onKeyDown={handleKeyDown}
         renderInput={(params) => (
@@ -240,9 +242,6 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
                   fontWeight: designTokens.fontWeight.semibold,
                   py: 1.5,
                 },
-              }}
-              onChange={(event) => {
-                syncInputState(event.target.value);
               }}
             />
             <Typography

@@ -31,6 +31,17 @@ test('starts a random run and accepts a typed incorrect answer', async ({ page }
   await expect(page.getByText(/You guessed: Atlantis/i)).toBeVisible();
 });
 
+test('keeps a manual key-by-key guess intact while typing', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Start Standard Run/i }).click();
+  await expect(page.getByText(/Guess the highlighted country/i)).toBeVisible();
+
+  const input = page.getByRole('combobox', { name: /Guess the country/i });
+  await input.pressSequentially('Atlantis');
+
+  await expect(input).toHaveValue('Atlantis');
+});
+
 test('completes the daily challenge once and then locks it', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Play today's daily/i }).click();
