@@ -13,6 +13,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
       sx={{
         background: theme.preview.sky,
         borderRadius: 3,
+        outline: `2px solid ${theme.background.panelBorder}`,
         height: 78,
         overflow: 'hidden',
         position: 'relative',

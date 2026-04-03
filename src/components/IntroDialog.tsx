@@ -350,35 +350,17 @@ export const IntroDialog = NiceModal.create(
                         >
                           Daily
                         </Typography>
-                        <Typography
-                          sx={{
-                            letterSpacing: '-0.02em',
-                            lineHeight: designTokens.lineHeight.tight,
-                          }}
-                          variant="h4"
-                        >
-                          Daily Challenge
-                        </Typography>
+                        {/* <Typography */}
+                        {/*   sx={{ */}
+                        {/*     letterSpacing: '-0.02em', */}
+                        {/*     lineHeight: designTokens.lineHeight.tight, */}
+                        {/*   }} */}
+                        {/*   variant="h4" */}
+                        {/* > */}
+                        {/*   Daily Challenge */}
+                        {/* </Typography> */}
                       </Stack>
-                      <Typography
-                        color="text.secondary"
-                        sx={{
-                          letterSpacing: '0.08em',
-                          mt: 0.45,
-                          textTransform: 'uppercase',
-                        }}
-                        variant="caption"
-                      >
-                        5 countries
-                      </Typography>
                     </Stack>
-                    <Typography
-                      color="text.secondary"
-                      maxWidth={250}
-                      variant="body2"
-                    >
-                      Same route for everyone today.
-                    </Typography>
                   </Stack>
 
                   {dailySummary ? (
@@ -451,21 +433,7 @@ export const IntroDialog = NiceModal.create(
                         >
                           countries
                         </Typography>
-                        <Typography
-                          color="text.secondary"
-                          sx={{
-                            letterSpacing: '0.08em',
-                            ml: 'auto',
-                            textTransform: 'uppercase',
-                          }}
-                          variant="caption"
-                        >
-                          Classic mode
-                        </Typography>
                       </Stack>
-                      <Typography color="text.secondary" variant="body2">
-                        One fixed run. One score for today.
-                      </Typography>
                     </Stack>
                   )}
 

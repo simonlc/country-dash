@@ -275,6 +275,8 @@ describe('gameLogic', () => {
 
   it('creates stable seeds and storage keys for daily runs', () => {
     expect(getTodayDateKey(new Date('2026-03-31T12:00:00-04:00'))).toBe('2026-03-31');
+    expect(getTodayDateKey(new Date('2026-03-31T23:30:00-04:00'))).toBe('2026-04-01');
+    expect(getTodayDateKey(new Date('2026-04-01T08:00:00+09:00'))).toBe('2026-03-31');
     expect(formatDailyStorageKey('2026-03-31')).toBe('country-guesser-daily:2026-03-31');
     const rng = createSeededRng('seed');
 
