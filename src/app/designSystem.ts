@@ -21,11 +21,11 @@ export const designTokens = {
     relaxed: 1.6,
   },
   radius: {
-    xs: 4,
-    sm: 6,
-    md: 8,
-    lg: 10,
-    xl: 12,
+    xs: 2,
+    sm: 4,
+    md: 6,
+    lg: 8,
+    xl: 10,
     pill: 999,
   },
   spacing: {

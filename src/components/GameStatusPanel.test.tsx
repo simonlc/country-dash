@@ -12,7 +12,6 @@ import type { GameState } from '@/types/game';
 const activeTheme = appThemes[0]!;
 const panelSurface = getThemeSurfaceStyles(activeTheme, 'panel');
 const displaySurface = getThemeDisplaySurfaceStyles(activeTheme, 'neutral');
-const displayAccentSurface = getThemeDisplaySurfaceStyles(activeTheme, 'accent');
 
 function createGameState(overrides: Partial<GameState>): GameState {
   return {
@@ -57,7 +56,6 @@ const baseProps = {
     },
   ],
   dailyShareText: null,
-  displayAccentSurface,
   displaySurface,
   isCapitalMode: false,
   isDailyRun: false,
@@ -120,7 +118,9 @@ describe('GameStatusPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Correct');
+    expect(screen.getByRole('status')).toHaveTextContent('Correct');
+    expect(screen.queryByText(/^Your guess$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Hints$/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^next$/i })).toBeVisible();
   });
 
@@ -139,7 +139,8 @@ describe('GameStatusPanel', () => {
     );
 
     expect(screen.getByText(/run complete/i)).toBeVisible();
-    expect(screen.getByText(/final score: 320/i)).toBeVisible();
+    expect(screen.getByText(/4\/5 correct/i)).toBeVisible();
+    expect(screen.getByText(/320 points/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /play again/i })).toBeVisible();
   });
 });

@@ -129,7 +129,6 @@ export function GamePage() {
             copyState={state.copyState}
             countryOptions={state.countryOptions}
             dailyShareText={state.dailyShareText}
-            displayAccentSurface={state.displayAccentSurface}
             displaySurface={state.displaySurface}
             gameState={state.gameState}
             isCapitalMode={state.isCapitalMode}

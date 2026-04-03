@@ -1,5 +1,4 @@
 import { Box } from '@mui/material';
-import { designTokens } from '@/app/designSystem';
 import type { AppThemeDefinition } from '@/app/theme';
 
 interface ThemePreviewProps {

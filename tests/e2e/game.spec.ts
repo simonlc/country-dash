@@ -27,8 +27,10 @@ test('starts a random run and accepts a typed incorrect answer', async ({ page }
   await input.fill('Atlantis');
   await input.press('Enter');
 
-  await expect(page.getByRole('alert')).toContainText('Incorrect');
-  await expect(page.getByText(/You guessed: Atlantis/i)).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Missed');
+  await expect(page.getByText(/^Your guess$/i)).toBeVisible();
+  await expect(page.getByText(/^Atlantis$/i)).toBeVisible();
+  await expect(page.getByText(/^Hints$/i)).toHaveCount(0);
 });
 
 test('keeps a manual key-by-key guess intact while typing', async ({ page }) => {
@@ -40,6 +42,18 @@ test('keeps a manual key-by-key guess intact while typing', async ({ page }) => 
   await input.pressSequentially('Atlantis');
 
   await expect(input).toHaveValue('Atlantis');
+});
+
+test('shows the guess dropdown while typing', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Start Standard Run/i }).click();
+  await expect(page.getByText(/Guess the highlighted country/i)).toBeVisible();
+
+  const input = page.getByRole('combobox', { name: /Guess the country/i });
+  await input.fill('Can');
+
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await expect(page.getByRole('option', { name: /^Canada$/i })).toBeVisible();
 });
 
 test('completes the daily challenge once and then locks it', async ({ page }) => {

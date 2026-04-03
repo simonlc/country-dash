@@ -218,8 +218,10 @@ describe('GamePage', () => {
     await user.type(input, 'Atlantis');
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect');
-    expect(screen.getByText(/You guessed: Atlantis/i)).toBeVisible();
+    expect(await screen.findByRole('status')).toHaveTextContent('Missed');
+    expect(screen.getByText(/^Your guess$/i)).toBeVisible();
+    expect(screen.getByText(/^Atlantis$/i)).toBeVisible();
+    expect(screen.queryByText(/^Hints$/i)).not.toBeInTheDocument();
   });
 
   it('supports retry and quit from the menu', async () => {
