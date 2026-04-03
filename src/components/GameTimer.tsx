@@ -34,7 +34,7 @@ export function GameTimer({
 
   return (
     <Stack spacing={0.2} sx={{ minWidth: 88 }}>
-      <Typography color="text.secondary" variant="caption">
+      <Typography color="text.primary" variant="caption">
         Time
       </Typography>
       <Typography

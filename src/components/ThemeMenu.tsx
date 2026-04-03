@@ -29,6 +29,7 @@ export function ThemeMenu({
   const [open, setOpen] = useState(false);
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
+  const menuPanelId = 'theme-menu-panel';
   const actions: MenuAction[] = [
     {
       icon: Crosshair,
@@ -53,6 +54,7 @@ export function ThemeMenu({
     >
       <Stack alignItems="flex-start" spacing={1.5}>
         <Button
+          aria-controls={menuPanelId}
           aria-expanded={open}
           size="small"
           sx={{
@@ -67,6 +69,7 @@ export function ThemeMenu({
         </Button>
         <Collapse in={open} sx={{ width: '100%' }}>
           <Paper
+            id={menuPanelId}
             elevation={0}
             sx={{
               ...panelSurface,

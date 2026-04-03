@@ -123,10 +123,10 @@ export const appThemes: AppThemeDefinition[] = [
     mode: 'light',
     background: {
       app: 'radial-gradient(circle at top left, rgba(255,255,255,0.86), rgba(255,255,255,0) 24%), linear-gradient(145deg, #ecf6ff 0%, #dceeff 48%, #c3e0ff 100%)',
-      panel: 'rgba(255, 255, 255, 0.82)',
-      panelBorder: 'rgba(36, 95, 154, 0.18)',
+      panel: 'rgba(255, 255, 255, 0.9)',
+      panelBorder: 'rgba(36, 95, 154, 0.24)',
       panelShadow: '0 24px 60px rgba(44, 91, 140, 0.18)',
-      mutedPanel: 'rgba(248, 252, 255, 0.76)',
+      mutedPanel: 'rgba(248, 252, 255, 0.88)',
     },
     palette: {
       primary: '#0b6bcb',
@@ -134,7 +134,7 @@ export const appThemes: AppThemeDefinition[] = [
       backgroundDefault: '#eef6ff',
       backgroundPaper: '#ffffff',
       textPrimary: '#133049',
-      textSecondary: '#4f6b84',
+      textSecondary: '#425f78',
     },
     globe: {
       oceanFill: '#dcefff',
@@ -408,7 +408,7 @@ export const appThemes: AppThemeDefinition[] = [
       backgroundDefault: '#dfcfb1',
       backgroundPaper: '#f2e8d3',
       textPrimary: '#3d2d1d',
-      textSecondary: '#6f5b46',
+      textSecondary: '#5d4b38',
     },
     globe: {
       oceanFill: '#d8ccb5',
@@ -580,10 +580,10 @@ export const appThemes: AppThemeDefinition[] = [
     mode: 'light',
     background: {
       app: 'radial-gradient(circle at 14% 10%, rgba(255,255,255,0.92), rgba(255,255,255,0) 24%), radial-gradient(circle at 82% 16%, rgba(88, 201, 255, 0.22), rgba(88, 201, 255, 0) 24%), linear-gradient(155deg, #f5fbff 0%, #dfeefe 42%, #c7e0fb 100%)',
-      panel: 'rgba(244, 250, 255, 0.48)',
-      panelBorder: 'rgba(255, 255, 255, 0.62)',
+      panel: 'rgba(244, 250, 255, 0.78)',
+      panelBorder: 'rgba(87, 132, 173, 0.28)',
       panelShadow: '0 28px 72px rgba(124, 165, 206, 0.18)',
-      mutedPanel: 'rgba(236, 246, 255, 0.46)',
+      mutedPanel: 'rgba(236, 246, 255, 0.84)',
     },
     palette: {
       primary: '#2a7fd8',
@@ -591,7 +591,7 @@ export const appThemes: AppThemeDefinition[] = [
       backgroundDefault: '#f2f9ff',
       backgroundPaper: '#fbfdff',
       textPrimary: '#17324a',
-      textSecondary: '#7088a2',
+      textSecondary: '#4f6982',
     },
     globe: {
       oceanFill: 'rgb(230, 232, 237)',
@@ -718,8 +718,8 @@ export function getThemeAccentSurfaceStyles(
   definition: AppThemeDefinition,
   emphasis: 'subtle' | 'strong' = 'subtle',
 ) {
-  const tintOpacity = emphasis === 'strong' ? 0.2 : 0.12;
-  const baseOpacity = emphasis === 'strong' ? 0.18 : 0.1;
+  const tintOpacity = emphasis === 'strong' ? 0.24 : 0.14;
+  const baseOpacity = emphasis === 'strong' ? 0.2 : 0.12;
 
   return {
     background: `linear-gradient(180deg, ${hexToRgba(
@@ -742,9 +742,9 @@ export function getThemeDisplaySurfaceStyles(
     return {
       background: hexToRgba(
         definition.palette.primary,
-        definition.mode === 'light' ? 0.09 : 0.16,
+        definition.mode === 'light' ? 0.14 : 0.22,
       ),
-      border: `1px solid ${hexToRgba(definition.palette.primary, 0.26)}`,
+      border: `1px solid ${hexToRgba(definition.palette.primary, 0.34)}`,
       boxShadow: 'none',
     };
   }
@@ -770,6 +770,59 @@ function hexToRgba(value: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function hexToRgb(value: string) {
+  const hex = value.replace('#', '');
+
+  if (hex.length !== 6) {
+    return null;
+  }
+
+  return {
+    blue: Number.parseInt(hex.slice(4, 6), 16),
+    green: Number.parseInt(hex.slice(2, 4), 16),
+    red: Number.parseInt(hex.slice(0, 2), 16),
+  };
+}
+
+function getRelativeLuminance(value: string) {
+  const rgb = hexToRgb(value);
+
+  if (!rgb) {
+    return 0;
+  }
+
+  const transformChannel = (channel: number) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+
+  return (
+    0.2126 * transformChannel(rgb.red) +
+    0.7152 * transformChannel(rgb.green) +
+    0.0722 * transformChannel(rgb.blue)
+  );
+}
+
+function getContrastRatio(foreground: string, background: string) {
+  const foregroundLuminance = getRelativeLuminance(foreground);
+  const backgroundLuminance = getRelativeLuminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function pickBestTextColor(background: string, candidates: string[]) {
+  return candidates.reduce((bestCandidate, candidate) =>
+    getContrastRatio(candidate, background) >
+    getContrastRatio(bestCandidate, background)
+      ? candidate
+      : bestCandidate,
+  );
+}
+
 export function createAppTheme(themeId: AppThemeId): Theme {
   const definition = getAppThemeDefinition(themeId);
   const isGlacier = definition.id === 'glacier';
@@ -777,12 +830,39 @@ export function createAppTheme(themeId: AppThemeId): Theme {
   const paperSurface = getThemeSurfaceStyles(definition);
   const elevatedSurface = getThemeSurfaceStyles(definition, 'elevated');
   const accentSurface = getThemeAccentSurfaceStyles(definition);
-  const strongAccentSurface = getThemeAccentSurfaceStyles(definition, 'strong');
   const darkOutline = hexToRgba(definition.palette.textPrimary, 0.12);
   const lightInset = hexToRgba(
     '#ffffff',
     definition.mode === 'light' ? 0.62 : 0.08,
   );
+  const divider = hexToRgba(
+    definition.palette.textPrimary,
+    definition.mode === 'light' ? 0.18 : 0.26,
+  );
+  const focusRing = hexToRgba(
+    definition.palette.primary,
+    definition.mode === 'light' ? 0.24 : 0.4,
+  );
+  const disabledText = hexToRgba(
+    definition.palette.textPrimary,
+    definition.mode === 'light' ? 0.54 : 0.66,
+  );
+  const disabledBackground = hexToRgba(
+    definition.palette.textPrimary,
+    definition.mode === 'light' ? 0.08 : 0.16,
+  );
+  const errorMain =
+    definition.mode === 'light' ? '#b53a30' : '#ff9f8c';
+  const errorContrastText = pickBestTextColor(errorMain, [
+    '#fffdf7',
+    definition.palette.backgroundDefault,
+    definition.palette.textPrimary,
+  ]);
+  const primaryContrastText = pickBestTextColor(definition.palette.primary, [
+    '#fffdf7',
+    definition.palette.backgroundDefault,
+    definition.palette.textPrimary,
+  ]);
 
   return createTheme({
     cssVariables: true,
@@ -792,17 +872,28 @@ export function createAppTheme(themeId: AppThemeId): Theme {
           mode: definition.mode,
           primary: {
             main: definition.palette.primary,
+            contrastText: primaryContrastText,
           },
           secondary: {
             main: definition.palette.secondary,
+          },
+          error: {
+            contrastText: errorContrastText,
+            main: errorMain,
           },
           background: {
             default: definition.palette.backgroundDefault,
             paper: definition.palette.backgroundPaper,
           },
+          divider,
           text: {
+            disabled: disabledText,
             primary: definition.palette.textPrimary,
             secondary: definition.palette.textSecondary,
+          },
+          action: {
+            disabled: disabledText,
+            disabledBackground,
           },
         },
       },
@@ -814,6 +905,16 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             backgroundAttachment: 'fixed',
             backgroundImage: definition.background.app,
             color: definition.palette.textPrimary,
+          },
+        },
+      },
+      MuiButtonBase: {
+        styleOverrides: {
+          root: {
+            '&.Mui-focusVisible': {
+              boxShadow: `0 0 0 3px ${focusRing}`,
+              outline: 'none',
+            },
           },
         },
       },
@@ -892,22 +993,29 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             },
           },
           contained: {
-            ...strongAccentSurface,
+            backgroundColor: definition.palette.primary,
+            backgroundImage: `linear-gradient(180deg, ${hexToRgba(
+              '#ffffff',
+              definition.mode === 'light' ? 0.12 : 0.08,
+            )}, rgba(255,255,255,0))`,
             borderColor: 'transparent',
-            color:
-              definition.mode === 'light' && !isAtlas
-                ? definition.palette.textPrimary
-                : '#fffdf7',
+            color: primaryContrastText,
             boxShadow: `0 16px 32px ${hexToRgba(
               definition.palette.primary,
               definition.mode === 'light' ? 0.2 : 0.28,
             )}`,
             '&:hover': {
+              backgroundColor: definition.palette.primary,
               boxShadow: `0 18px 34px ${hexToRgba(
                 definition.palette.primary,
                 definition.mode === 'light' ? 0.24 : 0.32,
               )}`,
               transform: 'translateY(-1px)',
+            },
+            '&.Mui-disabled': {
+              backgroundColor: disabledBackground,
+              backgroundImage: 'none',
+              color: disabledText,
             },
           },
           outlined: {
@@ -949,12 +1057,29 @@ export function createAppTheme(themeId: AppThemeId): Theme {
               borderColor: definition.palette.primary,
               borderWidth: 1,
             },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 3px ${focusRing}`,
+            },
           },
           input: {
             fontSize: designTokens.fontSize.md,
             fontWeight: designTokens.fontWeight.medium,
             lineHeight: designTokens.lineHeight.base,
             paddingBlock: 14,
+            '&::placeholder': {
+              color: definition.palette.textSecondary,
+              opacity: 1,
+            },
+          },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: definition.palette.textSecondary,
+            '&.Mui-focused': {
+              color: definition.palette.textPrimary,
+            },
           },
         },
       },
@@ -975,9 +1100,11 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             minHeight: 0,
             '&[aria-selected="true"]': {
               ...accentSurface,
+              color: definition.palette.textPrimary,
             },
             '&.Mui-focused': {
               backgroundColor: hexToRgba(definition.palette.primary, 0.12),
+              color: definition.palette.textPrimary,
             },
           },
         },
@@ -1007,17 +1134,28 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       mode: definition.mode,
       primary: {
         main: definition.palette.primary,
+        contrastText: primaryContrastText,
       },
       secondary: {
         main: definition.palette.secondary,
+      },
+      error: {
+        contrastText: errorContrastText,
+        main: errorMain,
       },
       background: {
         default: definition.palette.backgroundDefault,
         paper: definition.palette.backgroundPaper,
       },
+      divider,
       text: {
+        disabled: disabledText,
         primary: definition.palette.textPrimary,
         secondary: definition.palette.textSecondary,
+      },
+      action: {
+        disabled: disabledText,
+        disabledBackground,
       },
     },
     shape: {

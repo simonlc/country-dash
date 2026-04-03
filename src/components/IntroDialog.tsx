@@ -253,14 +253,14 @@ export const IntroDialog = NiceModal.create(
                         spacing={2}
                       >
                         <Box>
-                          <Typography color="text.secondary" variant="caption">
+                          <Typography color="text.primary" variant="caption">
                             Completed
                           </Typography>
                           <Typography variant="h4">
                             {dailySummary}
                           </Typography>
                         </Box>
-                        <Typography color="text.secondary" variant="caption">
+                        <Typography color="text.primary" variant="caption">
                           {dailyResult
                             ? formatCompletedDate(dailyResult.completedAt)
                             : ''}
@@ -293,7 +293,7 @@ export const IntroDialog = NiceModal.create(
                   )}
 
                   {dailySummary ? (
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography color="text.primary" variant="body2">
                       Completed for today.
                     </Typography>
                   ) : (

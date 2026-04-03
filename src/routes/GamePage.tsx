@@ -22,6 +22,9 @@ export function GamePage() {
   if (state.isLoading || !state.worldData || !state.currentCountry) {
     return (
       <Box
+        aria-busy="true"
+        aria-live="polite"
+        role="status"
         sx={{
           alignItems: 'center',
           display: 'grid',
@@ -29,7 +32,7 @@ export function GamePage() {
           placeItems: 'center',
         }}
       >
-        <CircularProgress />
+        <CircularProgress aria-label="Loading country data" />
       </Box>
     );
   }

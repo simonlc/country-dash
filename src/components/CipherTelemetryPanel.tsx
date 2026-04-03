@@ -75,7 +75,7 @@ export function CipherTelemetryPanel({
             <Typography
               key={line}
               sx={{
-                color: 'rgba(96, 255, 232, 0.74)',
+                color: 'rgba(153, 255, 236, 0.92)',
                 fontFamily: cipherTelemetryFont,
                 fontSize: '0.67rem',
                 letterSpacing: '0.1em',
@@ -89,7 +89,7 @@ export function CipherTelemetryPanel({
         {errorMessage ? (
           <Typography
             sx={{
-              color: 'rgba(255, 141, 122, 0.92)',
+              color: 'rgba(255, 169, 150, 0.98)',
               fontFamily: cipherTelemetryFont,
               fontSize: '0.63rem',
               letterSpacing: '0.06em',
@@ -112,7 +112,7 @@ export function CipherTelemetryPanel({
       >
         <Typography
           sx={{
-            color: 'rgba(111, 255, 237, 0.58)',
+            color: 'rgba(149, 255, 239, 0.82)',
             fontFamily: cipherTelemetryFont,
             fontSize: '0.63rem',
             letterSpacing: '0.16em',

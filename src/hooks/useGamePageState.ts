@@ -118,15 +118,15 @@ function getCipherTrafficStatusLabel(trafficState: CipherTrafficState) {
 
 function getCipherTrafficStatusColor(trafficState: CipherTrafficState) {
   if (trafficState.status === 'error') {
-    return 'rgba(255, 141, 122, 0.92)';
+    return 'rgba(255, 169, 150, 0.98)';
   }
   if (trafficState.source === 'cache') {
-    return 'rgba(246, 255, 158, 0.94)';
+    return 'rgba(248, 255, 182, 0.98)';
   }
   if (trafficState.status === 'live') {
-    return 'rgba(111, 255, 238, 0.92)';
+    return 'rgba(149, 255, 239, 0.98)';
   }
-  return 'rgba(142, 176, 173, 0.9)';
+  return 'rgba(182, 212, 206, 0.96)';
 }
 
 interface UseGamePageStateResult {

@@ -8,7 +8,6 @@ import { matchSorter } from 'match-sorter';
 import {
   useCallback,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
@@ -65,13 +64,13 @@ const filterOptions = (options: GuessChoice[], inputValue: string) => {
 };
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
-  const hintRef = useRef('');
   const [value, setValue] = useState<GuessChoice | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [hintValue, setHintValue] = useState('');
   const [open, setOpen] = useState(false);
   const hintSuffix =
-    inputValue && hintRef.current.startsWith(inputValue)
-      ? hintRef.current.slice(inputValue.length)
+    inputValue && hintValue.startsWith(inputValue)
+      ? hintValue.slice(inputValue.length)
       : '';
   const choices = useMemo<GuessChoice[]>(
     () =>
@@ -120,10 +119,11 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         labelStartsWithInput(option, nextValue),
       );
 
-      hintRef.current =
+      setHintValue(
         nextValue && matchingOption
           ? nextValue + matchingOption.label.slice(nextValue.length)
-          : '';
+          : '',
+      );
     },
     [getFilteredOptions],
   );
@@ -152,12 +152,12 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
     setValue(nextValue);
 
     if (!nextValue) {
-      hintRef.current = '';
+      setHintValue('');
       return;
     }
 
     setInputValue(nextValue.label);
-    hintRef.current = nextValue.label;
+    setHintValue(nextValue.label);
     setOpen(false);
   }, []);
 
@@ -186,7 +186,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Tab' && hintRef.current) {
+      if (event.key === 'Tab' && hintValue) {
         const [matchingOption] = getFilteredOptions(inputValue);
 
         if (matchingOption) {
@@ -200,7 +200,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         submitGuess();
       }
     },
-    [getFilteredOptions, inputValue, submitGuess, syncSelectedChoice],
+    [getFilteredOptions, hintValue, inputValue, submitGuess, syncSelectedChoice],
   );
 
   return (
@@ -242,7 +242,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         getOptionKey={(choice) => choice.id}
         getOptionLabel={(choice) => choice.label}
         onBlur={() => {
-          hintRef.current = '';
+          setHintValue('');
         }}
         onChange={(_event, nextValue) => {
           if (nextValue) {
@@ -286,7 +286,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               aria-hidden
               sx={{
                 alignItems: 'center',
-                color: 'text.disabled',
+                color: 'text.secondary',
                 display: hintSuffix ? 'flex' : 'none',
                 fontSize: designTokens.fontSize.md,
                 fontWeight: designTokens.fontWeight.semibold,
