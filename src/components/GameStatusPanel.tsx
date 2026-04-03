@@ -274,8 +274,8 @@ export function GameStatusPanel({
                       ...(index === 0
                         ? null
                         : {
-                          borderLeft: '1px solid',
-                          borderLeftColor: dividerColor,
+                            borderLeft: '1px solid',
+                            borderLeftColor: dividerColor,
                           }),
                     }}
                   >
@@ -293,12 +293,12 @@ export function GameStatusPanel({
                           {item.label}
                         </Typography>
                       </Box>
-                    <Typography
-                      sx={{ fontVariantNumeric: 'tabular-nums' }}
-                      variant="subtitle1"
-                    >
-                      {item.value}
-                    </Typography>
+                      <Typography
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        variant="subtitle1"
+                      >
+                        {item.value}
+                      </Typography>
                     </Stack>
                   </Box>
                 ))}
@@ -357,7 +357,9 @@ export function GameStatusPanel({
                   alignItems: 'center',
                   bgcolor: isCorrect ? 'primary.main' : 'error.main',
                   borderRadius: designTokens.radius.sm,
-                  color: isCorrect ? 'primary.contrastText' : 'error.contrastText',
+                  color: isCorrect
+                    ? 'primary.contrastText'
+                    : 'error.contrastText',
                   display: 'grid',
                   height: 36,
                   justifyItems: 'center',
@@ -399,9 +401,9 @@ export function GameStatusPanel({
                   border: '1px solid',
                   borderColor: dividerColor,
                   borderRadius: designTokens.radius.md,
-                  px: 1.35,
+                  px: 4,
                   py: 1,
-                  textAlign: 'left',
+                  textAlign: 'center',
                   width: '100%',
                 }}
               >
@@ -456,12 +458,12 @@ export function GameStatusPanel({
                         {item.label}
                       </Typography>
                     </Box>
-                  <Typography
-                    sx={{ fontVariantNumeric: 'tabular-nums' }}
-                    variant="subtitle1"
-                  >
-                    {item.value}
-                  </Typography>
+                    <Typography
+                      sx={{ fontVariantNumeric: 'tabular-nums' }}
+                      variant="subtitle1"
+                    >
+                      {item.value}
+                    </Typography>
                   </Stack>
                 </Box>
               ))}
