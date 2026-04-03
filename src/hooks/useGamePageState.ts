@@ -14,6 +14,7 @@ import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
 import { useWindowSize } from '@/hooks/useWindowSize';
 import { loadWorldData } from '@/utils/loadWorldData';
 import {
+  buildRegionCountryPool,
   buildSessionPlan,
   countrySizeLabels,
   createInitialGameState,
@@ -271,6 +272,20 @@ export function useGamePageState(): UseGamePageStateResult {
     }),
     [countryPool.length],
   );
+  const categoryCounts = useMemo(
+    () =>
+      (Object.keys(regionLabels) as RegionFilter[]).reduce(
+        (counts, regionFilter) => {
+          counts[regionFilter] = buildRegionCountryPool(
+            countryPool,
+            regionFilter,
+          ).length;
+          return counts;
+        },
+        {} as Record<RegionFilter, number>,
+      ),
+    [countryPool],
+  );
   const currentCountry = useMemo(
     () =>
       (gameState.currentCountryId
@@ -439,12 +454,14 @@ export function useGamePageState(): UseGamePageStateResult {
     }
 
     void NiceModal.show(IntroDialog, {
+      categoryCounts,
       counts: sizeCounts,
       dailyResult: storedDailyResult,
       onStartDaily: startDailyGame,
       onStartRandom: startRandomGame,
     });
   }, [
+    categoryCounts,
     gameState.status,
     sizeCounts,
     startDailyGame,

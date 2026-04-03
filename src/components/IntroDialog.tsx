@@ -43,6 +43,7 @@ import type {
 
 interface IntroDialogProps {
   counts: Record<CountrySizeFilter, number>;
+  categoryCounts: Record<RegionFilter, number>;
   dailyResult: DailyChallengeResult | null;
   onStartDaily: () => void;
   onStartRandom: (options: {
@@ -167,8 +168,18 @@ function formatCompletedDate(value: string) {
   });
 }
 
+function formatCountryCountLabel(count: number) {
+  return `${count} ${count === 1 ? 'country' : 'countries'}`;
+}
+
 export const IntroDialog = NiceModal.create(
-  ({ counts, dailyResult, onStartDaily, onStartRandom }: IntroDialogProps) => {
+  ({
+    categoryCounts,
+    counts,
+    dailyResult,
+    onStartDaily,
+    onStartRandom,
+  }: IntroDialogProps) => {
     const modal = useModal();
     const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
@@ -211,10 +222,7 @@ export const IntroDialog = NiceModal.create(
               sx={{
                 display: 'grid',
                 gap: 2,
-                gridTemplateColumns: {
-                  md: 'minmax(0, 1fr) minmax(0, 1fr)',
-                  xs: '1fr',
-                },
+                gridTemplateColumns: '1fr',
               }}
             >
               <Paper
@@ -411,14 +419,14 @@ export const IntroDialog = NiceModal.create(
                               : Clock,
                         description:
                           key === 'large'
-                            ? `${counts[key]} random countries with higher difficulty.`
+                            ? `${formatCountryCountLabel(counts[key])} with higher difficulty.`
                             : key === 'mixed'
-                              ? `${counts[key]} random countries with medium difficulty.`
-                              : `${counts[key]} random countries with lower difficulty.`,
+                              ? `${formatCountryCountLabel(counts[key])} with medium difficulty.`
+                              : `${formatCountryCountLabel(counts[key])} with lower difficulty.`,
                         detail:
                           difficultyLabels[randomRunPresetDifficulties[key]],
                         label: countrySizeLabels[key],
-                        meta: `${counts[key]} countries`,
+                        meta: formatCountryCountLabel(counts[key]),
                         selected:
                           regionFilter === null && countrySizeFilter === key,
                         value: key,
@@ -448,7 +456,9 @@ export const IntroDialog = NiceModal.create(
                                             : 'The full Oceania region, islands included.',
                         detail: '',
                         label: option.label,
-                        meta: '',
+                        meta: formatCountryCountLabel(
+                          categoryCounts[option.value],
+                        ),
                         selected: regionFilter === option.value,
                         value: option.value,
                       })),
@@ -460,7 +470,7 @@ export const IntroDialog = NiceModal.create(
                           aria-label={
                             item.isSize
                               ? `${item.label} ${item.meta} ${item.description}`
-                              : `${item.label} Category pool ${item.description}`
+                              : `${item.label} ${item.meta} Category pool ${item.description}`
                           }
                           aria-pressed={item.selected}
                           component="button"
@@ -497,11 +507,13 @@ export const IntroDialog = NiceModal.create(
                           }}
                         >
                           <Stack spacing={item.isSize ? 0.55 : 0.25}>
-                            <ItemIcon
-                              aria-hidden
-                              size={item.isSize ? 18 : 16}
-                              strokeWidth={2}
-                            />
+                            {item.isSize ? (
+                              <ItemIcon
+                                aria-hidden
+                                size={18}
+                                strokeWidth={2}
+                              />
+                            ) : null}
                             <Typography variant={item.isSize ? 'h6' : 'body2'}>
                               {item.label}
                             </Typography>

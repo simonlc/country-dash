@@ -22,6 +22,18 @@ describe('IntroDialog', () => {
   it('shows a separate daily challenge panel and locks it when complete', () => {
     renderWithProviders(
       <IntroDialog
+        categoryCounts={{
+          africa: 54,
+          asia: 48,
+          caribbean: 13,
+          europe: 44,
+          islandNations: 22,
+          microstates: 6,
+          middleEast: 14,
+          northAmerica: 23,
+          oceania: 14,
+          southAmerica: 12,
+        }}
         id="intro-dialog"
         counts={{ large: 1, mixed: 3, small: 1 }}
         dailyResult={{
@@ -52,6 +64,18 @@ describe('IntroDialog', () => {
 
     renderWithProviders(
       <IntroDialog
+        categoryCounts={{
+          africa: 54,
+          asia: 48,
+          caribbean: 13,
+          europe: 44,
+          islandNations: 22,
+          microstates: 6,
+          middleEast: 14,
+          northAmerica: 23,
+          oceania: 14,
+          southAmerica: 12,
+        }}
         id="intro-dialog"
         counts={{ large: 12, mixed: 60, small: 18 }}
         dailyResult={null}
@@ -67,7 +91,7 @@ describe('IntroDialog', () => {
     );
     await user.click(
       screen.getByRole('button', {
-        name: /Micro Countries Category pool Tiny targets and high-precision geography\./i,
+        name: /Micro Countries 6 countries Category pool Tiny targets and high-precision geography\./i,
       }),
     );
     await user.click(
@@ -83,7 +107,7 @@ describe('IntroDialog', () => {
     expect(screen.getAllByText(/Country Guesser/i).length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole('button', {
-        name: /Quick Run 18 countries 18 random countries with lower difficulty\./i,
+        name: /Quick Run 18 countries 18 countries with lower difficulty\./i,
       }),
     );
     await user.click(
