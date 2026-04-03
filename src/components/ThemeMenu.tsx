@@ -70,8 +70,8 @@ export function ThemeMenu({
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: designTokens.radius.md,
-              p: designTokens.componentSpacing.menuPanel.p,
+              borderRadius: designTokens.radius.sm,
+              p: 2,
             }}
           >
             <Stack spacing={1.25}>
@@ -80,11 +80,10 @@ export function ThemeMenu({
                   display: 'grid',
                   gap: 1,
                   gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  paddingBlock: 2,
                 }}
               >
                 {actions.map((action) => {
-                  const ActionIcon = action.icon;
-
                   return (
                     <Button
                       aria-label={
@@ -97,22 +96,11 @@ export function ThemeMenu({
                       sx={{
                         display: 'grid',
                         gap: 0.55,
-                        minHeight: 76,
                         minWidth: 0,
                       }}
                       variant="contained"
                       onClick={action.onClick}
                     >
-                      <Box
-                        aria-hidden
-                        sx={{
-                          display: 'grid',
-                          lineHeight: 0,
-                          placeItems: 'center',
-                        }}
-                      >
-                        <ActionIcon size={16} strokeWidth={2} />
-                      </Box>
                       <Typography variant="caption">{action.label}</Typography>
                     </Button>
                   );

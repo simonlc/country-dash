@@ -35,19 +35,42 @@ interface GuessChoice {
   label: string;
 }
 
-const filterOptions = (options: GuessChoice[], inputValue: string) =>
-  matchSorter(options, inputValue, {
-    keys: [
-      (item) =>
-        `${item.label}, ${item.aliases.join(', ')}, ${item.detail ?? ''}`,
-    ],
+const normalizeText = (value: string) => normalizeGuess(value);
+
+const matchesPrefix = (choice: GuessChoice, inputValue: string) => {
+  const normalizedInput = normalizeText(inputValue);
+
+  if (!normalizedInput) {
+    return false;
+  }
+
+  return choice.aliases.some((alias) =>
+    normalizeText(alias).startsWith(normalizedInput),
+  );
+};
+
+const labelStartsWithInput = (choice: GuessChoice, inputValue: string) =>
+  normalizeText(choice.label).startsWith(normalizeText(inputValue));
+
+const filterOptions = (options: GuessChoice[], inputValue: string) => {
+  const matchedOptions = options.filter((option) =>
+    matchesPrefix(option, inputValue),
+  );
+
+  return matchSorter(matchedOptions, inputValue, {
+    keys: [(item) => `${item.label}, ${item.aliases.join(', ')}`],
   }).slice(0, 5);
+};
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
   const hintRef = useRef('');
   const [value, setValue] = useState<GuessChoice | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
+  const hintSuffix =
+    inputValue && hintRef.current.startsWith(inputValue)
+      ? hintRef.current.slice(inputValue.length)
+      : '';
   const choices = useMemo<GuessChoice[]>(
     () =>
       variant === 'capital'
@@ -91,7 +114,9 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
 
   const updateHint = useCallback(
     (nextValue: string) => {
-      const [matchingOption] = getFilteredOptions(nextValue);
+      const matchingOption = getFilteredOptions(nextValue).find((option) =>
+        labelStartsWithInput(option, nextValue),
+      );
 
       hintRef.current =
         nextValue && matchingOption
@@ -245,20 +270,28 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               }}
             />
             <Typography
+              aria-hidden
               sx={{
+                alignItems: 'center',
                 color: 'text.disabled',
+                display: hintSuffix ? 'flex' : 'none',
                 fontSize: designTokens.fontSize.md,
                 fontWeight: designTokens.fontWeight.semibold,
-                left: 16,
+                inset: 0,
+                lineHeight: designTokens.lineHeight.base,
                 overflow: 'hidden',
                 pointerEvents: 'none',
                 position: 'absolute',
-                right: 16,
-                top: 19,
-                whiteSpace: 'nowrap',
+                px: '14px',
+                py: 1.5,
+                whiteSpace: 'pre',
+                zIndex: 1,
               }}
             >
-              {hintRef.current}
+              <Box component="span" sx={{ visibility: 'hidden' }}>
+                {inputValue}
+              </Box>
+              <Box component="span">{hintSuffix}</Box>
             </Typography>
           </Box>
         )}
@@ -286,11 +319,6 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
                     {part.text}
                   </Box>
                 ))}
-                {option.detail ? (
-                  <Typography color="text.secondary" variant="caption">
-                    {option.detail}
-                  </Typography>
-                ) : null}
               </Box>
             </Box>
           );

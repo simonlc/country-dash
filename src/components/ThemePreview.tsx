@@ -13,7 +13,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
     <Box
       sx={{
         background: theme.preview.sky,
-        borderRadius: designTokens.radius.sm,
+        borderRadius: 3,
         height: 78,
         overflow: 'hidden',
         position: 'relative',

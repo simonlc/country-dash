@@ -27,7 +27,9 @@ export function getSelectorCardSx(
 ): SxProps<Theme> {
   const { selected, tone = 'muted' } = options;
   const backgroundColor =
-    tone === 'panel' ? activeTheme.background.panel : activeTheme.background.mutedPanel;
+    tone === 'panel'
+      ? activeTheme.background.panel
+      : activeTheme.background.mutedPanel;
 
   return {
     appearance: 'none',
@@ -42,7 +44,7 @@ export function getSelectorCardSx(
         ? hexToRgba(activeTheme.palette.primary, 0.72)
         : hexToRgba(activeTheme.palette.textPrimary, 0.14)
     }`,
-    borderRadius: designTokens.radius.md,
+    borderRadius: designTokens.radius.xs,
     color: 'inherit',
     cursor: 'pointer',
     font: 'inherit',
@@ -64,7 +66,10 @@ export function getSelectorCardSx(
             activeTheme.palette.primary,
             activeTheme.mode === 'light' ? 0.08 : 0.15,
           ),
-      borderColor: hexToRgba(activeTheme.palette.primary, selected ? 0.84 : 0.52),
+      borderColor: hexToRgba(
+        activeTheme.palette.primary,
+        selected ? 0.84 : 0.52,
+      ),
     },
     '&:focus-visible': {
       borderColor: activeTheme.palette.primary,

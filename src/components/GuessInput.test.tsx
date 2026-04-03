@@ -124,4 +124,49 @@ describe('GuessInput', () => {
 
     expect(input).toHaveValue('cam');
   });
+
+  it('does not render the official country name in dropdown options', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={[
+          {
+            formalName: 'Commonwealth of Dominica',
+            isocode: 'DM',
+            isocode3: 'DMA',
+            nameEn: 'Dominica',
+          },
+        ]}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'dom');
+
+    expect(screen.getByRole('option', { name: /dominica/i })).toBeVisible();
+    expect(
+      screen.queryByText('Commonwealth of Dominica'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no autocomplete options when nothing prefix-matches', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={options}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'xyz');
+
+    expect(screen.getByText('No matches')).toBeVisible();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
 });
