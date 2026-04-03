@@ -1,10 +1,6 @@
 import { useAppearance } from '@/app/appearance';
 import { designTokens } from '@/app/designSystem';
-import {
-  getThemeAccentSurfaceStyles,
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
-} from '@/app/theme';
+import { getThemeSurfaceStyles } from '@/app/theme';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import type {
   CountrySizeFilter,
@@ -174,6 +170,9 @@ function formatCountryCountLabel(count: number) {
   return `${count} ${count === 1 ? 'country' : 'countries'}`;
 }
 
+const dailyAccentColor = '#f2b35a';
+const dailyAccentStrong = '#d7902d';
+
 export const IntroDialog = NiceModal.create(
   ({
     categoryCounts,
@@ -188,16 +187,7 @@ export const IntroDialog = NiceModal.create(
     const [countrySizeFilter, setCountrySizeFilter] =
       useState<CountrySizeFilter>('mixed');
     const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
-    const strongAccentSurface = getThemeAccentSurfaceStyles(
-      activeTheme,
-      'strong',
-    );
     const panelSurface = getThemeSurfaceStyles(activeTheme);
-    const displaySurface = getThemeDisplaySurfaceStyles(activeTheme);
-    const displayAccentSurface = getThemeDisplaySurfaceStyles(
-      activeTheme,
-      'accent',
-    );
 
     const dailySummary = useMemo(() => {
       if (!dailyResult) {
@@ -250,7 +240,17 @@ export const IntroDialog = NiceModal.create(
     }));
 
     return (
-      <Dialog fullWidth maxWidth="md" open={modal.visible}>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        open={modal.visible}
+        PaperProps={{
+          sx: {
+            borderRadius: 9,
+            overflow: 'hidden',
+          },
+        }}
+      >
         <DialogContent sx={{ p: { md: 3, xs: 2 } }}>
           <Stack spacing={2}>
             <Box
@@ -290,72 +290,188 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
-                  ...strongAccentSurface,
                   borderRadius: designTokens.radius.md,
+                  border: `1px solid rgba(242, 179, 90, ${
+                    activeTheme.mode === 'light' ? '0.36' : '0.3'
+                  })`,
+                  backgroundImage: `radial-gradient(circle at 100% 0%, rgba(242, 179, 90, ${
+                    activeTheme.mode === 'light' ? '0.18' : '0.12'
+                  }), rgba(242, 179, 90, 0) 38%), radial-gradient(circle at 0% 100%, rgba(242, 179, 90, ${
+                    activeTheme.mode === 'light' ? '0.1' : '0.08'
+                  }), rgba(242, 179, 90, 0) 34%), linear-gradient(145deg, rgba(242, 179, 90, ${
+                    activeTheme.mode === 'light' ? '0.11' : '0.08'
+                  }), rgba(242, 179, 90, 0.03) 56%, rgba(242, 179, 90, 0) 100%)`,
+                  boxShadow: `${panelSurface.boxShadow}, inset 0 1px 0 rgba(255, 255, 255, ${
+                    activeTheme.mode === 'light' ? '0.34' : '0.06'
+                  })`,
+                  overflow: 'hidden',
                   p: { md: 2, xs: 1.75 },
                   width: '100%',
+                  '&::before': {
+                    background: `radial-gradient(circle, rgba(242, 179, 90, ${
+                      activeTheme.mode === 'light' ? '0.16' : '0.12'
+                    }), rgba(242, 179, 90, 0) 68%)`,
+                    content: '""',
+                    height: 120,
+                    position: 'absolute',
+                    right: -48,
+                    top: -46,
+                    width: 120,
+                  },
                 }}
               >
-                <Stack spacing={1.25}>
-                  <Stack spacing={0.2}>
-                    <Typography variant="overline">Daily Challenge</Typography>
-                    <Typography variant="h6">Today&apos;s route</Typography>
+                <Stack spacing={1.35}>
+                  <Stack spacing={0.7}>
+                    <Stack
+                      alignItems="flex-start"
+                      direction="row"
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Stack spacing={0.25}>
+                        <Typography
+                          sx={{
+                            alignSelf: 'flex-start',
+                            backgroundColor: `rgba(242, 179, 90, ${
+                              activeTheme.mode === 'light' ? '0.16' : '0.14'
+                            })`,
+                            border: `1px solid rgba(242, 179, 90, ${
+                              activeTheme.mode === 'light' ? '0.36' : '0.3'
+                            })`,
+                            borderRadius: designTokens.radius.pill,
+                            color: dailyAccentStrong,
+                            fontWeight: designTokens.fontWeight.bold,
+                            letterSpacing: '0.14em',
+                            px: 0.9,
+                            py: 0.35,
+                            textTransform: 'uppercase',
+                          }}
+                          variant="caption"
+                        >
+                          Daily
+                        </Typography>
+                        <Typography
+                          sx={{
+                            letterSpacing: '-0.02em',
+                            lineHeight: designTokens.lineHeight.tight,
+                          }}
+                          variant="h4"
+                        >
+                          Daily Challenge
+                        </Typography>
+                      </Stack>
+                      <Typography
+                        color="text.secondary"
+                        sx={{
+                          letterSpacing: '0.08em',
+                          mt: 0.45,
+                          textTransform: 'uppercase',
+                        }}
+                        variant="caption"
+                      >
+                        5 countries
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      color="text.secondary"
+                      maxWidth={250}
+                      variant="body2"
+                    >
+                      Same route for everyone today.
+                    </Typography>
                   </Stack>
 
                   {dailySummary ? (
-                    <Paper
-                      elevation={0}
+                    <Stack
+                      alignItems="center"
+                      direction="row"
+                      justifyContent="space-between"
+                      spacing={2}
                       sx={{
-                        ...displayAccentSurface,
-                        borderRadius: designTokens.radius.md,
-                        p: 1.4,
+                        minHeight: 54,
                       }}
                     >
-                      <Stack
-                        alignItems="center"
-                        direction="row"
-                        justifyContent="space-between"
-                        spacing={2}
-                      >
-                        <Box>
-                          <Typography color="text.primary" variant="caption">
-                            Completed
-                          </Typography>
-                          <Typography variant="h5">{dailySummary}</Typography>
-                        </Box>
-                        <Typography color="text.primary" variant="caption">
+                      <Stack spacing={0.05}>
+                        <Typography
+                          sx={{
+                            color: dailyAccentStrong,
+                            fontWeight: designTokens.fontWeight.bold,
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                          }}
+                          variant="caption"
+                        >
+                          Done today
+                        </Typography>
+                        <Typography
+                          sx={{
+                            letterSpacing: '-0.03em',
+                            lineHeight: designTokens.lineHeight.tight,
+                          }}
+                          variant="h3"
+                        >
+                          {dailySummary}
+                        </Typography>
+                      </Stack>
+                      <Stack spacing={0.15} sx={{ textAlign: 'right' }}>
+                        <Typography color="text.secondary" variant="body2">
+                          Finished
+                        </Typography>
+                        <Typography variant="caption">
                           {dailyResult
                             ? formatCompletedDate(dailyResult.completedAt)
                             : ''}
                         </Typography>
                       </Stack>
-                    </Paper>
+                    </Stack>
                   ) : (
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        ...displaySurface,
-                        borderRadius: designTokens.radius.md,
-                        p: 1.4,
-                      }}
-                    >
+                    <Stack spacing={0.55}>
                       <Stack
-                        alignItems="center"
+                        alignItems="baseline"
                         direction="row"
-                        justifyContent="space-between"
-                        spacing={1.5}
+                        flexWrap="wrap"
+                        spacing={1}
                       >
-                        <Typography variant="h5">5</Typography>
-                        <Typography color="text.secondary" variant="body2">
+                        <Typography
+                          sx={{
+                            letterSpacing: '-0.03em',
+                            lineHeight: designTokens.lineHeight.tight,
+                          }}
+                          variant="h3"
+                        >
+                          5
+                        </Typography>
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                          }}
+                          variant="caption"
+                        >
                           countries
                         </Typography>
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            letterSpacing: '0.08em',
+                            ml: 'auto',
+                            textTransform: 'uppercase',
+                          }}
+                          variant="caption"
+                        >
+                          Classic mode
+                        </Typography>
                       </Stack>
-                    </Paper>
+                      <Typography color="text.secondary" variant="body2">
+                        One fixed run. One score for today.
+                      </Typography>
+                    </Stack>
                   )}
 
                   {dailySummary ? (
-                    <Typography color="text.primary" variant="body2">
-                      Completed for today.
+                    <Typography color="text.secondary" variant="body2">
+                      You already finished today&apos;s run.
                     </Typography>
                   ) : (
                     <Button
@@ -370,7 +486,7 @@ export const IntroDialog = NiceModal.create(
                         void modal.hide();
                       }}
                     >
-                      Play today&apos;s daily
+                      Start daily challenge
                     </Button>
                   )}
                 </Stack>
@@ -587,7 +703,10 @@ export const IntroDialog = NiceModal.create(
                               setCountrySizeFilter('mixed');
                             }}
                           >
-                            <Stack spacing={0.15} sx={{ pl: item.selected ? 2.35 : 1.6 }}>
+                            <Stack
+                              spacing={0.15}
+                              sx={{ pl: item.selected ? 2.35 : 1.6 }}
+                            >
                               <Typography
                                 color="inherit"
                                 sx={{

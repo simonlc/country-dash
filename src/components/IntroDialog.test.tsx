@@ -91,11 +91,11 @@ describe('IntroDialog', () => {
     );
 
     expect(screen.getByText(/^Daily Challenge$/i)).toBeVisible();
-    expect(screen.getByText(/^Completed$/i)).toBeVisible();
+    expect(screen.getByText(/^Done today$/i)).toBeVisible();
     expect(screen.getByText(/^4\/5$/i)).toBeVisible();
-    expect(screen.getByText(/Completed for today/i)).toBeVisible();
+    expect(screen.getByText(/You already finished today's run/i)).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: /play today's daily/i }),
+      screen.queryByRole('button', { name: /start daily challenge/i }),
     ).not.toBeInTheDocument();
   });
 
