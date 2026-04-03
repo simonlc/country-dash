@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppThemeId, GlobePalette, GlobeQualityConfig } from '@/app/theme';
+import { CipherTransitionOverlay } from '@/components/CipherTransitionOverlay';
 import {
   useCipherTraffic,
   type CipherTrafficState,
@@ -7,7 +8,11 @@ import {
 import { useGlobeAssets } from '@/hooks/useGlobeAssets';
 import { useGlobeRenderLoop } from '@/hooks/useGlobeRenderLoop';
 import type { CountryFeature } from '@/types/game';
-import type { CipherCriticalSite } from '@/utils/globeCipherOverlays';
+import {
+  cipherCountryTransitionDurationMs,
+  type CipherCountryTransition,
+  type CipherCriticalSite,
+} from '@/utils/globeCipherOverlays';
 import type { HydroFeatureCollection } from '@/utils/globeHydroOverlays';
 import { drawSelectedCountryOverlay } from '@/utils/globeOverlays';
 import { useGlobeInteraction, type GlobeViewProps } from '@/utils/globeShared';
@@ -99,6 +104,7 @@ export function WebGlGlobe({
   mode,
   width,
   height,
+  roundIndex,
   rotation,
   focusRequest,
   world,
@@ -121,7 +127,9 @@ export function WebGlGlobe({
     (now?: number, includeOverlay?: boolean) => void
   >(() => undefined);
   const targetFeatureRef = useRef<CountryFeature>(country);
+  const previousCipherCountryRef = useRef<CountryFeature | null>(null);
   const criticalSitesRef = useRef<CipherCriticalSite[]>([]);
+  const cipherTransitionRef = useRef<CipherCountryTransition | null>(null);
   const lakesDataRef = useRef<HydroFeatureCollection | null>(null);
   const riversDataRef = useRef<HydroFeatureCollection | null>(null);
   const textureCacheRef = useRef(new Map<string, CachedTextureSet>());
@@ -133,6 +141,8 @@ export function WebGlGlobe({
   });
   const paletteRef = useRef(palette);
   const qualityRef = useRef(quality);
+  const [cipherTransition, setCipherTransition] =
+    useState<CipherCountryTransition | null>(null);
   const {
     atlasImageryImage,
     atlasPaperImage,
@@ -173,6 +183,8 @@ export function WebGlGlobe({
       cipherTrafficState.tracks.length > 0);
   const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
+    focusDelayKey: isCipher ? roundIndex : null,
+    focusDelayMs: isCipher && roundIndex > 0 ? 420 : 0,
     focusRequest,
     onFrame: ({ rotation: nextRotation, zoomScale: nextZoomScale }) => {
       frameStateRef.current = {
@@ -215,6 +227,10 @@ export function WebGlGlobe({
   }, [targetFeature]);
 
   useEffect(() => {
+    cipherTransitionRef.current = cipherTransition;
+  }, [cipherTransition]);
+
+  useEffect(() => {
     lakesDataRef.current = lakesData;
   }, [lakesData]);
 
@@ -225,6 +241,52 @@ export function WebGlGlobe({
   useEffect(() => {
     criticalSitesRef.current = criticalSites;
   }, [criticalSites]);
+
+  useEffect(() => {
+    if (themeId !== 'cipher') {
+      previousCipherCountryRef.current = targetFeature;
+      return;
+    }
+
+    const previousCountry = previousCipherCountryRef.current;
+    previousCipherCountryRef.current = targetFeature;
+
+    if (
+      !previousCountry ||
+      previousCountry.id === targetFeature.id ||
+      roundIndex <= 0
+    ) {
+      return;
+    }
+
+    const startedAtMs = performance.now();
+    const nextTransition = {
+      fromCountry: previousCountry,
+      key: `${previousCountry.id}:${targetFeature.id}:${startedAtMs}`,
+      startedAtMs,
+      toCountry: targetFeature,
+    } satisfies CipherCountryTransition;
+    cipherTransitionRef.current = nextTransition;
+    setCipherTransition(nextTransition);
+    drawCurrentFrameRef.current(startedAtMs);
+  }, [roundIndex, targetFeature, themeId]);
+
+  useEffect(() => {
+    if (!cipherTransition) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCipherTransition((currentTransition) =>
+        currentTransition?.key === cipherTransition.key ? null : currentTransition,
+      );
+      drawCurrentFrameRef.current();
+    }, cipherCountryTransitionDurationMs + 80);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [cipherTransition]);
 
   useEffect(() => {
     onCipherTrafficStateChange?.(cipherTrafficState);
@@ -253,6 +315,7 @@ export function WebGlGlobe({
         riversData: riversDataRef.current,
         themeId,
         trafficState: cipherTrafficState,
+        transition: cipherTransitionRef.current,
         width: frameState.width,
         zoomScale: frameState.zoomScale,
       });
@@ -504,6 +567,8 @@ export function WebGlGlobe({
     waterMaskImage,
     width,
     world,
+    onRenderError,
+    themeId,
   ]);
 
   useEffect(() => {
@@ -564,6 +629,7 @@ export function WebGlGlobe({
           width: '100%',
         }}
       />
+      {isCipher ? <CipherTransitionOverlay transition={cipherTransition} /> : null}
     </div>
   );
 }

@@ -21,6 +21,7 @@ export interface GlobeViewProps {
   mode: GameMode;
   width: number;
   height: number;
+  roundIndex: number;
   rotation: [number, number];
   focusRequest: number;
   world: FeatureCollectionLike;
@@ -187,6 +188,8 @@ export function getRotatedSunDirection(rotation: [number, number]) {
 
 interface UseGlobeInteractionArgs {
   baseScale: number;
+  focusDelayMs?: number;
+  focusDelayKey?: number | string | null;
   focusRequest: number;
   onFrame?: (frame: {
     rotation: [number, number];
@@ -202,6 +205,8 @@ interface UseGlobeInteractionArgs {
 
 export function useGlobeInteraction({
   baseScale,
+  focusDelayMs = 0,
+  focusDelayKey = null,
   focusRequest,
   onFrame,
   rotation,
@@ -214,6 +219,8 @@ export function useGlobeInteraction({
   const animationFrameRef = useRef<number | null>(null);
   const animateRef = useRef<(now: number) => void>(() => undefined);
   const draggingRef = useRef(false);
+  const focusDelayTimeoutRef = useRef<number | null>(null);
+  const lastFocusDelayKeyRef = useRef<number | string | null>(focusDelayKey);
   const isAnimatingRef = useRef(false);
   const lastFrameTimeRef = useRef<number | null>(null);
   const lastDragSampleRef = useRef({ timeStamp: 0, x: 0, y: 0 });
@@ -251,6 +258,10 @@ export function useGlobeInteraction({
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
+    }
+    if (focusDelayTimeoutRef.current !== null) {
+      window.clearTimeout(focusDelayTimeoutRef.current);
+      focusDelayTimeoutRef.current = null;
     }
     lastFrameTimeRef.current = null;
     setAnimationState(false);
@@ -455,18 +466,49 @@ export function useGlobeInteraction({
       return;
     }
 
-    focusTargetRef.current = [rotation[0], rotation[1]];
-    targetRotationRef.current = currentRotationRef.current;
-    rotationVelocityRef.current = { latitude: 0, longitude: 0 };
+    if (focusDelayTimeoutRef.current !== null) {
+      window.clearTimeout(focusDelayTimeoutRef.current);
+      focusDelayTimeoutRef.current = null;
+    }
 
-    const frameId = window.requestAnimationFrame(() => {
-      startAnimation();
-    });
+    let frameId: number | null = null;
+    const shouldDelayFocus =
+      focusDelayMs > 0 &&
+      focusDelayKey !== null &&
+      lastFocusDelayKeyRef.current !== focusDelayKey;
+    const scheduleFocus = () => {
+      focusTargetRef.current = [rotation[0], rotation[1]];
+      targetRotationRef.current = currentRotationRef.current;
+      rotationVelocityRef.current = { latitude: 0, longitude: 0 };
+      lastFocusDelayKeyRef.current = focusDelayKey;
+      frameId = window.requestAnimationFrame(() => {
+        startAnimation();
+      });
+    };
+
+    if (shouldDelayFocus) {
+      focusTargetRef.current = null;
+      targetRotationRef.current = currentRotationRef.current;
+      rotationVelocityRef.current = { latitude: 0, longitude: 0 };
+      focusDelayTimeoutRef.current = window.setTimeout(() => {
+        focusDelayTimeoutRef.current = null;
+        scheduleFocus();
+      }, focusDelayMs);
+    } else {
+      lastFocusDelayKeyRef.current = focusDelayKey;
+      scheduleFocus();
+    }
 
     return () => {
-      window.cancelAnimationFrame(frameId);
+      if (focusDelayTimeoutRef.current !== null) {
+        window.clearTimeout(focusDelayTimeoutRef.current);
+        focusDelayTimeoutRef.current = null;
+      }
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
     };
-  }, [focusRequest, rotation, startAnimation]);
+  }, [focusDelayKey, focusDelayMs, focusRequest, rotation, startAnimation]);
 
   useEffect(() => stopAnimation, [stopAnimation]);
 

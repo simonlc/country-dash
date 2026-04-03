@@ -1,8 +1,10 @@
 import {
   geoCircle,
-  geoOrthographic,
+  geoCentroid,
+  geoInterpolate,
   geoPath,
   geoRotation,
+  type GeoProjection,
   type GeoPermissibleObjects,
 } from 'd3';
 import type { GlobePalette } from '@/app/theme';
@@ -26,6 +28,15 @@ export interface CipherCriticalSite {
   name: string;
   source: string;
 }
+
+export interface CipherCountryTransition {
+  fromCountry: CountryFeature;
+  key: string;
+  startedAtMs: number;
+  toCountry: CountryFeature;
+}
+
+export const cipherCountryTransitionDurationMs = 2400;
 
 function isCipherCriticalSites(
   value: Array<object> | object | null,
@@ -104,6 +115,75 @@ export function createGlobeVisibilityTester(currentRotation: [number, number]) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function clampLatitude(value: number) {
+  return clamp(value, -85, 85);
+}
+
+function wrapLongitude(value: number) {
+  return ((((value + 180) % 360) + 360) % 360) - 180;
+}
+
+function getCountryCenter(country: CountryFeature) {
+  const center = geoCentroid(country as GeoPermissibleObjects);
+  return [center[0], center[1]] as [number, number];
+}
+
+function buildCipherRouteCoordinates(args: {
+  from: [number, number];
+  latitudeSkew: number;
+  longitudeSkew: number;
+  to: [number, number];
+}) {
+  const { from, latitudeSkew, longitudeSkew, to } = args;
+  const steps = 40;
+  const interpolate = geoInterpolate(from, to);
+
+  return Array.from({ length: steps }, (_, index) => {
+    const progress = index / (steps - 1);
+    const [longitude, latitude] = interpolate(progress);
+    const sway = Math.sin(progress * Math.PI);
+
+    return [
+      wrapLongitude(longitude + longitudeSkew * sway),
+      clampLatitude(latitude + latitudeSkew * sway),
+    ] as [number, number];
+  });
+}
+
+function interpolateRouteCoordinate(
+  from: [number, number],
+  to: [number, number],
+  progress: number,
+) {
+  const longitudeDelta = wrapLongitude(to[0] - from[0]);
+  return [
+    wrapLongitude(from[0] + longitudeDelta * progress),
+    clampLatitude(from[1] + (to[1] - from[1]) * progress),
+  ] as [number, number];
+}
+
+function getRouteCoordinateAtProgress(
+  coordinates: Array<[number, number]>,
+  progress: number,
+) {
+  if (coordinates.length === 0) {
+    return null;
+  }
+
+  if (coordinates.length === 1) {
+    return coordinates[0]!;
+  }
+
+  const scaledIndex = clamp(progress, 0, 1) * (coordinates.length - 1);
+  const startIndex = Math.floor(scaledIndex);
+  const endIndex = Math.min(startIndex + 1, coordinates.length - 1);
+  const segmentProgress = scaledIndex - startIndex;
+  const start = coordinates[startIndex]!;
+  const end = coordinates[endIndex]!;
+
+  return interpolateRouteCoordinate(start, end, segmentProgress);
 }
 
 const cipherTrafficDisplayTimeScale = 28;
@@ -214,7 +294,7 @@ export function drawCipherSelectedCountryOverlay(args: {
   nowMs: number;
   palette: GlobePalette;
   path: ReturnType<typeof geoPath>;
-  projection: ReturnType<typeof geoOrthographic>;
+  projection: GeoProjection;
 }) {
   const { context, country, nowMs, palette, path, projection } = args;
   const countryShape = country as GeoPermissibleObjects;
@@ -365,7 +445,7 @@ export function drawCipherMapAnnotations(args: {
   height: number;
   nowMs: number;
   palette: GlobePalette;
-  projection: ReturnType<typeof geoOrthographic>;
+  projection: GeoProjection;
   width: number;
 }) {
   const { context, country, height, nowMs, palette, projection, width } = args;
@@ -442,11 +522,231 @@ export function drawCipherMapAnnotations(args: {
   context.restore();
 }
 
+export function drawCipherCountryTransitionOverlay(args: {
+  context: CanvasRenderingContext2D;
+  nowMs: number;
+  palette: GlobePalette;
+  path: ReturnType<typeof geoPath>;
+  projection: GeoProjection;
+  transition: CipherCountryTransition | null;
+}) {
+  const { context, nowMs, palette, path, projection, transition } = args;
+  if (!transition) {
+    return;
+  }
+
+  const progress = clamp(
+    (nowMs - transition.startedAtMs) / cipherCountryTransitionDurationMs,
+    0,
+    1,
+  );
+
+  if (progress <= 0 || progress >= 1) {
+    return;
+  }
+
+  const envelope = Math.sin(progress * Math.PI);
+  const intro = clamp(progress / 0.18, 0, 1);
+  const outro = clamp((1 - progress) / 0.22, 0, 1);
+  const alpha = envelope * Math.min(intro + 0.1, 1) * Math.min(outro + 0.12, 1);
+  const fromCenter = getCountryCenter(transition.fromCountry);
+  const toCenter = getCountryCenter(transition.toCountry);
+  const routeVariants = [
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from: fromCenter,
+        latitudeSkew: 0,
+        longitudeSkew: 0,
+        to: toCenter,
+      }),
+      width: 1.9,
+    },
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from: fromCenter,
+        latitudeSkew: 2.8,
+        longitudeSkew: 4.4,
+        to: toCenter,
+      }),
+      width: 1.15,
+    },
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from: fromCenter,
+        latitudeSkew: -2.4,
+        longitudeSkew: -3.8,
+        to: toCenter,
+      }),
+      width: 1.05,
+    },
+  ] as const;
+  const routePulse = 0.35 + 0.65 * envelope;
+  const [globeCenterX, globeCenterY] = projection.translate();
+  const globeRadius = projection.scale();
+  const fieldGradient = context.createRadialGradient(
+    globeCenterX,
+    globeCenterY,
+    globeRadius * 0.18,
+    globeCenterX,
+    globeCenterY,
+    globeRadius * 1.08,
+  );
+  fieldGradient.addColorStop(0, withOpacity(palette.selectedFill, 0.02 * alpha));
+  fieldGradient.addColorStop(0.56, withOpacity(palette.smallCountryCircle, 0.055 * alpha));
+  fieldGradient.addColorStop(1, withOpacity(palette.selectedFill, 0));
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.fillStyle = fieldGradient;
+  context.fillRect(
+    globeCenterX - globeRadius * 1.16,
+    globeCenterY - globeRadius * 1.16,
+    globeRadius * 2.32,
+    globeRadius * 2.32,
+  );
+
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+
+  context.save();
+  context.strokeStyle = withOpacity(
+    palette.smallCountryCircle,
+    0.2 * alpha * (1 - progress * 0.72),
+  );
+  context.lineWidth = 1.15;
+  context.setLineDash([7, 9]);
+  context.lineDashOffset = -nowMs * 0.018;
+  context.beginPath();
+  path(transition.fromCountry as GeoPermissibleObjects);
+  context.stroke();
+  context.restore();
+
+  context.save();
+  context.strokeStyle = withOpacity(
+    palette.selectedFill,
+    0.3 * alpha * (0.42 + progress * 0.58),
+  );
+  context.lineWidth = 1.4 + progress * 0.8;
+  context.shadowColor = withOpacity(palette.selectedFill, 0.34 * alpha);
+  context.shadowBlur = 12;
+  context.beginPath();
+  path(transition.toCountry as GeoPermissibleObjects);
+  context.stroke();
+  context.restore();
+
+  for (const [index, variant] of routeVariants.entries()) {
+    const route = {
+      type: 'LineString' as const,
+      coordinates: variant.coordinates,
+    };
+    const brightness = index === 0 ? 1 : 0.62 - index * 0.08;
+
+    context.save();
+    context.shadowColor = withOpacity(palette.selectedFill, 0.22 * alpha * brightness);
+    context.shadowBlur = index === 0 ? 14 : 8;
+    context.strokeStyle = withOpacity(
+      index === 0 ? palette.selectedFill : palette.smallCountryCircle,
+      (0.16 + routePulse * 0.16) * alpha * brightness,
+    );
+    context.lineWidth = variant.width + routePulse * (index === 0 ? 0.95 : 0.35);
+    context.setLineDash(index === 0 ? [18, 10] : [8, 11]);
+    context.lineDashOffset = -nowMs * (0.028 + index * 0.006);
+    context.beginPath();
+    path(route);
+    context.stroke();
+    context.restore();
+  }
+
+  const primaryRouteCoordinates = routeVariants[0].coordinates;
+  const packetOffsets = [progress * 1.08, progress * 1.08 - 0.18, progress * 1.08 - 0.36];
+  for (const [index, offset] of packetOffsets.entries()) {
+    if (offset <= 0 || offset >= 1) {
+      continue;
+    }
+
+    const packetCoordinate = getRouteCoordinateAtProgress(
+      primaryRouteCoordinates,
+      offset,
+    );
+    const previousCoordinate = getRouteCoordinateAtProgress(
+      primaryRouteCoordinates,
+      Math.max(0, offset - 0.02),
+    );
+    const nextCoordinate = getRouteCoordinateAtProgress(
+      primaryRouteCoordinates,
+      Math.min(1, offset + 0.02),
+    );
+
+    if (!packetCoordinate || !previousCoordinate || !nextCoordinate) {
+      continue;
+    }
+
+    const packetPoint = projection(packetCoordinate);
+    const previousPoint = projection(previousCoordinate);
+    const nextPoint = projection(nextCoordinate);
+    if (!packetPoint || !previousPoint || !nextPoint) {
+      continue;
+    }
+
+    const [packetX, packetY] = packetPoint;
+    const angle = Math.atan2(
+      nextPoint[1] - previousPoint[1],
+      nextPoint[0] - previousPoint[0],
+    );
+    const pulse = 0.4 + 0.6 * Math.sin(nowMs * 0.009 + index * 0.85);
+
+    context.save();
+    context.shadowColor = withOpacity(palette.selectedFill, 0.44 * alpha);
+    context.shadowBlur = 16;
+    context.fillStyle = withOpacity(
+      index === 0 ? '#f6ff9e' : palette.selectedFill,
+      (0.56 + pulse * 0.28) * alpha,
+    );
+    context.translate(packetX, packetY);
+    context.rotate(angle);
+    context.fillRect(-4.8, -1.55, 9.6, 3.1);
+    context.fillRect(2.6, -2.4, 2.4, 4.8);
+    context.restore();
+  }
+
+  const endpointPoints = [
+    {
+      alpha: 0.32 * alpha * (1 - progress * 0.65),
+      color: palette.smallCountryCircle,
+      point: projection(fromCenter),
+      radius: 8 + progress * 10,
+    },
+    {
+      alpha: 0.34 * alpha * (0.45 + progress * 0.55),
+      color: palette.selectedFill,
+      point: projection(toCenter),
+      radius: 9 + (1 - progress) * 11,
+    },
+  ];
+
+  for (const endpoint of endpointPoints) {
+    if (!endpoint.point) {
+      continue;
+    }
+
+    const [x, y] = endpoint.point;
+    context.save();
+    context.strokeStyle = withOpacity(endpoint.color, endpoint.alpha);
+    context.lineWidth = 1.2 + routePulse * 0.55;
+    context.beginPath();
+    context.arc(x, y, endpoint.radius, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
+
+  context.restore();
+}
+
 function drawCipherCriticalSites(args: {
   context: CanvasRenderingContext2D;
   currentRotation: [number, number];
   nowMs: number;
-  projection: ReturnType<typeof geoOrthographic>;
+  projection: GeoProjection;
   sites: CipherCriticalSite[];
 }) {
   const { context, currentRotation, nowMs, projection, sites } = args;
@@ -507,7 +807,7 @@ export function drawCipherTrafficOverlay(args: {
   currentRotation: [number, number];
   nowMs: number;
   palette: GlobePalette;
-  projection: ReturnType<typeof geoOrthographic>;
+  projection: GeoProjection;
   trafficState: CipherTrafficState;
 }) {
   const {

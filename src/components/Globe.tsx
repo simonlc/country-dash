@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import type {
   AppThemeId,
   GlobePalette,
@@ -18,6 +18,7 @@ interface GlobeProps {
   mode: GameMode;
   width: number;
   height: number;
+  roundIndex: number;
   rotation: [number, number];
   focusRequest: number;
   world: FeatureCollectionLike;
@@ -28,24 +29,40 @@ interface GlobeProps {
 }
 
 function GlobeComponent(props: GlobeProps) {
-  const [renderError, setRenderError] = useState<Error | null>(null);
+  const [renderError, setRenderError] = useState<{
+    error: Error;
+    resetKey: string;
+  } | null>(null);
+  const resetKey = useMemo(
+    () =>
+      [
+        props.country.id,
+        props.focusRequest,
+        props.height,
+        props.mode,
+        props.roundIndex,
+        props.themeId,
+        props.width,
+      ].join(':'),
+    [
+      props.country.id,
+      props.focusRequest,
+      props.height,
+      props.mode,
+      props.roundIndex,
+      props.themeId,
+      props.width,
+    ],
+  );
   const handleRenderError = useCallback((error: Error) => {
-    setRenderError(error);
-  }, []);
+    setRenderError({
+      error,
+      resetKey,
+    });
+  }, [resetKey]);
 
-  useEffect(() => {
-    setRenderError(null);
-  }, [
-    props.country.id,
-    props.focusRequest,
-    props.height,
-    props.mode,
-    props.themeId,
-    props.width,
-  ]);
-
-  if (renderError) {
-    return <GlobeRenderError message={renderError.message} />;
+  if (renderError?.resetKey === resetKey) {
+    return <GlobeRenderError message={renderError.error.message} />;
   }
 
   return <WebGlGlobe {...props} onRenderError={handleRenderError} />;

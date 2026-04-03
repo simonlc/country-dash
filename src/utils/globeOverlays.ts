@@ -8,9 +8,11 @@ import type { AppThemeId, GlobePalette, GlobeQualityConfig } from '@/app/theme';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
 import type { CountryFeature, GameMode } from '@/types/game';
 import {
+  drawCipherCountryTransitionOverlay,
   drawCipherMapAnnotations,
   drawCipherSelectedCountryOverlay,
   drawCipherTrafficOverlay,
+  type CipherCountryTransition,
   type CipherCriticalSite,
 } from '@/utils/globeCipherOverlays';
 import { drawCipherHydroOverlay, type HydroFeatureCollection } from '@/utils/globeHydroOverlays';
@@ -32,6 +34,7 @@ export function drawSelectedCountryOverlay(args: {
   riversData: HydroFeatureCollection | null;
   themeId: AppThemeId;
   trafficState: CipherTrafficState;
+  transition: CipherCountryTransition | null;
   width: number;
   zoomScale: number;
 }) {
@@ -49,6 +52,7 @@ export function drawSelectedCountryOverlay(args: {
     riversData,
     themeId,
     trafficState,
+    transition,
     width,
     zoomScale,
   } = args;
@@ -152,6 +156,14 @@ export function drawSelectedCountryOverlay(args: {
       palette,
       path,
       projection,
+    });
+    drawCipherCountryTransitionOverlay({
+      context,
+      nowMs,
+      palette,
+      path,
+      projection,
+      transition,
     });
   } else {
     const ringPaths = getCountryHighlightRings(country).map((ring) =>

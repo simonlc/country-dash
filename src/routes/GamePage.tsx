@@ -56,6 +56,7 @@ export function GamePage() {
           onCipherTrafficStateChange={state.handlers.onCipherTrafficStateChange}
           palette={state.activeTheme.globe}
           quality={state.effectiveQuality}
+          roundIndex={state.gameState.roundIndex}
           rotation={state.rotation}
           themeId={state.activeTheme.id}
           width={state.size.width}
