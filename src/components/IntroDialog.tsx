@@ -1,3 +1,24 @@
+import { useAppearance } from '@/app/appearance';
+import { designTokens } from '@/app/designSystem';
+import {
+  getThemeAccentSurfaceStyles,
+  getThemeDisplaySurfaceStyles,
+  getThemeSurfaceStyles,
+} from '@/app/theme';
+import { HowToPlayDialog } from '@/components/HowToPlayDialog';
+import type {
+  CountrySizeFilter,
+  DailyChallengeResult,
+  Difficulty,
+  GameMode,
+  RegionFilter,
+} from '@/types/game';
+import { getSelectorCardSx } from '@/utils/controlStyles';
+import {
+  countrySizeLabels,
+  randomRunPresetDifficulties,
+  regionLabels,
+} from '@/utils/gameLogic';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import {
   Box,
@@ -8,6 +29,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { useMemo, useState } from 'react';
 import {
   Circle,
   Clock,
@@ -15,32 +37,11 @@ import {
   Crop,
   Globe,
   Heart,
+  Info,
   Map,
   MapPin,
   Triangle,
 } from 'react-feather';
-import { useMemo, useState } from 'react';
-import { useAppearance } from '@/app/appearance';
-import { designTokens } from '@/app/designSystem';
-import {
-  getThemeAccentSurfaceStyles,
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
-} from '@/app/theme';
-import { HowToPlayDialog } from '@/components/HowToPlayDialog';
-import {
-  countrySizeLabels,
-  randomRunPresetDifficulties,
-  regionLabels,
-} from '@/utils/gameLogic';
-import { getSelectorCardSx } from '@/utils/controlStyles';
-import type {
-  CountrySizeFilter,
-  DailyChallengeResult,
-  Difficulty,
-  GameMode,
-  RegionFilter,
-} from '@/types/game';
 
 interface IntroDialogProps {
   counts: Record<CountrySizeFilter, number>;
@@ -205,27 +206,22 @@ export const IntroDialog = NiceModal.create(
 
       return `${dailyResult.correctCount}/${dailyResult.totalCount}`;
     }, [dailyResult]);
-    const sizeItems = (Object.keys(countrySizeLabels) as CountrySizeFilter[]).map(
-      (key) => ({
-        description:
-          key === 'large'
-            ? `${formatCountryCountLabel(counts[key])} with higher difficulty.`
-            : key === 'mixed'
-              ? `${formatCountryCountLabel(counts[key])} with medium difficulty.`
-              : `${formatCountryCountLabel(counts[key])} with lower difficulty.`,
-        detail: difficultyLabels[randomRunPresetDifficulties[key]],
-        icon:
-          key === 'large'
-            ? Globe
-            : key === 'mixed'
-              ? Map
-              : Clock,
-        label: countrySizeLabels[key],
-        meta: formatCountryCountLabel(counts[key]),
-        selected: regionFilter === null && countrySizeFilter === key,
-        value: key,
-      }),
-    );
+    const sizeItems = (
+      Object.keys(countrySizeLabels) as CountrySizeFilter[]
+    ).map((key) => ({
+      description:
+        key === 'large'
+          ? `${formatCountryCountLabel(counts[key])} with higher difficulty.`
+          : key === 'mixed'
+            ? `${formatCountryCountLabel(counts[key])} with medium difficulty.`
+            : `${formatCountryCountLabel(counts[key])} with lower difficulty.`,
+      detail: difficultyLabels[randomRunPresetDifficulties[key]],
+      icon: key === 'large' ? Globe : key === 'mixed' ? Map : Clock,
+      label: countrySizeLabels[key],
+      meta: formatCountryCountLabel(counts[key]),
+      selected: regionFilter === null && countrySizeFilter === key,
+      value: key,
+    }));
     const categoryItems = categoryOptions.map((option) => ({
       description:
         option.value === 'microstates'
@@ -269,16 +265,18 @@ export const IntroDialog = NiceModal.create(
               }}
             >
               <Stack spacing={0.75}>
-                <Typography variant="h2">
-                  Country Dash
-                </Typography>
-                <Typography color="text.secondary" maxWidth={420} variant="body2">
-                  Choose a run and start.
+                <Typography variant="h2">Country Dash</Typography>
+                <Typography
+                  color="text.secondary"
+                  maxWidth={420}
+                  variant="body2"
+                >
+                  The country guessing game
                 </Typography>
                 <Box>
                   <Button
                     size="small"
-                    variant="text"
+                    startIcon={<Info />}
                     onClick={() => {
                       void NiceModal.show(HowToPlayDialog);
                     }}
@@ -323,9 +321,7 @@ export const IntroDialog = NiceModal.create(
                           <Typography color="text.primary" variant="caption">
                             Completed
                           </Typography>
-                          <Typography variant="h5">
-                            {dailySummary}
-                          </Typography>
+                          <Typography variant="h5">{dailySummary}</Typography>
                         </Box>
                         <Typography color="text.primary" variant="caption">
                           {dailyResult
@@ -349,9 +345,7 @@ export const IntroDialog = NiceModal.create(
                         justifyContent="space-between"
                         spacing={1.5}
                       >
-                        <Typography variant="h5">
-                          5
-                        </Typography>
+                        <Typography variant="h5">5</Typography>
                         <Typography color="text.secondary" variant="body2">
                           countries
                         </Typography>
@@ -394,9 +388,9 @@ export const IntroDialog = NiceModal.create(
               >
                 <Stack spacing={1.75}>
                   <Stack spacing={0.25}>
-                    <Typography variant="h5">Custom run</Typography>
+                    <Typography variant="h5">New game</Typography>
                     <Typography color="text.secondary" variant="body2">
-                      Choose a mode and pool.
+                      Choose a mode and which countries to guess from.
                     </Typography>
                   </Stack>
 
@@ -426,8 +420,10 @@ export const IntroDialog = NiceModal.create(
                             }),
                             minHeight: 84,
                             minWidth: 0,
-                            px: designTokens.componentSpacing.selectorCardDense.px,
-                            py: designTokens.componentSpacing.selectorCardDense.py,
+                            px: designTokens.componentSpacing.selectorCardDense
+                              .px,
+                            py: designTokens.componentSpacing.selectorCardDense
+                              .py,
                           }}
                           onClick={() => setMode(option.value)}
                         >
@@ -439,11 +435,7 @@ export const IntroDialog = NiceModal.create(
                                 gap: 0.75,
                               }}
                             >
-                              <ModeIcon
-                                aria-hidden
-                                size={15}
-                                strokeWidth={2}
-                              />
+                              <ModeIcon aria-hidden size={15} strokeWidth={2} />
                               <Typography variant="body2">
                                 {option.label}
                               </Typography>
@@ -461,6 +453,9 @@ export const IntroDialog = NiceModal.create(
                     })}
                   </Box>
 
+                  <Typography color="text.secondary" variant="overline">
+                    Country Pools
+                  </Typography>
                   <Box
                     sx={{
                       display: 'grid',
@@ -491,8 +486,10 @@ export const IntroDialog = NiceModal.create(
                             justifyContent: 'flex-start',
                             minHeight: 112,
                             minWidth: 0,
-                            px: designTokens.componentSpacing.selectorCardLarge.px,
-                            py: designTokens.componentSpacing.selectorCardLarge.py,
+                            px: designTokens.componentSpacing.selectorCardLarge
+                              .px,
+                            py: designTokens.componentSpacing.selectorCardLarge
+                              .py,
                             textAlign: 'left',
                           }}
                           onClick={() => {
@@ -501,14 +498,8 @@ export const IntroDialog = NiceModal.create(
                           }}
                         >
                           <Stack spacing={0.55}>
-                            <ItemIcon
-                              aria-hidden
-                              size={18}
-                              strokeWidth={2}
-                            />
-                            <Typography variant="h6">
-                              {item.label}
-                            </Typography>
+                            <ItemIcon aria-hidden size={18} strokeWidth={2} />
+                            <Typography variant="h6">{item.label}</Typography>
                             <Typography
                               color={
                                 item.selected ? 'inherit' : 'text.secondary'
@@ -532,9 +523,6 @@ export const IntroDialog = NiceModal.create(
                   </Box>
 
                   <Stack spacing={0.75}>
-                    <Typography color="text.secondary" variant="overline">
-                      Country Pools
-                    </Typography>
                     <Box
                       sx={{
                         display: 'grid',
@@ -601,6 +589,16 @@ export const IntroDialog = NiceModal.create(
                               <Typography
                                 color="inherit"
                                 sx={{
+                                  fontWeight: item.selected ? 700 : 500,
+                                  lineHeight: 1.25,
+                                }}
+                                variant="body2"
+                              >
+                                {item.label}
+                              </Typography>
+                              <Typography
+                                color="inherit"
+                                sx={{
                                   letterSpacing: '0.04em',
                                   lineHeight: 1.1,
                                   opacity: item.selected ? 1 : 0.62,
@@ -609,16 +607,6 @@ export const IntroDialog = NiceModal.create(
                                 variant="caption"
                               >
                                 {item.meta}
-                              </Typography>
-                              <Typography
-                                color="inherit"
-                                sx={{
-                                  fontWeight: item.selected ? 700 : 500,
-                                  lineHeight: 1.25,
-                                }}
-                                variant="body2"
-                              >
-                                {item.label}
                               </Typography>
                             </Stack>
                           </Box>
