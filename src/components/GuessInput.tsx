@@ -35,6 +35,8 @@ interface GuessChoice {
   label: string;
 }
 
+const MAX_VISIBLE_RESULTS = 4;
+
 const normalizeText = (value: string) => normalizeGuess(value);
 
 const matchesPrefix = (choice: GuessChoice, inputValue: string) => {
@@ -59,7 +61,7 @@ const filterOptions = (options: GuessChoice[], inputValue: string) => {
 
   return matchSorter(matchedOptions, inputValue, {
     keys: [(item) => `${item.label}, ${item.aliases.join(', ')}`],
-  }).slice(0, 5);
+  }).slice(0, MAX_VISIBLE_RESULTS);
 };
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
@@ -222,6 +224,17 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         open={open}
         openOnFocus={false}
         options={choices}
+        slotProps={{
+          popper: {
+            modifiers: [
+              {
+                enabled: false,
+                name: 'flip',
+              },
+            ],
+            placement: 'bottom-start',
+          },
+        }}
         value={value}
         filterOptions={(allOptions, state) =>
           filterOptions(allOptions, state.inputValue)

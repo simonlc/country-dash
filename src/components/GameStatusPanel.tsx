@@ -50,6 +50,8 @@ export function GameStatusPanel({
   storedDailyResult,
   totalRounds,
 }: GameStatusPanelProps) {
+  const isPlaying = gameState.status === 'playing';
+
   return (
     <Paper
       elevation={0}
@@ -59,7 +61,12 @@ export function GameStatusPanel({
           alignSelf: 'end',
           borderRadius: designTokens.radius.xs,
           maxWidth: 560,
-          mb: { md: 4, xs: 2 },
+          mb: {
+            md: 16,
+            xs: 8,
+            // md: isPlaying ? 8 : 4,
+            // xs: isPlaying ? 4 : 2,
+          },
           p: {
             md: designTokens.componentSpacing.overlayPanel.desktop,
             xs: designTokens.componentSpacing.overlayPanel.mobile,

@@ -169,4 +169,28 @@ describe('GuessInput', () => {
     expect(screen.getByText('No matches')).toBeVisible();
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
+
+  it('limits autocomplete results to four options', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={[
+          { isocode: 'DO', isocode3: 'DOM', nameEn: 'Dominican Republic' },
+          { isocode: 'DM', isocode3: 'DMA', nameEn: 'Dominica' },
+          { isocode: 'DK', isocode3: 'DNK', nameEn: 'Denmark' },
+          { isocode: 'DJ', isocode3: 'DJI', nameEn: 'Djibouti' },
+          { isocode: 'DZ', isocode3: 'DZA', nameEn: 'Algeria', nameAlt: 'Dzayer' },
+        ]}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'd');
+
+    expect(screen.getAllByRole('option')).toHaveLength(4);
+    expect(screen.queryByRole('option', { name: 'Algeria' })).not.toBeInTheDocument();
+  });
 });
