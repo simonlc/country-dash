@@ -143,20 +143,20 @@ export function applyAtlasBiomeWatercolor(
 
   if (atlasImageryImage) {
     context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 0.72;
+    context.globalAlpha = 0.28;
     context.filter =
-      'blur(1.4px) sepia(0.48) saturate(0.88) hue-rotate(-16deg) contrast(0.98) brightness(1.08)';
+      'blur(2.1px) sepia(0.52) saturate(0.86) hue-rotate(-8deg) contrast(0.88) brightness(1.2)';
     context.drawImage(atlasImageryImage, 0, 0, width, height);
     context.filter = 'none';
 
-    context.globalCompositeOperation = 'multiply';
-    context.globalAlpha = 0.18;
-    context.fillStyle = 'rgba(130, 97, 60, 0.42)';
+    context.globalCompositeOperation = 'source-over';
+    context.globalAlpha = 0.22;
+    context.fillStyle = 'rgba(232, 212, 176, 0.3)';
     context.fillRect(0, 0, width, height);
 
-    context.globalCompositeOperation = 'screen';
-    context.globalAlpha = 0.18;
-    context.fillStyle = 'rgba(244, 236, 214, 0.4)';
+    context.globalCompositeOperation = 'source-over';
+    context.globalAlpha = 0.16;
+    context.fillStyle = 'rgba(241, 226, 195, 0.22)';
     context.fillRect(0, 0, width, height);
   }
 
@@ -175,7 +175,7 @@ export function applyAtlasBiomeWatercolor(
     }>,
   ) => {
     context.globalCompositeOperation = 'source-over';
-    context.filter = `blur(${Math.max(width / 170, 8)}px)`;
+    context.filter = `blur(${Math.max(width / 110, 12)}px)`;
     for (const region of regions) {
       const { x, y } = toTexturePoint(region.longitude, region.latitude);
       const radius = width * region.radius;
@@ -188,6 +188,10 @@ export function applyAtlasBiomeWatercolor(
         radius,
       );
       gradient.addColorStop(0, color.replace('ALPHA', String(region.strength)));
+      gradient.addColorStop(
+        0.62,
+        color.replace('ALPHA', String(region.strength * 0.52)),
+      );
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
       context.fillStyle = gradient;
       context.beginPath();
@@ -197,50 +201,115 @@ export function applyAtlasBiomeWatercolor(
     context.filter = 'none';
   };
 
-  paintBiomeBlobs('rgba(116, 132, 72, ALPHA)', [
-    { longitude: -63, latitude: -7, radius: 0.095, strength: 0.22 },
-    { longitude: 22, latitude: 0, radius: 0.07, strength: 0.18 },
-    { longitude: 105, latitude: 11, radius: 0.082, strength: 0.17 },
-    { longitude: -84, latitude: 37, radius: 0.072, strength: 0.12 },
-    { longitude: 18, latitude: 50, radius: 0.052, strength: 0.1 },
+  const paintAccentBlobs = (
+    color: string,
+    regions: Array<{
+      latitude: number;
+      longitude: number;
+      radius: number;
+      strength: number;
+    }>,
+  ) => {
+    context.globalCompositeOperation = 'source-over';
+    context.filter = `blur(${Math.max(width / 90, 14)}px)`;
+    for (const region of regions) {
+      const { x, y } = toTexturePoint(region.longitude, region.latitude);
+      const radius = width * region.radius;
+      const gradient = context.createRadialGradient(
+        x,
+        y,
+        radius * 0.08,
+        x,
+        y,
+        radius,
+      );
+      gradient.addColorStop(0, color.replace('ALPHA', String(region.strength)));
+      gradient.addColorStop(0.55, color.replace('ALPHA', String(region.strength * 0.45)));
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.filter = 'none';
+  };
+
+  paintBiomeBlobs('rgba(114, 176, 58, ALPHA)', [
+    { longitude: -63, latitude: -7, radius: 0.106, strength: 0.38 },
+    { longitude: 22, latitude: 0, radius: 0.082, strength: 0.34 },
+    { longitude: 105, latitude: 11, radius: 0.094, strength: 0.33 },
+    { longitude: -84, latitude: 37, radius: 0.078, strength: 0.2 },
+    { longitude: 18, latitude: 50, radius: 0.058, strength: 0.16 },
   ]);
 
-  paintBiomeBlobs('rgba(196, 154, 98, ALPHA)', [
-    { longitude: 13, latitude: 23, radius: 0.12, strength: 0.28 },
-    { longitude: 48, latitude: 24, radius: 0.068, strength: 0.22 },
-    { longitude: 133, latitude: -24, radius: 0.088, strength: 0.28 },
-    { longitude: 102, latitude: 42, radius: 0.062, strength: 0.14 },
-    { longitude: -112, latitude: 34, radius: 0.046, strength: 0.14 },
+  paintBiomeBlobs('rgba(230, 186, 92, ALPHA)', [
+    { longitude: 13, latitude: 23, radius: 0.116, strength: 0.3 },
+    { longitude: 48, latitude: 24, radius: 0.072, strength: 0.24 },
+    { longitude: 133, latitude: -24, radius: 0.088, strength: 0.3 },
+    { longitude: 102, latitude: 42, radius: 0.064, strength: 0.14 },
+    { longitude: -112, latitude: 34, radius: 0.048, strength: 0.14 },
   ]);
 
-  paintBiomeBlobs('rgba(128, 116, 108, ALPHA)', [
-    { longitude: -71, latitude: -19, radius: 0.052, strength: 0.16 },
-    { longitude: -110, latitude: 42, radius: 0.058, strength: 0.14 },
-    { longitude: 86, latitude: 31, radius: 0.078, strength: 0.22 },
-    { longitude: 11, latitude: 46, radius: 0.03, strength: 0.1 },
+  paintBiomeBlobs('rgba(205, 161, 98, ALPHA)', [
+    { longitude: -71, latitude: -19, radius: 0.05, strength: 0.1 },
+    { longitude: -110, latitude: 42, radius: 0.056, strength: 0.08 },
+    { longitude: 86, latitude: 31, radius: 0.074, strength: 0.11 },
+    { longitude: 11, latitude: 46, radius: 0.03, strength: 0.06 },
   ]);
 
-  paintBiomeBlobs('rgba(239, 236, 230, ALPHA)', [
-    { longitude: -42, latitude: 74, radius: 0.095, strength: 0.4 },
-    { longitude: -102, latitude: 69, radius: 0.09, strength: 0.24 },
-    { longitude: 105, latitude: 71, radius: 0.13, strength: 0.22 },
+  paintBiomeBlobs('rgba(210, 191, 147, ALPHA)', [
+    { longitude: -42, latitude: 74, radius: 0.088, strength: 0.08 },
+    { longitude: -102, latitude: 69, radius: 0.084, strength: 0.06 },
+    { longitude: 105, latitude: 71, radius: 0.112, strength: 0.05 },
+  ]);
+
+  paintAccentBlobs('rgba(235, 148, 54, ALPHA)', [
+    { longitude: 18, latitude: 18, radius: 0.068, strength: 0.16 },
+    { longitude: 136, latitude: -23, radius: 0.06, strength: 0.17 },
+    { longitude: -67, latitude: -21, radius: 0.046, strength: 0.12 },
+  ]);
+
+  paintAccentBlobs('rgba(86, 175, 68, ALPHA)', [
+    { longitude: -60, latitude: -6, radius: 0.086, strength: 0.24 },
+    { longitude: 24, latitude: -2, radius: 0.072, strength: 0.21 },
+    { longitude: 108, latitude: 10, radius: 0.074, strength: 0.21 },
+    { longitude: -47, latitude: -14, radius: 0.06, strength: 0.16 },
+    { longitude: 30, latitude: -8, radius: 0.056, strength: 0.14 },
+  ]);
+
+  paintAccentBlobs('rgba(86, 160, 191, ALPHA)', [
+    { longitude: -73, latitude: -11, radius: 0.044, strength: 0.11 },
+    { longitude: 36, latitude: -4, radius: 0.042, strength: 0.1 },
+    { longitude: 113, latitude: 0, radius: 0.044, strength: 0.11 },
+  ]);
+
+  paintAccentBlobs('rgba(208, 180, 126, ALPHA)', [
+    { longitude: -44, latitude: 72, radius: 0.074, strength: 0.05 },
+    { longitude: -100, latitude: 68, radius: 0.07, strength: 0.04 },
+    { longitude: 102, latitude: 72, radius: 0.1, strength: 0.04 },
+  ]);
+
+  paintAccentBlobs('rgba(193, 160, 102, ALPHA)', [
+    { longitude: 58, latitude: 61, radius: 0.084, strength: 0.04 },
+    { longitude: 96, latitude: 57, radius: 0.09, strength: 0.04 },
+    { longitude: -108, latitude: 58, radius: 0.078, strength: 0.04 },
   ]);
 
   const antarcticSnow = context.createLinearGradient(0, height * 0.78, 0, height);
-  antarcticSnow.addColorStop(0, 'rgba(235, 232, 225, 0)');
-  antarcticSnow.addColorStop(1, 'rgba(235, 232, 225, 0.42)');
-  context.globalCompositeOperation = 'screen';
+  antarcticSnow.addColorStop(0, 'rgba(204, 183, 141, 0)');
+  antarcticSnow.addColorStop(1, 'rgba(204, 183, 141, 0.06)');
+  context.globalCompositeOperation = 'source-over';
   context.globalAlpha = 1;
   context.fillStyle = antarcticSnow;
   context.fillRect(0, 0, width, height);
 
-  context.globalCompositeOperation = 'multiply';
-  context.globalAlpha = 0.14;
-  context.fillStyle = 'rgba(122, 96, 64, 0.28)';
+  context.globalCompositeOperation = 'soft-light';
+  context.globalAlpha = 0.12;
+  context.fillStyle = 'rgba(234, 214, 181, 0.2)';
   context.fillRect(0, 0, width, height);
-  context.globalCompositeOperation = 'screen';
-  context.globalAlpha = 0.08;
-  context.fillStyle = 'rgba(248, 242, 226, 0.22)';
+  context.globalCompositeOperation = 'source-over';
+  context.globalAlpha = 0.16;
+  context.fillStyle = 'rgba(241, 225, 193, 0.16)';
   context.fillRect(0, 0, width, height);
 
   context.restore();
@@ -353,9 +422,9 @@ export function applyAtlasWatercolorLand(
   clipToAtlasLand(context, path, world);
 
   const landWash = context.createLinearGradient(0, 0, width, height);
-  landWash.addColorStop(0, 'rgba(194, 186, 153, 0.11)');
-  landWash.addColorStop(0.45, 'rgba(145, 136, 108, 0.1)');
-  landWash.addColorStop(1, 'rgba(188, 180, 148, 0.1)');
+  landWash.addColorStop(0, 'rgba(232, 223, 196, 0.22)');
+  landWash.addColorStop(0.45, 'rgba(221, 207, 176, 0.2)');
+  landWash.addColorStop(1, 'rgba(230, 221, 194, 0.22)');
   context.fillStyle = landWash;
   context.fillRect(0, 0, width, height);
 
@@ -372,7 +441,7 @@ export function applyAtlasWatercolorLand(
       y,
       radius,
     );
-    blot.addColorStop(0, 'rgba(121, 110, 82, 0.045)');
+    blot.addColorStop(0, 'rgba(174, 152, 110, 0.02)');
     blot.addColorStop(1, 'rgba(0, 0, 0, 0)');
     context.fillStyle = blot;
     context.beginPath();
@@ -386,7 +455,7 @@ export function applyAtlasWatercolorLand(
     const y = ((index * 113) % height) + 5;
     const radius = width * (0.016 + (index % 5) * 0.0035);
     const blot = context.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-    blot.addColorStop(0, 'rgba(214, 198, 160, 0.05)');
+    blot.addColorStop(0, 'rgba(242, 230, 197, 0.09)');
     blot.addColorStop(1, 'rgba(0, 0, 0, 0)');
     context.fillStyle = blot;
     context.beginPath();
@@ -395,8 +464,8 @@ export function applyAtlasWatercolorLand(
   }
 
   context.globalCompositeOperation = 'screen';
-  context.globalAlpha = 0.08;
-  context.fillStyle = 'rgba(248, 243, 229, 0.16)';
+  context.globalAlpha = 0.16;
+  context.fillStyle = 'rgba(250, 246, 235, 0.3)';
   context.fillRect(0, 0, width, height);
 
   context.restore();

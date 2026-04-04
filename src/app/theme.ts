@@ -450,7 +450,7 @@ export const appThemes: AppThemeDefinition[] = [
       surfaceTextureStrength: 0.3,
     },
     qualityDefaults: {
-      reliefMapEnabled: true,
+      reliefMapEnabled: false,
       reliefHeight: 0.8,
       dayImageryEnabled: false,
       nightImageryEnabled: false,
