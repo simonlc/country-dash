@@ -12,9 +12,7 @@ import {
   applyAtlasCoastalWash,
   applyAtlasInkBleed,
   applyAtlasInkCoastline,
-  applyAtlasLandHachure,
   applyAtlasOceanCurrentHatching,
-  applyAtlasPaperTexture,
   applyAtlasParchmentAging,
   applyAtlasWatercolorLand,
   applyAtlasWatercolorOcean,
@@ -349,7 +347,6 @@ export function buildOceanTextureCanvas(
   palette: GlobePalette,
   textureSize: number,
   isAtlas: boolean,
-  atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = createCanvas(textureSize, textureSize / 2);
@@ -373,7 +370,6 @@ export function buildOceanTextureCanvas(
       applyAtlasWatercolorOcean(context, textureCanvas, palette);
       applyAtlasOceanCurrentHatching(context, textureCanvas);
     }
-    applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
     if (isAtlas) {
       applyAtlasParchmentAging(context, textureCanvas, palette);
     }
@@ -408,7 +404,6 @@ export function buildCombinedTextureCanvas(
   textureSize: number,
   isAtlas: boolean,
   isCipher: boolean,
-  atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
@@ -424,7 +419,8 @@ export function buildCombinedTextureCanvas(
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
     if (isAtlas) {
-      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
+      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      applyAtlasOceanCurrentHatching(context, textureCanvas);
       applyAtlasParchmentAging(context, textureCanvas, palette);
       drawAtlasExpeditionDetails(context, path, textureCanvas);
       applyAtlasWatercolorLand(context, path, world, textureCanvas);
@@ -436,7 +432,6 @@ export function buildCombinedTextureCanvas(
         palette,
         atlasImageryImage,
       );
-      applyAtlasLandHachure(context, path, world, textureCanvas);
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
 
@@ -510,7 +505,6 @@ export function buildCountryTextureCanvas(
   textureSize: number,
   isAtlas: boolean,
   isCipher: boolean,
-  atlasPaperImage: HTMLImageElement | null,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
@@ -524,7 +518,6 @@ export function buildCountryTextureCanvas(
     const path = geoPath(projection, context);
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
     if (isAtlas) {
-      applyAtlasPaperTexture(context, textureCanvas, atlasPaperImage);
       applyAtlasParchmentAging(context, textureCanvas, palette);
       drawAtlasExpeditionDetails(context, path, textureCanvas);
       applyAtlasWatercolorLand(context, path, world, textureCanvas);
@@ -536,7 +529,6 @@ export function buildCountryTextureCanvas(
         palette,
         atlasImageryImage,
       );
-      applyAtlasLandHachure(context, path, world, textureCanvas);
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
     context.beginPath();

@@ -43,11 +43,10 @@ interface CachedTextureSet {
   countryTextureCanvas: HTMLCanvasElement | null;
 }
 
-const textureCacheVersion = 1;
+const textureCacheVersion = 2;
 
 function getTextureCacheKey(args: {
   hasAtlasImagery: boolean;
-  hasAtlasPaper: boolean;
   hasLakes: boolean;
   hasRaisedCountries: boolean;
   hasRivers: boolean;
@@ -150,7 +149,6 @@ export function WebGlGlobe({
     useState<CipherCountryTransition | null>(null);
   const {
     atlasImageryImage,
-    atlasPaperImage,
     cityLightsImage,
     criticalSites,
     dayImageryImage,
@@ -407,7 +405,6 @@ export function WebGlGlobe({
     const hasRaisedCountries = palette.countryElevation > 0;
     const textureCacheKey = getTextureCacheKey({
       hasAtlasImagery: Boolean(atlasImageryImage),
-      hasAtlasPaper: Boolean(atlasPaperImage),
       hasLakes: Boolean(lakesData),
       hasRaisedCountries,
       hasRivers: Boolean(riversData),
@@ -427,7 +424,6 @@ export function WebGlGlobe({
               palette,
               textureResolution,
               isAtlas,
-              isAtlas ? atlasPaperImage : null,
               isAtlas ? atlasImageryImage : null,
             )
           : buildCombinedTextureCanvas(
@@ -438,7 +434,6 @@ export function WebGlGlobe({
               textureResolution,
               isAtlas,
               isCipher,
-              isAtlas ? atlasPaperImage : null,
               isAtlas ? atlasImageryImage : null,
               lakesData,
               riversData,
@@ -452,7 +447,6 @@ export function WebGlGlobe({
               textureResolution,
               isAtlas,
               isCipher,
-              isAtlas ? atlasPaperImage : null,
               isAtlas ? atlasImageryImage : null,
               lakesData,
               riversData,
@@ -555,7 +549,6 @@ export function WebGlGlobe({
     };
   }, [
     atlasImageryImage,
-    atlasPaperImage,
     cityLightsImage,
     dayImageryImage,
     drawCurrentFrame,

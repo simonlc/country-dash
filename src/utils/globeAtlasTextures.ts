@@ -15,46 +15,6 @@ function clipToAtlasLand(
   context.clip();
 }
 
-export function applyAtlasPaperTexture(
-  context: CanvasRenderingContext2D,
-  textureCanvas: HTMLCanvasElement,
-  atlasPaperImage: HTMLImageElement | null,
-) {
-  if (!atlasPaperImage) {
-    return;
-  }
-
-  context.save();
-  context.globalAlpha = 0.38;
-  context.globalCompositeOperation = 'multiply';
-  context.drawImage(
-    atlasPaperImage,
-    0,
-    0,
-    textureCanvas.width,
-    textureCanvas.height,
-  );
-  context.globalAlpha = 0.22;
-  context.globalCompositeOperation = 'soft-light';
-  context.drawImage(
-    atlasPaperImage,
-    0,
-    0,
-    textureCanvas.width,
-    textureCanvas.height,
-  );
-  context.globalAlpha = 0.12;
-  context.globalCompositeOperation = 'screen';
-  context.drawImage(
-    atlasPaperImage,
-    0,
-    0,
-    textureCanvas.width,
-    textureCanvas.height,
-  );
-  context.restore();
-}
-
 export function applyAtlasParchmentAging(
   context: CanvasRenderingContext2D,
   textureCanvas: HTMLCanvasElement,
@@ -165,6 +125,41 @@ export function applyAtlasBiomeWatercolor(
     y: ((90 - latitude) / 180) * height,
   });
 
+  const paintGreenUnderwash = (
+    regions: Array<{
+      latitude: number;
+      longitude: number;
+      radius: number;
+      strength: number;
+    }>,
+  ) => {
+    context.globalCompositeOperation = 'soft-light';
+    context.filter = `blur(${Math.max(width / 72, 18)}px)`;
+    for (const region of regions) {
+      const { x, y } = toTexturePoint(region.longitude, region.latitude);
+      const radius = width * region.radius;
+      const gradient = context.createRadialGradient(
+        x,
+        y,
+        radius * 0.1,
+        x,
+        y,
+        radius,
+      );
+      gradient.addColorStop(0, `rgba(132, 164, 84, ${region.strength})`);
+      gradient.addColorStop(
+        0.62,
+        `rgba(154, 182, 110, ${region.strength * 0.45})`,
+      );
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.filter = 'none';
+  };
+
   const paintBiomeBlobs = (
     color: string,
     regions: Array<{
@@ -233,6 +228,14 @@ export function applyAtlasBiomeWatercolor(
     }
     context.filter = 'none';
   };
+
+  paintGreenUnderwash([
+    { longitude: -60, latitude: -8, radius: 0.16, strength: 0.18 },
+    { longitude: 23, latitude: -2, radius: 0.12, strength: 0.15 },
+    { longitude: 106, latitude: 8, radius: 0.14, strength: 0.14 },
+    { longitude: -86, latitude: 39, radius: 0.11, strength: 0.09 },
+    { longitude: 18, latitude: 48, radius: 0.08, strength: 0.06 },
+  ]);
 
   paintBiomeBlobs('rgba(114, 176, 58, ALPHA)', [
     { longitude: -63, latitude: -7, radius: 0.106, strength: 0.38 },
@@ -356,6 +359,59 @@ export function applyAtlasWatercolorOcean(
     context.fillStyle = blot;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.globalCompositeOperation = 'multiply';
+  context.globalAlpha = 0.14;
+  context.strokeStyle = 'rgba(102, 117, 120, 0.28)';
+  context.lineWidth = Math.max(width / 3600, 0.45);
+  for (let band = 0; band < 7; band += 1) {
+    const startY = height * (0.12 + band * 0.12);
+    context.beginPath();
+    for (let x = -24; x <= width + 24; x += 18) {
+      const wave =
+        Math.sin((x / width) * Math.PI * (2.2 + band * 0.28) + band * 0.8) *
+          (5 + band * 0.5) +
+        Math.sin((x / width) * Math.PI * 8.0 + band * 1.7) * 1.2;
+      const y = startY + wave;
+      if (x <= -24) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    }
+    context.stroke();
+  }
+
+  context.globalCompositeOperation = 'soft-light';
+  context.globalAlpha = 0.1;
+  context.strokeStyle = 'rgba(236, 233, 216, 0.22)';
+  context.lineWidth = Math.max(width / 5200, 0.28);
+  for (let band = 0; band < 5; band += 1) {
+    const startY = height * (0.18 + band * 0.16);
+    context.beginPath();
+    for (let x = -18; x <= width + 18; x += 16) {
+      const wave = Math.sin((x / width) * Math.PI * (3.4 + band * 0.3) + band) * 2.4;
+      const y = startY + wave;
+      if (x <= -18) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    }
+    context.stroke();
+  }
+
+  context.globalCompositeOperation = 'multiply';
+  context.globalAlpha = 0.08;
+  context.fillStyle = 'rgba(112, 120, 118, 0.2)';
+  for (let index = 0; index < 220; index += 1) {
+    const x = ((index * 137) % width) + 3;
+    const y = ((index * 89) % height) + 2;
+    const size = 0.55 + (index % 3) * 0.35;
+    context.beginPath();
+    context.arc(x, y, size, 0, Math.PI * 2);
     context.fill();
   }
 

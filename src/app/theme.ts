@@ -416,7 +416,7 @@ export const appThemes: AppThemeDefinition[] = [
       oceanHighlight: '#f2e7cf',
       oceanHighlightOpacity: 0.012,
       countryElevation: 0,
-      graticule: 'rgba(87, 67, 46, 0.12)',
+      graticule: 'rgba(87, 67, 46, 0.6)',
       countryFill: 'rgba(181, 176, 138, 0.28)',
       countryStroke: 'rgba(65, 47, 30, 0.42)',
       countryDebossDark: 'rgba(74, 53, 31, 0.12)',
@@ -464,7 +464,7 @@ export const appThemes: AppThemeDefinition[] = [
       lightPollutionIntensity: 0.2,
       lightPollutionSpread: 0.8,
       lightPollutionColor: '#8f7f6a',
-      umbraDarkness: 0.82,
+      umbraDarkness: 0.3,
       showLakes: true,
       showRivers: true,
       lakesOpacity: 0.12,
@@ -851,8 +851,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
     definition.palette.textPrimary,
     definition.mode === 'light' ? 0.08 : 0.16,
   );
-  const errorMain =
-    definition.mode === 'light' ? '#b53a30' : '#ff9f8c';
+  const errorMain = definition.mode === 'light' ? '#b53a30' : '#ff9f8c';
   const errorContrastText = pickBestTextColor(errorMain, [
     '#fffdf7',
     definition.palette.backgroundDefault,

@@ -57,14 +57,7 @@ export function useGlobeAssets({ quality, themeId }: UseGlobeAssetsArgs) {
     '/textures/world-relief.png',
     quality.reliefMapEnabled,
   );
-  const atlasPaperImage = useOptionalImageAsset(
-    '/textures/atlas-paper.jpg',
-    isAtlas,
-  );
-  const atlasImageryImage = useOptionalImageAsset(
-    '/textures/world-imagery.jpg',
-    isAtlas,
-  );
+  const atlasImageryImage = useOptionalImageAsset('/textures/world-imagery.jpg', false);
   const cityLightsImage = useOptionalImageAsset(
     '/textures/world-city-lights.jpg',
     quality.cityLightsEnabled || quality.lightPollutionEnabled,
@@ -197,7 +190,6 @@ export function useGlobeAssets({ quality, themeId }: UseGlobeAssetsArgs) {
 
   return {
     atlasImageryImage,
-    atlasPaperImage,
     cityLightsImage,
     criticalSites,
     dayImageryImage,
