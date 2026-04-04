@@ -136,6 +136,20 @@ const mockedLoadWorldData = vi.mocked(loadWorldData);
 
 interface IntroDialogProps {
   dailyResult: DailyChallengeResult | null;
+  counts: Record<'large' | 'mixed' | 'small', number>;
+  categoryCounts: Record<
+    | 'africa'
+    | 'asia'
+    | 'europe'
+    | 'northAmerica'
+    | 'southAmerica'
+    | 'oceania'
+    | 'microstates'
+    | 'islandNations'
+    | 'caribbean'
+    | 'middleEast',
+    number
+  >;
 }
 
 function createStorage() {
@@ -203,6 +217,22 @@ describe('GamePage', () => {
   it('shows the new intro flow and supports a filtered run', async () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
+    const firstIntroProps = showModalMock.mock.calls[0]?.[1] as IntroDialogProps | undefined;
+
+    expect(firstIntroProps?.dailyResult).toBeNull();
+    expect(firstIntroProps?.counts).toEqual({ large: 5, mixed: 5, small: 5 });
+    expect(firstIntroProps?.categoryCounts).toEqual({
+      africa: 0,
+      asia: 2,
+      caribbean: 1,
+      europe: 0,
+      islandNations: 2,
+      microstates: 1,
+      middleEast: 1,
+      northAmerica: 2,
+      oceania: 1,
+      southAmerica: 0,
+    });
 
     act(() => {
       intro.onStartRandom({

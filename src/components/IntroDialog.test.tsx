@@ -95,8 +95,40 @@ describe('IntroDialog', () => {
     expect(screen.getByText(/^4\/5$/i)).toBeVisible();
     expect(screen.getByText(/You already finished today's run/i)).toBeVisible();
     expect(
+      screen.getByText(/Next reset in \d{2}:\d{2}:\d{2} \(UTC\)\./i),
+    ).toBeVisible();
+    expect(
       screen.queryByRole('button', { name: /start daily challenge/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows a reset countdown before starting daily', () => {
+    renderWithProviders(
+      <IntroDialog
+        categoryCounts={{
+          africa: 54,
+          asia: 48,
+          caribbean: 13,
+          europe: 44,
+          islandNations: 22,
+          microstates: 6,
+          middleEast: 14,
+          northAmerica: 23,
+          oceania: 14,
+          southAmerica: 12,
+        }}
+        id="intro-dialog"
+        counts={{ large: 1, mixed: 3, small: 1 }}
+        dailyResult={null}
+        onStartDaily={vi.fn()}
+        onStartRandom={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Resets in \d{2}:\d{2}:\d{2} \(UTC\)\./i)).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /start daily challenge/i }),
+    ).toBeVisible();
   });
 
   it('treats size and category as a single pool selector', async () => {

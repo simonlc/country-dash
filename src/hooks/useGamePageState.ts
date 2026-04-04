@@ -22,6 +22,7 @@ import {
   createInitialGameState,
   createRandomSeed,
   createSessionConfig,
+  dailySessionPoolLabel,
   formatDailyStorageKey,
   gameReducer,
   getInitialRotation,
@@ -67,6 +68,10 @@ function getStoredDailyResult(dateKey: string) {
 function getSessionSummaryLabel(gameState: GameState) {
   if (!gameState.sessionConfig) {
     return '';
+  }
+
+  if (gameState.sessionConfig.kind === 'daily') {
+    return dailySessionPoolLabel;
   }
 
   if (gameState.regionFilter) {

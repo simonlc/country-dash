@@ -12,6 +12,7 @@ import type {
 import { getSelectorCardSx } from '@/utils/controlStyles';
 import {
   countrySizeLabels,
+  formatDailyResetCountdown,
   randomRunPresetDifficulties,
   regionLabels,
 } from '@/utils/gameLogic';
@@ -25,7 +26,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Circle,
   Clock,
@@ -186,7 +187,20 @@ export const IntroDialog = NiceModal.create(
     const [countrySizeFilter, setCountrySizeFilter] =
       useState<CountrySizeFilter>('mixed');
     const [regionFilter, setRegionFilter] = useState<RegionFilter | null>(null);
+    const [dailyResetCountdownLabel, setDailyResetCountdownLabel] = useState(
+      () => formatDailyResetCountdown(),
+    );
     const panelSurface = getThemeSurfaceStyles(activeTheme);
+
+    useEffect(() => {
+      const timerId = window.setInterval(() => {
+        setDailyResetCountdownLabel(formatDailyResetCountdown());
+      }, 1000);
+
+      return () => {
+        window.clearInterval(timerId);
+      };
+    }, []);
 
     const dailySummary = useMemo(() => {
       if (!dailyResult) {
@@ -438,23 +452,29 @@ export const IntroDialog = NiceModal.create(
 
                   {dailySummary ? (
                     <Typography color="text.secondary" variant="body2">
-                      You already finished today&apos;s run.
+                      You already finished today&apos;s run. Next reset in{' '}
+                      {dailyResetCountdownLabel} (UTC).
                     </Typography>
                   ) : (
-                    <Button
-                      fullWidth
-                      size="large"
-                      sx={{
-                        py: 1.25,
-                      }}
-                      variant="contained"
-                      onClick={() => {
-                        onStartDaily();
-                        void modal.hide();
-                      }}
-                    >
-                      Start daily challenge
-                    </Button>
+                    <Stack spacing={0.6}>
+                      <Typography color="text.secondary" variant="body2">
+                        Resets in {dailyResetCountdownLabel} (UTC).
+                      </Typography>
+                      <Button
+                        fullWidth
+                        size="large"
+                        sx={{
+                          py: 1.25,
+                        }}
+                        variant="contained"
+                        onClick={() => {
+                          onStartDaily();
+                          void modal.hide();
+                        }}
+                      >
+                        Start daily challenge
+                      </Button>
+                    </Stack>
                   )}
                 </Stack>
               </Paper>

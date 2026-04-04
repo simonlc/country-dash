@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildCountriesBySize,
-  buildCountrySizePool,
   buildCountriesByDifficulty,
   buildDailyShareText,
   buildRegionCountryPool,
@@ -12,11 +10,11 @@ import {
   createSessionConfig,
   deriveDailyResult,
   formatDailyStorageKey,
+  formatDailyResetCountdown,
   gameReducer,
   getRandomRunCountryCount,
   getTodayDateKey,
   isCorrectGuess,
-  nextRoundIndex,
   normalizeGuess,
 } from '@/utils/gameLogic';
 import type { CountryFeature, FeatureCollectionLike } from '@/types/game';
@@ -129,10 +127,6 @@ describe('gameLogic', () => {
     expect(normalizeGuess('Côte d’Ivoire')).toBe('cote d ivoire');
   });
 
-  it('returns null when the game is over', () => {
-    expect(nextRoundIndex(4, 5)).toBe(null);
-  });
-
   it('creates a typed default state', () => {
     expect(createInitialGameState()).toEqual({
       bestStreak: 0,
@@ -177,7 +171,34 @@ describe('gameLogic', () => {
     const secondPlan = buildSessionPlan(world, config);
 
     expect(firstPlan).toEqual(secondPlan);
+    expect(firstPlan.allCountryIds).toHaveLength(world.features.length);
     expect(firstPlan.totalRounds).toBe(5);
+  });
+
+  it('keeps every world country available for daily plans', () => {
+    const unweightedCountry = createCountry({
+      id: 'AA',
+      name: 'Atlantis',
+      isocode: 'AA',
+      isocode3: 'AAA',
+      continent: 'Europe',
+      subregion: 'Mythic Sea',
+    });
+    const extendedWorld: FeatureCollectionLike = {
+      type: 'FeatureCollection',
+      features: [...countries, unweightedCountry],
+    };
+    const config = createSessionConfig({
+      difficulty: 'medium',
+      kind: 'daily',
+      mode: 'classic',
+      seed: '2026-03-31',
+      dateKey: '2026-03-31',
+    });
+    const plan = buildSessionPlan(extendedWorld, config);
+
+    expect(plan.allCountryIds).toContain('AA');
+    expect(plan.allCountryIds).toHaveLength(extendedWorld.features.length);
   });
 
   it('uses a fixed random-run group size when no category pool is selected', () => {
@@ -210,17 +231,6 @@ describe('gameLogic', () => {
     expect(bands.medium.map((country) => country.id)).toEqual(['QA']);
     expect(bands.hard.map((country) => country.id)).toEqual(['BZ']);
     expect(bands.veryHard.map((country) => country.id)).toEqual(['NR']);
-  });
-
-  it('builds country-size bands and filters them', () => {
-    const sizeBands = buildCountriesBySize(countries);
-
-    expect(sizeBands.large.map((country) => country.id)).toEqual(['CA', 'JP']);
-    expect(sizeBands.mixed.map((country) => country.id)).toEqual(['QA', 'BZ']);
-    expect(sizeBands.small.map((country) => country.id)).toEqual(['NR']);
-    expect(buildCountrySizePool(countries, 'small').map((country) => country.id)).toEqual([
-      'NR',
-    ]);
   });
 
   it('never awards a negative score', () => {
@@ -273,11 +283,48 @@ describe('gameLogic', () => {
     expect(deriveDailyResult(state)?.totalCount).toBe(5);
   });
 
+  it('keeps daily challenge difficulty fixed between rounds', () => {
+    const config = createSessionConfig({
+      difficulty: 'medium',
+      kind: 'daily',
+      mode: 'classic',
+      seed: '2026-03-31',
+      dateKey: '2026-03-31',
+    });
+    const plan = buildSessionPlan(world, config);
+    let state = gameReducer(createInitialGameState(), {
+      type: 'START_SESSION',
+      config,
+      plan,
+      startedAt: 0,
+    });
+    const currentCountry = countries.find((country) => country.id === state.currentCountryId);
+
+    state = gameReducer(state, {
+      type: 'SUBMIT_GUESS',
+      country: currentCountry ?? fallbackCountry,
+      guess: 'wrong answer',
+      submittedAt: 500,
+    });
+    state = gameReducer(state, {
+      type: 'ADVANCE_ROUND',
+      startedAt: 750,
+    });
+
+    expect(state.effectiveDifficulty).toBe('medium');
+  });
+
   it('creates stable seeds and storage keys for daily runs', () => {
     expect(getTodayDateKey(new Date('2026-03-31T12:00:00-04:00'))).toBe('2026-03-31');
     expect(getTodayDateKey(new Date('2026-03-31T23:30:00-04:00'))).toBe('2026-04-01');
     expect(getTodayDateKey(new Date('2026-04-01T08:00:00+09:00'))).toBe('2026-03-31');
     expect(formatDailyStorageKey('2026-03-31')).toBe('country-guesser-daily:2026-03-31');
+    expect(formatDailyResetCountdown(new Date('2026-03-31T23:59:58.100Z'))).toBe(
+      '00:00:02',
+    );
+    expect(formatDailyResetCountdown(new Date('2026-03-31T12:34:56.000Z'))).toBe(
+      '11:25:04',
+    );
     const rng = createSeededRng('seed');
 
     expect(rng()).toBeCloseTo(createSeededRng('seed')(), 10);

@@ -1,4 +1,4 @@
-import { geoArea, geoCentroid } from 'd3';
+import { geoCentroid } from 'd3';
 import { weights, weightedShuffle } from '@/weights';
 import type {
   AnswerResult,
@@ -59,6 +59,8 @@ export const randomRunPresetDifficulties: Record<CountrySizeFilter, Difficulty> 
   large: 'hard',
 };
 
+export const dailySessionPoolLabel = 'Global';
+
 export function formatDailyStorageKey(dateKey: string) {
   return `country-guesser-daily:${dateKey}`;
 }
@@ -72,6 +74,30 @@ export function getTodayDateKey(now = new Date()) {
   const month = `${now.getUTCMonth() + 1}`.padStart(2, '0');
   const day = `${now.getUTCDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function getNextUtcMidnightTimestamp(now = new Date()) {
+  return Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0,
+  );
+}
+
+export function formatDailyResetCountdown(now = new Date()) {
+  const remainingMs = Math.max(0, getNextUtcMidnightTimestamp(now) - now.getTime());
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes
+    .toString()
+    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function hashSeed(seed: string) {
@@ -108,6 +134,23 @@ export function buildCountryPool(
   return weightedShuffle(Object.entries(weights), random)
     .map(([countryCode]) => countriesByIso.get(countryCode))
     .filter((feature): feature is CountryFeature => feature !== undefined);
+}
+
+function shuffleCountries(countries: CountryFeature[], random: () => number) {
+  const shuffled = [...countries];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const currentCountry = shuffled[index];
+    const nextCountry = shuffled[swapIndex];
+
+    if (currentCountry && nextCountry) {
+      shuffled[index] = nextCountry;
+      shuffled[swapIndex] = currentCountry;
+    }
+  }
+
+  return shuffled;
 }
 
 function hasCapitalMetadata(country: CountryFeature) {
@@ -178,43 +221,6 @@ export function buildRegionCountryPool(
   });
 }
 
-export function buildCountriesBySize(countries: CountryFeature[]) {
-  if (countries.length === 0) {
-    return {
-      large: [],
-      mixed: [],
-      small: [],
-    } satisfies Record<CountrySizeFilter, CountryFeature[]>;
-  }
-
-  const rankedCountries = [...countries]
-    .map((country) => ({
-      area: geoArea(country),
-      country,
-    }))
-    .sort((left, right) => right.area - left.area)
-    .map((entry) => entry.country);
-  const bucketSize = Math.ceil(rankedCountries.length / 3);
-
-  return {
-    large: rankedCountries.slice(0, bucketSize),
-    mixed: rankedCountries.slice(bucketSize, bucketSize * 2),
-    small: rankedCountries.slice(bucketSize * 2),
-  } satisfies Record<CountrySizeFilter, CountryFeature[]>;
-}
-
-export function buildCountrySizePool(
-  countries: CountryFeature[],
-  countrySizeFilter: CountrySizeFilter,
-) {
-  if (countrySizeFilter === 'mixed') {
-    return countries;
-  }
-
-  const countriesBySize = buildCountriesBySize(countries);
-  return countriesBySize[countrySizeFilter];
-}
-
 function buildModeCountryPool(countries: CountryFeature[], mode: GameMode) {
   if (mode === 'capitals') {
     return countries.filter((country) => hasCapitalMetadata(country));
@@ -263,12 +269,19 @@ export function buildSessionPlan(
   config: SessionConfig,
 ): SessionPlan {
   const random = createSeededRng(config.seed);
-  const basePool = buildCountryPool(world, random);
+  const basePool =
+    config.kind === 'daily'
+      ? shuffleCountries(world.features, random)
+      : buildCountryPool(world, random);
   const modePool = buildModeCountryPool(basePool, config.mode);
   const regionPool = buildRegionCountryPool(modePool, config.regionFilter);
-  const filteredPool = config.regionFilter
-    ? regionPool
-    : regionPool.slice(0, getRandomRunCountryCount(regionPool.length, config.countrySizeFilter));
+  const filteredPool =
+    config.kind === 'daily' || config.regionFilter
+      ? regionPool
+      : regionPool.slice(
+          0,
+          getRandomRunCountryCount(regionPool.length, config.countrySizeFilter),
+        );
   const countriesByDifficulty = buildCountriesByDifficulty(filteredPool);
   const totalRounds = Math.min(
     config.maxRounds ?? filteredPool.length,
@@ -334,8 +347,19 @@ function selectNextCountryId(
   plan: SessionPlan,
   usedCountryIds: string[],
   difficulty: Difficulty,
+  sessionKind: SessionKind,
 ) {
   const usedIds = new Set(usedCountryIds);
+
+  if (sessionKind === 'daily') {
+    for (const countryId of plan.allCountryIds) {
+      if (!usedIds.has(countryId)) {
+        return countryId;
+      }
+    }
+
+    return null;
+  }
 
   for (const band of getDifficultySearchOrder(difficulty)) {
     for (const countryId of plan.countryIdsByDifficulty[band]) {
@@ -422,10 +446,6 @@ export function calculateRoundScore(args: {
   return Math.max(0, baseScore + timeBonus + streakBonus + firstTryBonus - hintPenalty);
 }
 
-export function nextRoundIndex(current: number, total: number) {
-  return current + 1 < total ? current + 1 : null;
-}
-
 function buildRoundRecord(args: {
   country: CountryFeature;
   playerGuess: string;
@@ -492,8 +512,16 @@ function createSessionState(
   plan: SessionPlan,
   startedAt: number,
 ): GameState {
-  const effectiveDifficulty = resolveNextDifficulty(config.selectedDifficulty, 0, 0);
-  const currentCountryId = selectNextCountryId(plan, [], effectiveDifficulty);
+  const effectiveDifficulty =
+    config.kind === 'daily'
+      ? config.selectedDifficulty
+      : resolveNextDifficulty(config.selectedDifficulty, 0, 0);
+  const currentCountryId = selectNextCountryId(
+    plan,
+    [],
+    effectiveDifficulty,
+    config.kind,
+  );
 
   return {
     sessionConfig: config,
@@ -678,10 +706,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.streak,
         state.missStreak,
       );
+      const nextEffectiveDifficulty =
+        state.sessionConfig.kind === 'daily'
+          ? state.selectedDifficulty
+          : effectiveDifficulty;
       const nextCountryId = selectNextCountryId(
         state.sessionPlan,
         state.usedCountryIds,
-        effectiveDifficulty,
+        nextEffectiveDifficulty,
+        state.sessionConfig.kind,
       );
 
       if (!nextCountryId) {
@@ -695,7 +728,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         status: 'playing',
-        effectiveDifficulty,
+        effectiveDifficulty: nextEffectiveDifficulty,
         currentCountryId: nextCountryId,
         roundIndex: nextRoundIndex,
         usedCountryIds: [...state.usedCountryIds, nextCountryId],
