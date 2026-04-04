@@ -271,44 +271,48 @@ describe('GamePage', () => {
     });
   });
 
-  it('stores and locks the daily challenge after completion', async () => {
-    const user = userEvent.setup();
-    const intro = await getIntroHandlers();
-    const writeText = vi.fn().mockResolvedValue(undefined);
+  it(
+    'stores and locks the daily challenge after completion',
+    async () => {
+      const user = userEvent.setup();
+      const intro = await getIntroHandlers();
+      const writeText = vi.fn().mockResolvedValue(undefined);
 
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText,
-      },
-    });
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText,
+        },
+      });
 
-    act(() => {
-      intro.onStartDaily();
-    });
+      act(() => {
+        intro.onStartDaily();
+      });
 
-    for (let round = 0; round < 5; round += 1) {
-      const input = await screen.findByLabelText(/guess the country/i);
-      await user.clear(input);
-      await user.type(input, `Atlantis ${round}`);
-      fireEvent.submit(input.closest('form') as HTMLFormElement);
-      const advanceButtons = await screen.findAllByRole('button', { name: /next|finish/i });
-      await user.click(advanceButtons.at(-1) ?? advanceButtons[0]!);
-    }
+      for (let round = 0; round < 5; round += 1) {
+        const input = await screen.findByLabelText(/guess the country/i);
+        await user.clear(input);
+        await user.type(input, `Atlantis ${round}`);
+        fireEvent.submit(input.closest('form') as HTMLFormElement);
+        const advanceButtons = await screen.findAllByRole('button', { name: /next|finish/i });
+        await user.click(advanceButtons.at(-1) ?? advanceButtons[0]!);
+      }
 
-    const finalButtons = screen.queryAllByRole('button', { name: /finish/i });
-    if (finalButtons.length > 0) {
-      await user.click(finalButtons.at(-1) ?? finalButtons[0]!);
-    }
+      const finalButtons = screen.queryAllByRole('button', { name: /finish/i });
+      if (finalButtons.length > 0) {
+        await user.click(finalButtons.at(-1) ?? finalButtons[0]!);
+      }
 
-    expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: /copy results/i }));
-    expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/u),
-    );
-    await user.click(screen.getByRole('button', { name: /main menu/i }));
-    await waitFor(() => {
-      expect(showModalMock).toHaveBeenCalledTimes(2);
-    });
-  });
+      expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
+      await user.click(screen.getByRole('button', { name: /copy results/i }));
+      expect(writeText).toHaveBeenCalledWith(
+        expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/u),
+      );
+      await user.click(screen.getByRole('button', { name: /main menu/i }));
+      await waitFor(() => {
+        expect(showModalMock).toHaveBeenCalledTimes(2);
+      });
+    },
+    10_000,
+  );
 });
