@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://countryguesser.app/sitemap.xml
+Sitemap: https://simonlc.github.io/country-dash/sitemap.xml

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-const repoName = 'country-guesser';
+const repoName = 'country-dash';
 const isPagesBuild = process.env.GITHUB_ACTIONS === 'true';
 
 export default defineConfig({
