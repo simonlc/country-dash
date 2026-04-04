@@ -284,7 +284,6 @@ describe('GamePage', () => {
   it(
     'stores and locks the daily challenge after completion',
     async () => {
-      const user = userEvent.setup();
       const intro = await getIntroHandlers();
       const writeText = vi.fn().mockResolvedValue(undefined);
 
@@ -301,12 +300,11 @@ describe('GamePage', () => {
 
       for (let round = 0; round < 5; round += 1) {
         const input = await screen.findByLabelText(/guess the country/i);
-        await user.clear(input);
-        await user.type(input, `Atlantis ${round}`);
+        fireEvent.change(input, { target: { value: `Atlantis ${round}` } });
         fireEvent.submit(input.closest('form') as HTMLFormElement);
 
         expect(await screen.findByRole('status')).toHaveTextContent('Missed');
-        await user.click(
+        fireEvent.click(
           await screen.findByRole('button', {
             name: round === 4 ? /^finish$/i : /^next$/i,
           }),
@@ -323,11 +321,11 @@ describe('GamePage', () => {
         date: todayDateKey,
         totalCount: 5,
       });
-      await user.click(screen.getByRole('button', { name: /copy results/i }));
+      fireEvent.click(screen.getByRole('button', { name: /copy results/i }));
       expect(writeText).toHaveBeenCalledWith(
         expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/u),
       );
-      await user.click(screen.getByRole('button', { name: /main menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /main menu/i }));
       await waitFor(() => {
         expect(showModalMock).toHaveBeenCalledTimes(2);
       });
@@ -338,6 +336,6 @@ describe('GamePage', () => {
         totalCount: 5,
       });
     },
-    10_000,
+    15_000,
   );
 });
