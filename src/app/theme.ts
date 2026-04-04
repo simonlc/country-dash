@@ -75,30 +75,30 @@ export interface GlobeQualityConfig {
 }
 
 export interface GlobeRenderConfig {
-  atlasBiomeWatercolorEnabled: boolean;
-  atlasCoastalWashEnabled: boolean;
+  atlasBiomeWatercolorOpacity: number;
+  atlasCoastalWashOpacity: number;
   atlasCountryStrokeWidth: number;
-  atlasExpeditionDetailsEnabled: boolean;
+  atlasExpeditionDetailsOpacity: number;
   atlasGraticuleDashLength: number;
   atlasGraticuleGapLength: number;
   atlasGraticuleLineWidth: number;
-  atlasGraticuleStrokeEnabled: boolean;
-  atlasInkBleedEnabled: boolean;
-  atlasInkCoastlineEnabled: boolean;
-  atlasOceanCurrentHatchingEnabled: boolean;
-  atlasParchmentAgingEnabled: boolean;
+  atlasGraticuleOpacity: number;
+  atlasInkBleedOpacity: number;
+  atlasInkCoastlineOpacity: number;
+  atlasOceanCurrentHatchingOpacity: number;
+  atlasParchmentAgingOpacity: number;
   atlasSelectedCountryStrokeWidth: number;
   atlasStyleEnabled: boolean;
-  atlasWatercolorLandEnabled: boolean;
-  atlasWatercolorOceanEnabled: boolean;
-  cipherCountryTransitionEnabled: boolean;
+  atlasWatercolorLandOpacity: number;
+  atlasWatercolorOceanOpacity: number;
+  cipherCountryTransitionOpacity: number;
   cipherFocusDelayMs: number;
-  cipherHydroOverlayEnabled: boolean;
-  cipherHydroTextureEffectEnabled: boolean;
-  cipherMapAnnotationsEnabled: boolean;
-  cipherScreenTransitionOverlayEnabled: boolean;
-  cipherSelectedCountryOverlayEnabled: boolean;
-  cipherTrafficOverlayEnabled: boolean;
+  cipherHydroOverlayOpacity: number;
+  cipherHydroTextureEffectOpacity: number;
+  cipherMapAnnotationsOpacity: number;
+  cipherScreenTransitionOverlayOpacity: number;
+  cipherSelectedCountryOverlayOpacity: number;
+  cipherTrafficOverlayOpacity: number;
   reliefStrengthMultiplier: number;
   slowScanlineStrength: number;
   standardCountryStrokeWidth: number;
@@ -155,30 +155,30 @@ const atlasHeadingFont =
 const atlasBodyFont = '"Alegreya", "Nunito Sans", system-ui, sans-serif';
 
 const defaultGlobeRenderConfig: GlobeRenderConfig = {
-  atlasBiomeWatercolorEnabled: false,
-  atlasCoastalWashEnabled: false,
+  atlasBiomeWatercolorOpacity: 0,
+  atlasCoastalWashOpacity: 0,
   atlasCountryStrokeWidth: 1.4,
-  atlasExpeditionDetailsEnabled: false,
+  atlasExpeditionDetailsOpacity: 0,
   atlasGraticuleDashLength: 3,
   atlasGraticuleGapLength: 8,
   atlasGraticuleLineWidth: 1.4,
-  atlasGraticuleStrokeEnabled: true,
-  atlasInkBleedEnabled: false,
-  atlasInkCoastlineEnabled: false,
-  atlasOceanCurrentHatchingEnabled: false,
-  atlasParchmentAgingEnabled: false,
+  atlasGraticuleOpacity: 1,
+  atlasInkBleedOpacity: 0,
+  atlasInkCoastlineOpacity: 0,
+  atlasOceanCurrentHatchingOpacity: 0,
+  atlasParchmentAgingOpacity: 0,
   atlasSelectedCountryStrokeWidth: 2,
   atlasStyleEnabled: false,
-  atlasWatercolorLandEnabled: false,
-  atlasWatercolorOceanEnabled: false,
-  cipherCountryTransitionEnabled: false,
+  atlasWatercolorLandOpacity: 0,
+  atlasWatercolorOceanOpacity: 0,
+  cipherCountryTransitionOpacity: 0,
   cipherFocusDelayMs: 0,
-  cipherHydroOverlayEnabled: false,
-  cipherHydroTextureEffectEnabled: false,
-  cipherMapAnnotationsEnabled: false,
-  cipherScreenTransitionOverlayEnabled: false,
-  cipherSelectedCountryOverlayEnabled: false,
-  cipherTrafficOverlayEnabled: false,
+  cipherHydroOverlayOpacity: 0,
+  cipherHydroTextureEffectOpacity: 0,
+  cipherMapAnnotationsOpacity: 0,
+  cipherScreenTransitionOverlayOpacity: 0,
+  cipherSelectedCountryOverlayOpacity: 0,
+  cipherTrafficOverlayOpacity: 0,
   reliefStrengthMultiplier: 8,
   slowScanlineStrength: 0,
   standardCountryStrokeWidth: 1.2,
@@ -188,29 +188,29 @@ const defaultGlobeRenderConfig: GlobeRenderConfig = {
 
 const atlasGlobeRenderConfig: GlobeRenderConfig = {
   ...defaultGlobeRenderConfig,
-  atlasBiomeWatercolorEnabled: true,
-  atlasCoastalWashEnabled: true,
-  atlasExpeditionDetailsEnabled: true,
-  atlasInkBleedEnabled: true,
-  atlasInkCoastlineEnabled: true,
-  atlasOceanCurrentHatchingEnabled: true,
-  atlasParchmentAgingEnabled: true,
+  atlasBiomeWatercolorOpacity: 1,
+  atlasCoastalWashOpacity: 1,
+  atlasExpeditionDetailsOpacity: 1,
+  atlasInkBleedOpacity: 1,
+  atlasInkCoastlineOpacity: 1,
+  atlasOceanCurrentHatchingOpacity: 1,
+  atlasParchmentAgingOpacity: 1,
   atlasStyleEnabled: true,
-  atlasWatercolorLandEnabled: true,
-  atlasWatercolorOceanEnabled: true,
+  atlasWatercolorLandOpacity: 1,
+  atlasWatercolorOceanOpacity: 1,
   reliefStrengthMultiplier: 16,
 };
 
 const cipherGlobeRenderConfig: GlobeRenderConfig = {
   ...defaultGlobeRenderConfig,
-  cipherCountryTransitionEnabled: true,
+  cipherCountryTransitionOpacity: 1,
   cipherFocusDelayMs: 420,
-  cipherHydroOverlayEnabled: true,
-  cipherHydroTextureEffectEnabled: true,
-  cipherMapAnnotationsEnabled: true,
-  cipherScreenTransitionOverlayEnabled: true,
-  cipherSelectedCountryOverlayEnabled: true,
-  cipherTrafficOverlayEnabled: true,
+  cipherHydroOverlayOpacity: 1,
+  cipherHydroTextureEffectOpacity: 1,
+  cipherMapAnnotationsOpacity: 1,
+  cipherScreenTransitionOverlayOpacity: 1,
+  cipherSelectedCountryOverlayOpacity: 1,
+  cipherTrafficOverlayOpacity: 1,
   slowScanlineStrength: 1,
 };
 

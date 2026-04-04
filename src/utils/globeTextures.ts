@@ -346,6 +346,21 @@ function withTextureContext(
   draw(context);
 }
 
+function drawWithOpacity(
+  context: CanvasRenderingContext2D,
+  opacity: number,
+  draw: () => void,
+) {
+  if (opacity <= 0) {
+    return;
+  }
+
+  context.save();
+  context.globalAlpha *= opacity;
+  draw();
+  context.restore();
+}
+
 export function buildOceanTextureCanvas(
   world: FeatureCollectionLike,
   palette: GlobePalette,
@@ -358,48 +373,65 @@ export function buildOceanTextureCanvas(
   withTextureContext(textureCanvas, (context) => {
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorOpacity > 0) {
       const projection = geoEquirectangular()
         .translate([textureCanvas.width / 2, textureCanvas.height / 2])
         .scale(textureCanvas.width / (2 * Math.PI));
       const path = geoPath(projection, context);
-      applyAtlasBiomeWatercolor(
-        context,
-        path,
-        world,
-        textureCanvas,
-        palette,
-        atlasImageryImage,
-      );
+      drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
+        applyAtlasBiomeWatercolor(
+          context,
+          path,
+          world,
+          textureCanvas,
+          palette,
+          atlasImageryImage,
+        );
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasWatercolorOceanEnabled) {
-      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasWatercolorOceanOpacity > 0) {
+      drawWithOpacity(context, render.atlasWatercolorOceanOpacity, () => {
+        applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasOceanCurrentHatchingEnabled) {
-      applyAtlasOceanCurrentHatching(context, textureCanvas);
+    if (
+      render.atlasStyleEnabled &&
+      render.atlasOceanCurrentHatchingOpacity > 0
+    ) {
+      drawWithOpacity(context, render.atlasOceanCurrentHatchingOpacity, () => {
+        applyAtlasOceanCurrentHatching(context, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
-      applyAtlasParchmentAging(context, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingOpacity > 0) {
+      drawWithOpacity(context, render.atlasParchmentAgingOpacity, () => {
+        applyAtlasParchmentAging(context, textureCanvas, palette);
+      });
     }
 
     if (
       render.atlasStyleEnabled &&
-      (render.atlasCoastalWashEnabled ||
-        render.atlasInkCoastlineEnabled ||
-        render.atlasInkBleedEnabled)
+      (render.atlasCoastalWashOpacity > 0 ||
+        render.atlasInkCoastlineOpacity > 0 ||
+        render.atlasInkBleedOpacity > 0)
     ) {
       const projection = geoEquirectangular()
         .translate([textureCanvas.width / 2, textureCanvas.height / 2])
         .scale(textureCanvas.width / (2 * Math.PI));
       const path = geoPath(projection, context);
-      if (render.atlasCoastalWashEnabled) {
-        applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+      if (render.atlasCoastalWashOpacity > 0) {
+        drawWithOpacity(context, render.atlasCoastalWashOpacity, () => {
+          applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+        });
       }
-      if (render.atlasInkCoastlineEnabled) {
-        applyAtlasInkCoastline(context, path, world, textureCanvas);
+      if (render.atlasInkCoastlineOpacity > 0) {
+        drawWithOpacity(context, render.atlasInkCoastlineOpacity, () => {
+          applyAtlasInkCoastline(context, path, world, textureCanvas);
+        });
       }
-      if (render.atlasInkBleedEnabled) {
-        applyAtlasInkBleed(context, path, world, textureCanvas);
+      if (render.atlasInkBleedOpacity > 0) {
+        drawWithOpacity(context, render.atlasInkBleedOpacity, () => {
+          applyAtlasInkBleed(context, path, world, textureCanvas);
+        });
       }
     }
 
@@ -436,42 +468,59 @@ export function buildCombinedTextureCanvas(
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
-    if (render.atlasStyleEnabled && render.atlasWatercolorOceanEnabled) {
-      applyAtlasWatercolorOcean(context, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasWatercolorOceanOpacity > 0) {
+      drawWithOpacity(context, render.atlasWatercolorOceanOpacity, () => {
+        applyAtlasWatercolorOcean(context, textureCanvas, palette);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasOceanCurrentHatchingEnabled) {
-      applyAtlasOceanCurrentHatching(context, textureCanvas);
+    if (
+      render.atlasStyleEnabled &&
+      render.atlasOceanCurrentHatchingOpacity > 0
+    ) {
+      drawWithOpacity(context, render.atlasOceanCurrentHatchingOpacity, () => {
+        applyAtlasOceanCurrentHatching(context, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
-      applyAtlasParchmentAging(context, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingOpacity > 0) {
+      drawWithOpacity(context, render.atlasParchmentAgingOpacity, () => {
+        applyAtlasParchmentAging(context, textureCanvas, palette);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsEnabled) {
-      drawAtlasExpeditionDetails(context, path, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsOpacity > 0) {
+      drawWithOpacity(context, render.atlasExpeditionDetailsOpacity, () => {
+        drawAtlasExpeditionDetails(context, path, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasWatercolorLandEnabled) {
-      applyAtlasWatercolorLand(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasWatercolorLandOpacity > 0) {
+      drawWithOpacity(context, render.atlasWatercolorLandOpacity, () => {
+        applyAtlasWatercolorLand(context, path, world, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
-      applyAtlasBiomeWatercolor(
-        context,
-        path,
-        world,
-        textureCanvas,
-        palette,
-        atlasImageryImage,
-      );
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorOpacity > 0) {
+      drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
+        applyAtlasBiomeWatercolor(
+          context,
+          path,
+          world,
+          textureCanvas,
+          palette,
+          atlasImageryImage,
+        );
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasCoastalWashEnabled) {
-      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasCoastalWashOpacity > 0) {
+      drawWithOpacity(context, render.atlasCoastalWashOpacity, () => {
+        applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+      });
     }
 
-    if (
-      !render.atlasStyleEnabled ||
-      render.atlasGraticuleStrokeEnabled
-    ) {
+    if (!render.atlasStyleEnabled || render.atlasGraticuleOpacity > 0) {
       context.beginPath();
       path(geoGraticule10());
       context.strokeStyle = palette.graticule;
+      context.globalAlpha = render.atlasStyleEnabled
+        ? render.atlasGraticuleOpacity
+        : 1;
       context.lineWidth = render.atlasStyleEnabled
         ? render.atlasGraticuleLineWidth
         : render.standardGraticuleLineWidth;
@@ -487,6 +536,7 @@ export function buildCombinedTextureCanvas(
       }
       context.stroke();
       context.setLineDash([]);
+      context.globalAlpha = 1;
     }
 
     applyCountryShadow(context, path, world, palette);
@@ -511,11 +561,15 @@ export function buildCombinedTextureCanvas(
         ? render.atlasCountryStrokeWidth
         : render.standardCountryStrokeWidth,
     );
-    if (render.atlasStyleEnabled && render.atlasInkCoastlineEnabled) {
-      applyAtlasInkCoastline(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasInkCoastlineOpacity > 0) {
+      drawWithOpacity(context, render.atlasInkCoastlineOpacity, () => {
+        applyAtlasInkCoastline(context, path, world, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasInkBleedEnabled) {
-      applyAtlasInkBleed(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasInkBleedOpacity > 0) {
+      drawWithOpacity(context, render.atlasInkBleedOpacity, () => {
+        applyAtlasInkBleed(context, path, world, textureCanvas);
+      });
     }
     applyCountryDeboss(context, path, world, palette);
 
@@ -566,35 +620,45 @@ export function buildCountryTextureCanvas(
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
-    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
-      applyAtlasParchmentAging(context, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingOpacity > 0) {
+      drawWithOpacity(context, render.atlasParchmentAgingOpacity, () => {
+        applyAtlasParchmentAging(context, textureCanvas, palette);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsEnabled) {
-      drawAtlasExpeditionDetails(context, path, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsOpacity > 0) {
+      drawWithOpacity(context, render.atlasExpeditionDetailsOpacity, () => {
+        drawAtlasExpeditionDetails(context, path, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasWatercolorLandEnabled) {
-      applyAtlasWatercolorLand(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasWatercolorLandOpacity > 0) {
+      drawWithOpacity(context, render.atlasWatercolorLandOpacity, () => {
+        applyAtlasWatercolorLand(context, path, world, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
-      applyAtlasBiomeWatercolor(
-        context,
-        path,
-        world,
-        textureCanvas,
-        palette,
-        atlasImageryImage,
-      );
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorOpacity > 0) {
+      drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
+        applyAtlasBiomeWatercolor(
+          context,
+          path,
+          world,
+          textureCanvas,
+          palette,
+          atlasImageryImage,
+        );
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasCoastalWashEnabled) {
-      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+    if (render.atlasStyleEnabled && render.atlasCoastalWashOpacity > 0) {
+      drawWithOpacity(context, render.atlasCoastalWashOpacity, () => {
+        applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+      });
     }
-    if (
-      !render.atlasStyleEnabled ||
-      render.atlasGraticuleStrokeEnabled
-    ) {
+    if (!render.atlasStyleEnabled || render.atlasGraticuleOpacity > 0) {
       context.beginPath();
       path(geoGraticule10());
       context.strokeStyle = palette.graticule;
+      context.globalAlpha = render.atlasStyleEnabled
+        ? render.atlasGraticuleOpacity
+        : 1;
       context.lineWidth = render.atlasStyleEnabled
         ? render.atlasGraticuleLineWidth
         : render.standardGraticuleLineWidth;
@@ -610,6 +674,7 @@ export function buildCountryTextureCanvas(
       }
       context.stroke();
       context.setLineDash([]);
+      context.globalAlpha = 1;
     }
 
     if (!render.atlasStyleEnabled) {
@@ -633,11 +698,15 @@ export function buildCountryTextureCanvas(
         ? render.atlasCountryStrokeWidth
         : render.standardCountryStrokeWidth,
     );
-    if (render.atlasStyleEnabled && render.atlasInkCoastlineEnabled) {
-      applyAtlasInkCoastline(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasInkCoastlineOpacity > 0) {
+      drawWithOpacity(context, render.atlasInkCoastlineOpacity, () => {
+        applyAtlasInkCoastline(context, path, world, textureCanvas);
+      });
     }
-    if (render.atlasStyleEnabled && render.atlasInkBleedEnabled) {
-      applyAtlasInkBleed(context, path, world, textureCanvas);
+    if (render.atlasStyleEnabled && render.atlasInkBleedOpacity > 0) {
+      drawWithOpacity(context, render.atlasInkBleedOpacity, () => {
+        applyAtlasInkBleed(context, path, world, textureCanvas);
+      });
     }
     applyCountryDeboss(context, path, world, palette);
 

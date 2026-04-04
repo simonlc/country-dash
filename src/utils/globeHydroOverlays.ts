@@ -58,8 +58,9 @@ export function drawHydroLayers(args: {
   } = args;
 
   if (quality.showLakes && lakesData) {
-    if (render.cipherHydroTextureEffectEnabled) {
+    if (render.cipherHydroTextureEffectOpacity > 0) {
       context.save();
+      context.globalAlpha *= render.cipherHydroTextureEffectOpacity;
       context.globalCompositeOperation = 'screen';
       context.shadowColor = withOpacity(quality.lakesColor, 0.52);
       context.shadowBlur = Math.max(textureCanvas.width / 180, 6);
@@ -75,6 +76,7 @@ export function drawHydroLayers(args: {
       context.restore();
 
       context.save();
+      context.globalAlpha *= render.cipherHydroTextureEffectOpacity;
       for (const feature of lakesData.features) {
         context.beginPath();
         path(feature as GeoPermissibleObjects);
@@ -119,6 +121,7 @@ export function drawHydroLayers(args: {
       context.restore();
 
       context.save();
+      context.globalAlpha *= render.cipherHydroTextureEffectOpacity;
       context.strokeStyle = shiftColor(quality.lakesColor, 135, 0, 24, 0.26);
       context.lineWidth = Math.max(textureCanvas.width / 4096, 0.8);
       for (const feature of lakesData.features) {
@@ -138,8 +141,9 @@ export function drawHydroLayers(args: {
   }
 
   if (quality.showRivers && riversData) {
-    if (render.cipherHydroTextureEffectEnabled) {
+    if (render.cipherHydroTextureEffectOpacity > 0) {
       context.save();
+      context.globalAlpha *= render.cipherHydroTextureEffectOpacity;
       context.globalCompositeOperation = 'screen';
       context.lineCap = 'round';
       context.lineJoin = 'round';
@@ -173,8 +177,9 @@ export function drawHydroLayers(args: {
     }
     context.globalAlpha = 1;
 
-    if (render.cipherHydroTextureEffectEnabled) {
+    if (render.cipherHydroTextureEffectOpacity > 0) {
       context.save();
+      context.globalAlpha *= render.cipherHydroTextureEffectOpacity;
       context.globalCompositeOperation = 'screen';
       context.lineCap = 'round';
       context.lineJoin = 'round';

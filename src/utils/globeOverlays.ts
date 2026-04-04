@@ -93,7 +93,9 @@ export function drawSelectedCountryOverlay(args: {
   path({ type: 'Sphere' });
   context.clip();
 
-  if (render.cipherHydroOverlayEnabled) {
+  if (render.cipherHydroOverlayOpacity > 0) {
+    context.save();
+    context.globalAlpha *= render.cipherHydroOverlayOpacity;
     drawCipherHydroOverlay({
       context,
       height,
@@ -105,9 +107,12 @@ export function drawSelectedCountryOverlay(args: {
       riversData,
       width,
     });
+    context.restore();
   }
 
-  if (render.cipherTrafficOverlayEnabled) {
+  if (render.cipherTrafficOverlayOpacity > 0) {
+    context.save();
+    context.globalAlpha *= render.cipherTrafficOverlayOpacity;
     drawCipherTrafficOverlay({
       criticalSites,
       context,
@@ -117,6 +122,7 @@ export function drawSelectedCountryOverlay(args: {
       projection,
       trafficState,
     });
+    context.restore();
   }
 
   if (mode === 'capitals') {
@@ -158,7 +164,9 @@ export function drawSelectedCountryOverlay(args: {
   } else {
     let usedSpecialSelectionOverlay = false;
 
-    if (render.cipherSelectedCountryOverlayEnabled) {
+    if (render.cipherSelectedCountryOverlayOpacity > 0) {
+      context.save();
+      context.globalAlpha *= render.cipherSelectedCountryOverlayOpacity;
       drawCipherSelectedCountryOverlay({
         context,
         country,
@@ -167,10 +175,13 @@ export function drawSelectedCountryOverlay(args: {
         path,
         projection,
       });
+      context.restore();
       usedSpecialSelectionOverlay = true;
     }
 
-    if (render.cipherCountryTransitionEnabled) {
+    if (render.cipherCountryTransitionOpacity > 0 && transition) {
+      context.save();
+      context.globalAlpha *= render.cipherCountryTransitionOpacity;
       drawCipherCountryTransitionOverlay({
         context,
         nowMs,
@@ -179,6 +190,7 @@ export function drawSelectedCountryOverlay(args: {
         projection,
         transition,
       });
+      context.restore();
       usedSpecialSelectionOverlay = true;
     }
 
@@ -207,7 +219,9 @@ export function drawSelectedCountryOverlay(args: {
     }
   }
 
-  if (render.cipherMapAnnotationsEnabled) {
+  if (render.cipherMapAnnotationsOpacity > 0) {
+    context.save();
+    context.globalAlpha *= render.cipherMapAnnotationsOpacity;
     drawCipherMapAnnotations({
       context,
       country,
@@ -217,6 +231,7 @@ export function drawSelectedCountryOverlay(args: {
       projection,
       width,
     });
+    context.restore();
   }
 
   context.globalAlpha = 1;

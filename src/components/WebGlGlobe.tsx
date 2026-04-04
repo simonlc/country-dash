@@ -128,8 +128,8 @@ export function WebGlGlobe({
 }: WebGlGlobeProps) {
   const hasAtlasStyle = render.atlasStyleEnabled;
   const transitionEnabled =
-    render.cipherCountryTransitionEnabled ||
-    render.cipherScreenTransitionOverlayEnabled;
+    render.cipherCountryTransitionOpacity > 0 ||
+    render.cipherScreenTransitionOverlayOpacity > 0;
   const cipherTrafficEndpoint =
     import.meta.env.VITE_OPENSKY_PROXY_URL?.trim() ||
     (import.meta.env.DEV ? 'http://127.0.0.1:8787/api/opensky/states' : null);
@@ -184,17 +184,18 @@ export function WebGlGlobe({
     [country, world.features],
   );
   const cipherTrafficState = useCipherTraffic({
-    enabled: render.cipherTrafficOverlayEnabled,
-    endpoint: render.cipherTrafficOverlayEnabled ? cipherTrafficEndpoint : null,
+    enabled: render.cipherTrafficOverlayOpacity > 0,
+    endpoint:
+      render.cipherTrafficOverlayOpacity > 0 ? cipherTrafficEndpoint : null,
   });
   const hasCipherOverlayAnimation =
     mode !== 'capitals' &&
-    (render.cipherCountryTransitionEnabled ||
-      render.cipherHydroOverlayEnabled ||
-      render.cipherMapAnnotationsEnabled ||
-      render.cipherSelectedCountryOverlayEnabled);
+    (render.cipherCountryTransitionOpacity > 0 ||
+      render.cipherHydroOverlayOpacity > 0 ||
+      render.cipherMapAnnotationsOpacity > 0 ||
+      render.cipherSelectedCountryOverlayOpacity > 0);
   const hasCipherTrafficAnimation =
-    render.cipherTrafficOverlayEnabled &&
+    render.cipherTrafficOverlayOpacity > 0 &&
     cipherTrafficEndpoint !== null &&
     (cipherTrafficState.status === 'live' ||
       cipherTrafficState.status === 'loading' ||
@@ -646,8 +647,11 @@ export function WebGlGlobe({
           width: '100%',
         }}
       />
-      {render.cipherScreenTransitionOverlayEnabled ? (
-        <CipherTransitionOverlay transition={cipherTransition} />
+      {render.cipherScreenTransitionOverlayOpacity > 0 ? (
+        <CipherTransitionOverlay
+          opacity={render.cipherScreenTransitionOverlayOpacity}
+          transition={cipherTransition}
+        />
       ) : null}
     </div>
   );

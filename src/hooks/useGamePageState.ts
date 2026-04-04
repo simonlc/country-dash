@@ -197,11 +197,12 @@ export function useGamePageState(): UseGamePageStateResult {
   const { activeTheme } = useAppearance();
   const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
   const cipherThemeEnabled =
-    activeTheme.render.cipherCountryTransitionEnabled ||
-    activeTheme.render.cipherHydroOverlayEnabled ||
-    activeTheme.render.cipherMapAnnotationsEnabled ||
-    activeTheme.render.cipherSelectedCountryOverlayEnabled ||
-    activeTheme.render.cipherTrafficOverlayEnabled;
+    activeTheme.render.cipherCountryTransitionOpacity > 0 ||
+    activeTheme.render.cipherHydroOverlayOpacity > 0 ||
+    activeTheme.render.cipherMapAnnotationsOpacity > 0 ||
+    activeTheme.render.cipherSelectedCountryOverlayOpacity > 0 ||
+    activeTheme.render.cipherTrafficOverlayOpacity > 0 ||
+    activeTheme.render.cipherScreenTransitionOverlayOpacity > 0;
   const panelSurface = useMemo(
     () => getThemeSurfaceStyles(activeTheme, 'elevated'),
     [activeTheme],

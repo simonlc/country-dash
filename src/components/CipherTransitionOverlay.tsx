@@ -5,6 +5,7 @@ import {
 } from '@/utils/globeCipherOverlays';
 
 interface CipherTransitionOverlayProps {
+  opacity?: number;
   transition: CipherCountryTransition | null;
 }
 
@@ -32,6 +33,7 @@ function getCipherTransitionOpacity(progress: number) {
 }
 
 export function CipherTransitionOverlay({
+  opacity = 1,
   transition,
 }: CipherTransitionOverlayProps) {
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -71,7 +73,7 @@ export function CipherTransitionOverlay({
   const percentLabel = `${Math.round(progress * 100)
     .toString()
     .padStart(3, '0')}%`;
-  const opacity = getCipherTransitionOpacity(progress);
+  const transitionOpacity = getCipherTransitionOpacity(progress) * opacity;
   const statusLines = [
     `HANDOFF // ${stage}`,
     'ROTATION // ACTIVE',
@@ -86,7 +88,7 @@ export function CipherTransitionOverlay({
         display: 'flex',
         inset: 0,
         justifyContent: 'center',
-        opacity,
+        opacity: transitionOpacity,
         pointerEvents: 'none',
         position: 'absolute',
         zIndex: 1,

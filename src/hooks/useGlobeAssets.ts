@@ -167,7 +167,7 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
   }, [quality.showRivers, riversData]);
 
   useEffect(() => {
-    if (!render.cipherTrafficOverlayEnabled || criticalSites.length > 0) {
+    if (render.cipherTrafficOverlayOpacity <= 0 || criticalSites.length > 0) {
       return;
     }
 
@@ -187,7 +187,7 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
     return () => {
       cancelled = true;
     };
-  }, [criticalSites.length, render.cipherTrafficOverlayEnabled]);
+  }, [criticalSites.length, render.cipherTrafficOverlayOpacity]);
 
   return {
     atlasImageryImage,
