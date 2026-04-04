@@ -13,6 +13,7 @@ import { loadWorldData } from '@/utils/loadWorldData';
 import { renderWithProviders } from '@/test/render';
 import { GamePage } from './GamePage';
 import type { CountryFeature, FeatureCollectionLike, WorldData } from '@/types/game';
+import { formatDailyStorageKey, getTodayDateKey } from '@/utils/gameLogic';
 
 const { showModalMock } = vi.hoisted(() => ({
   showModalMock: vi.fn(),
@@ -294,16 +295,25 @@ describe('GamePage', () => {
         await user.clear(input);
         await user.type(input, `Atlantis ${round}`);
         fireEvent.submit(input.closest('form') as HTMLFormElement);
-        const advanceButtons = await screen.findAllByRole('button', { name: /next|finish/i });
-        await user.click(advanceButtons.at(-1) ?? advanceButtons[0]!);
-      }
 
-      const finalButtons = screen.queryAllByRole('button', { name: /finish/i });
-      if (finalButtons.length > 0) {
-        await user.click(finalButtons.at(-1) ?? finalButtons[0]!);
+        expect(await screen.findByRole('status')).toHaveTextContent('Missed');
+        await user.click(
+          await screen.findByRole('button', {
+            name: round === 4 ? /^finish$/i : /^next$/i,
+          }),
+        );
       }
 
       expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
+      const todayDateKey = getTodayDateKey();
+      const storedResult = JSON.parse(
+        window.localStorage.getItem(formatDailyStorageKey(todayDateKey)) ?? 'null',
+      );
+      expect(storedResult).toMatchObject({
+        correctCount: 0,
+        date: todayDateKey,
+        totalCount: 5,
+      });
       await user.click(screen.getByRole('button', { name: /copy results/i }));
       expect(writeText).toHaveBeenCalledWith(
         expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/u),
@@ -311,6 +321,13 @@ describe('GamePage', () => {
       await user.click(screen.getByRole('button', { name: /main menu/i }));
       await waitFor(() => {
         expect(showModalMock).toHaveBeenCalledTimes(2);
+      });
+      expect(showModalMock.mock.calls[1]?.[1]).toMatchObject({
+        dailyResult: expect.objectContaining({
+          correctCount: 0,
+          date: todayDateKey,
+          totalCount: 5,
+        }),
       });
     },
     10_000,
