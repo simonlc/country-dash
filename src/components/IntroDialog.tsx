@@ -170,7 +170,6 @@ function formatCountryCountLabel(count: number) {
   return `${count} ${count === 1 ? 'country' : 'countries'}`;
 }
 
-const dailyAccentColor = '#f2b35a';
 const dailyAccentStrong = '#d7902d';
 
 export const IntroDialog = NiceModal.create(

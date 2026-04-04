@@ -1,5 +1,4 @@
 import {
-  geoCircle,
   geoEquirectangular,
   geoGraticule10,
   geoPath,
@@ -10,7 +9,7 @@ import type {
   GlobeQualityConfig,
   GlobeRenderConfig,
 } from '@/app/theme';
-import type { CountryFeature, FeatureCollectionLike } from '@/types/game';
+import type { FeatureCollectionLike } from '@/types/game';
 import {
   applyAtlasBiomeWatercolor,
   applyAtlasCoastalWash,
@@ -27,7 +26,6 @@ import {
   drawHydroLayers,
   type HydroFeatureCollection,
 } from '@/utils/globeHydroOverlays';
-import { getCountryHighlightRings } from '@/utils/globeShared';
 
 export interface PreparedCityLightsMaps {
   glow: HTMLCanvasElement;
@@ -366,7 +364,6 @@ export function buildOceanTextureCanvas(
   palette: GlobePalette,
   textureSize: number,
   render: GlobeRenderConfig,
-  atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = createCanvas(textureSize, textureSize / 2);
 
@@ -384,8 +381,6 @@ export function buildOceanTextureCanvas(
           path,
           world,
           textureCanvas,
-          palette,
-          atlasImageryImage,
         );
       });
     }
@@ -449,12 +444,10 @@ export function buildOceanTextureCanvas(
 
 export function buildCombinedTextureCanvas(
   world: FeatureCollectionLike,
-  targetFeature: CountryFeature | null,
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
   render: GlobeRenderConfig,
-  atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
 ) {
@@ -503,8 +496,6 @@ export function buildCombinedTextureCanvas(
           path,
           world,
           textureCanvas,
-          palette,
-          atlasImageryImage,
         );
       });
     }
@@ -572,30 +563,6 @@ export function buildCombinedTextureCanvas(
       });
     }
     applyCountryDeboss(context, path, world, palette);
-
-    if (targetFeature) {
-      const selectedRings = getCountryHighlightRings(targetFeature).map(
-        (ring) => geoCircle().center(ring.center).radius(ring.radius)(),
-      );
-
-      context.beginPath();
-      path(targetFeature as GeoPermissibleObjects);
-      context.fillStyle = palette.selectedFill;
-      context.strokeStyle = palette.countryStroke;
-      context.lineWidth = render.atlasStyleEnabled
-        ? render.atlasSelectedCountryStrokeWidth
-        : render.standardSelectedCountryStrokeWidth;
-      context.fill();
-      context.stroke();
-
-      for (const selectedRing of selectedRings) {
-        context.beginPath();
-        path(selectedRing);
-        context.strokeStyle = palette.smallCountryCircle;
-        context.lineWidth = 3;
-        context.stroke();
-      }
-    }
   });
 
   return textureCanvas;
@@ -603,12 +570,10 @@ export function buildCombinedTextureCanvas(
 
 export function buildCountryTextureCanvas(
   world: FeatureCollectionLike,
-  targetFeature: CountryFeature | null,
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
   render: GlobeRenderConfig,
-  atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
 ) {
@@ -642,8 +607,6 @@ export function buildCountryTextureCanvas(
           path,
           world,
           textureCanvas,
-          palette,
-          atlasImageryImage,
         );
       });
     }
@@ -709,30 +672,6 @@ export function buildCountryTextureCanvas(
       });
     }
     applyCountryDeboss(context, path, world, palette);
-
-    if (targetFeature) {
-      const selectedRings = getCountryHighlightRings(targetFeature).map(
-        (ring) => geoCircle().center(ring.center).radius(ring.radius)(),
-      );
-
-      context.beginPath();
-      path(targetFeature as GeoPermissibleObjects);
-      context.fillStyle = palette.selectedFill;
-      context.strokeStyle = palette.countryStroke;
-      context.lineWidth = render.atlasStyleEnabled
-        ? render.atlasSelectedCountryStrokeWidth
-        : render.standardSelectedCountryStrokeWidth;
-      context.fill();
-      context.stroke();
-
-      for (const selectedRing of selectedRings) {
-        context.beginPath();
-        path(selectedRing);
-        context.strokeStyle = palette.smallCountryCircle;
-        context.lineWidth = 3;
-        context.stroke();
-      }
-    }
   });
 
   return textureCanvas;

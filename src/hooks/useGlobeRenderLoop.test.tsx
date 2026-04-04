@@ -27,12 +27,14 @@ describe('useGlobeRenderLoop', () => {
   });
 
   it('pauses while the document is hidden and resumes when visible', () => {
-    const drawCurrentFrame = vi.fn();
+    const drawBaseFrame = vi.fn();
+    const drawOverlayFrame = vi.fn();
 
     renderHook(() =>
       useGlobeRenderLoop({
         ambientAnimationEnabled: true,
-        drawCurrentFrame,
+        drawBaseFrame,
+        drawOverlayFrame,
         hasCapitalBlipAnimation: false,
         hasCipherOverlayAnimation: false,
         hasCipherTrafficAnimation: false,
@@ -49,9 +51,44 @@ describe('useGlobeRenderLoop', () => {
     });
     document.dispatchEvent(new Event('visibilitychange'));
 
-    expect(drawCurrentFrame).toHaveBeenCalledTimes(1);
+    expect(drawBaseFrame).toHaveBeenCalledTimes(1);
+    expect(drawOverlayFrame).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(1000);
     expect(window.requestAnimationFrame).toHaveBeenCalled();
+  });
+
+  it('redraws only the overlay layer for overlay-only animation', () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+    const drawBaseFrame = vi.fn();
+    const drawOverlayFrame = vi.fn();
+    let scheduledFrame: ((time: number) => void) | null = null;
+
+    vi.mocked(window.requestAnimationFrame).mockImplementation((callback) => {
+      scheduledFrame = callback;
+      return 1;
+    });
+
+    renderHook(() =>
+      useGlobeRenderLoop({
+        ambientAnimationEnabled: false,
+        drawBaseFrame,
+        drawOverlayFrame,
+        hasCapitalBlipAnimation: false,
+        hasCipherOverlayAnimation: true,
+        hasCipherTrafficAnimation: false,
+        isAnimating: false,
+      }),
+    );
+
+    vi.advanceTimersByTime(1000 / 12);
+    expect(scheduledFrame).not.toBeNull();
+    scheduledFrame!(1000);
+
+    expect(drawBaseFrame).not.toHaveBeenCalled();
+    expect(drawOverlayFrame).toHaveBeenCalledTimes(1);
   });
 });

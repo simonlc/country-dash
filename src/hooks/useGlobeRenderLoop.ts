@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 
 interface UseGlobeRenderLoopArgs {
   ambientAnimationEnabled: boolean;
-  drawCurrentFrame: (now?: number, includeOverlay?: boolean) => void;
+  drawBaseFrame: (now?: number) => void;
+  drawOverlayFrame: (now?: number) => void;
   hasCapitalBlipAnimation: boolean;
   hasCipherOverlayAnimation: boolean;
   hasCipherTrafficAnimation: boolean;
@@ -11,7 +12,8 @@ interface UseGlobeRenderLoopArgs {
 
 export function useGlobeRenderLoop({
   ambientAnimationEnabled,
-  drawCurrentFrame,
+  drawBaseFrame,
+  drawOverlayFrame,
   hasCapitalBlipAnimation,
   hasCipherOverlayAnimation,
   hasCipherTrafficAnimation,
@@ -21,6 +23,11 @@ export function useGlobeRenderLoop({
     let cancelled = false;
     let frameId = 0;
     let timeoutId = 0;
+    const hasOverlayAnimation =
+      hasCapitalBlipAnimation ||
+      hasCipherOverlayAnimation ||
+      hasCipherTrafficAnimation;
+    const hasAnyAnimation = ambientAnimationEnabled || hasOverlayAnimation;
 
     const scheduleNextFrame = () => {
       if (cancelled || document.visibilityState === 'hidden') {
@@ -31,12 +38,7 @@ export function useGlobeRenderLoop({
         return;
       }
 
-      if (
-        ambientAnimationEnabled ||
-        hasCapitalBlipAnimation ||
-        hasCipherOverlayAnimation ||
-        hasCipherTrafficAnimation
-      ) {
+      if (hasAnyAnimation) {
         timeoutId = window.setTimeout(() => {
           frameId = window.requestAnimationFrame(renderLoop);
         }, 1000 / 12);
@@ -44,12 +46,12 @@ export function useGlobeRenderLoop({
     };
 
     const renderLoop = (now: number) => {
-      drawCurrentFrame(
-        now,
-        hasCapitalBlipAnimation ||
-          hasCipherOverlayAnimation ||
-          hasCipherTrafficAnimation,
-      );
+      if (ambientAnimationEnabled) {
+        drawBaseFrame(now);
+      }
+      if (hasOverlayAnimation) {
+        drawOverlayFrame(now);
+      }
       scheduleNextFrame();
     };
 
@@ -58,7 +60,12 @@ export function useGlobeRenderLoop({
       window.cancelAnimationFrame(frameId);
 
       if (!cancelled && document.visibilityState === 'visible') {
-        drawCurrentFrame();
+        if (ambientAnimationEnabled) {
+          drawBaseFrame();
+        }
+        if (hasOverlayAnimation) {
+          drawOverlayFrame();
+        }
         scheduleNextFrame();
       }
     };
@@ -74,7 +81,8 @@ export function useGlobeRenderLoop({
     };
   }, [
     ambientAnimationEnabled,
-    drawCurrentFrame,
+    drawBaseFrame,
+    drawOverlayFrame,
     hasCapitalBlipAnimation,
     hasCipherOverlayAnimation,
     hasCipherTrafficAnimation,

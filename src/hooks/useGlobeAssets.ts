@@ -13,6 +13,37 @@ import {
   type PreparedCityLightsMaps,
 } from '@/utils/globeTextures';
 
+const imageAssetCache = new Map<string, Promise<HTMLImageElement>>();
+const hydroFeatureCollectionCache = new Map<
+  string,
+  Promise<HydroFeatureCollection>
+>();
+const criticalSitesCache = new Map<string, Promise<CipherCriticalSite[]>>();
+const cityLightsMapsCache = new Map<string, PreparedCityLightsMaps>();
+
+function loadImageAsset(path: string) {
+  const cachedImage = imageAssetCache.get(path);
+  if (cachedImage) {
+    return cachedImage;
+  }
+
+  const imagePromise = new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      resolve(image);
+    };
+    image.onerror = () => {
+      imageAssetCache.delete(path);
+      reject(new Error(`Failed to load image asset: ${path}`));
+    };
+    image.src = path;
+  });
+
+  imageAssetCache.set(path, imagePromise);
+  return imagePromise;
+}
+
 function useOptionalImageAsset(path: string, enabled: boolean) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
 
@@ -23,19 +54,17 @@ function useOptionalImageAsset(path: string, enabled: boolean) {
     }
 
     let cancelled = false;
-    const nextImage = new Image();
-    nextImage.decoding = 'async';
-    nextImage.onload = () => {
-      if (!cancelled) {
-        setImage(nextImage);
-      }
-    };
-    nextImage.onerror = () => {
-      if (!cancelled) {
-        setImage(null);
-      }
-    };
-    nextImage.src = path;
+    void loadImageAsset(path)
+      .then((nextImage) => {
+        if (!cancelled) {
+          setImage(nextImage);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setImage(null);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -54,10 +83,6 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
   const reliefImage = useOptionalImageAsset(
     '/textures/world-relief.png',
     quality.reliefMapEnabled,
-  );
-  const atlasImageryImage = useOptionalImageAsset(
-    '/textures/world-imagery.jpg',
-    false,
   );
   const cityLightsImage = useOptionalImageAsset(
     '/textures/world-city-lights.jpg',
@@ -90,6 +115,17 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
       return;
     }
 
+    const cacheKey = [
+      cityLightsImage.currentSrc || cityLightsImage.src,
+      quality.cityLightsGlow,
+      quality.lightPollutionSpread,
+    ].join(':');
+    const cachedMaps = cityLightsMapsCache.get(cacheKey);
+    if (cachedMaps) {
+      setPreparedCityLightsMaps(cachedMaps);
+      return;
+    }
+
     let cancelled = false;
     const timeoutId = window.setTimeout(() => {
       if (cancelled) {
@@ -97,12 +133,12 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
       }
 
       try {
-        setPreparedCityLightsMaps(
-          prepareCityLightsMaps(cityLightsImage, {
-            cityLightsGlow: quality.cityLightsGlow,
-            lightPollutionSpread: quality.lightPollutionSpread,
-          }),
-        );
+        const preparedMaps = prepareCityLightsMaps(cityLightsImage, {
+          cityLightsGlow: quality.cityLightsGlow,
+          lightPollutionSpread: quality.lightPollutionSpread,
+        });
+        cityLightsMapsCache.set(cacheKey, preparedMaps);
+        setPreparedCityLightsMaps(preparedMaps);
       } catch {
         setPreparedCityLightsMaps(null);
       }
@@ -126,13 +162,20 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
     }
 
     let cancelled = false;
-    void loadHydroFeatureCollection('/data/ne-110m-lakes.geojson')
+    const path = '/data/ne-110m-lakes.geojson';
+    const dataPromise =
+      hydroFeatureCollectionCache.get(path) ??
+      loadHydroFeatureCollection(path);
+    hydroFeatureCollectionCache.set(path, dataPromise);
+
+    void dataPromise
       .then((data) => {
         if (!cancelled) {
           setLakesData(data);
         }
       })
       .catch(() => {
+        hydroFeatureCollectionCache.delete(path);
         if (!cancelled) {
           setLakesData(null);
         }
@@ -149,13 +192,20 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
     }
 
     let cancelled = false;
-    void loadHydroFeatureCollection('/data/ne-110m-rivers.geojson')
+    const path = '/data/ne-110m-rivers.geojson';
+    const dataPromise =
+      hydroFeatureCollectionCache.get(path) ??
+      loadHydroFeatureCollection(path);
+    hydroFeatureCollectionCache.set(path, dataPromise);
+
+    void dataPromise
       .then((data) => {
         if (!cancelled) {
           setRiversData(data);
         }
       })
       .catch(() => {
+        hydroFeatureCollectionCache.delete(path);
         if (!cancelled) {
           setRiversData(null);
         }
@@ -172,13 +222,19 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
     }
 
     let cancelled = false;
-    void loadCipherCriticalSites('/data/cipher-critical-sites.json')
+    const path = '/data/cipher-critical-sites.json';
+    const dataPromise =
+      criticalSitesCache.get(path) ?? loadCipherCriticalSites(path);
+    criticalSitesCache.set(path, dataPromise);
+
+    void dataPromise
       .then((data) => {
         if (!cancelled) {
           setCriticalSites(data);
         }
       })
       .catch(() => {
+        criticalSitesCache.delete(path);
         if (!cancelled) {
           setCriticalSites([]);
         }
@@ -190,7 +246,6 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
   }, [criticalSites.length, render.cipherTrafficOverlayOpacity]);
 
   return {
-    atlasImageryImage,
     cityLightsImage,
     criticalSites,
     dayImageryImage,

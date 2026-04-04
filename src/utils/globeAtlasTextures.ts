@@ -93,32 +93,11 @@ export function applyAtlasBiomeWatercolor(
   path: ReturnType<typeof geoPath>,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
-  palette: GlobePalette,
-  atlasImageryImage: HTMLImageElement | null,
 ) {
   const { width, height } = textureCanvas;
   context.save();
   context.save();
   clipToAtlasLand(context, path, world);
-
-  if (atlasImageryImage) {
-    context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 0.28;
-    context.filter =
-      'blur(2.1px) sepia(0.52) saturate(0.86) hue-rotate(-8deg) contrast(0.88) brightness(1.2)';
-    context.drawImage(atlasImageryImage, 0, 0, width, height);
-    context.filter = 'none';
-
-    context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 0.22;
-    context.fillStyle = 'rgba(232, 212, 176, 0.3)';
-    context.fillRect(0, 0, width, height);
-
-    context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 0.16;
-    context.fillStyle = 'rgba(241, 226, 195, 0.22)';
-    context.fillRect(0, 0, width, height);
-  }
 
   const toTexturePoint = (longitude: number, latitude: number) => ({
     x: ((longitude + 180) / 360) * width,

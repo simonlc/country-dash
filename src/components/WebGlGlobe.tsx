@@ -28,6 +28,7 @@ import {
 } from '@/utils/globeTextures';
 import {
   configureTexture,
+  disposeWebGl,
   drawGlobe,
   getTextureResolution,
   hasAmbientAnimation,
@@ -52,7 +53,6 @@ interface CachedTextureSet {
 const textureCacheVersion = 2;
 
 function getTextureCacheKey(args: {
-  hasAtlasImagery: boolean;
   hasLakes: boolean;
   hasRaisedCountries: boolean;
   hasRivers: boolean;
@@ -126,7 +126,6 @@ export function WebGlGlobe({
   onCipherTrafficStateChange,
   onRenderError,
 }: WebGlGlobeProps) {
-  const hasAtlasStyle = render.atlasStyleEnabled;
   const transitionEnabled =
     render.cipherCountryTransitionOpacity > 0 ||
     render.cipherScreenTransitionOverlayOpacity > 0;
@@ -137,9 +136,7 @@ export function WebGlGlobe({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
-  const drawCurrentFrameRef = useRef<
-    (now?: number, includeOverlay?: boolean) => void
-  >(() => undefined);
+  const drawCurrentFrameRef = useRef<(now?: number) => void>(() => undefined);
   const targetFeatureRef = useRef<CountryFeature>(country);
   const previousCipherCountryRef = useRef<CountryFeature | null>(null);
   const criticalSitesRef = useRef<CipherCriticalSite[]>([]);
@@ -158,7 +155,6 @@ export function WebGlGlobe({
   const [cipherTransition, setCipherTransition] =
     useState<CipherCountryTransition | null>(null);
   const {
-    atlasImageryImage,
     cityLightsImage,
     criticalSites,
     dayImageryImage,
@@ -190,16 +186,17 @@ export function WebGlGlobe({
   });
   const hasCipherOverlayAnimation =
     mode !== 'capitals' &&
-    (render.cipherCountryTransitionOpacity > 0 ||
-      render.cipherHydroOverlayOpacity > 0 ||
+    (render.cipherHydroOverlayOpacity > 0 ||
       render.cipherMapAnnotationsOpacity > 0 ||
-      render.cipherSelectedCountryOverlayOpacity > 0);
+      render.cipherSelectedCountryOverlayOpacity > 0 ||
+      (render.cipherCountryTransitionOpacity > 0 && cipherTransition !== null));
   const hasCipherTrafficAnimation =
     render.cipherTrafficOverlayOpacity > 0 &&
-    cipherTrafficEndpoint !== null &&
-    (cipherTrafficState.status === 'live' ||
-      cipherTrafficState.status === 'loading' ||
-      cipherTrafficState.tracks.length > 0);
+    (criticalSites.length > 0 ||
+      (cipherTrafficEndpoint !== null &&
+        (cipherTrafficState.status === 'live' ||
+          cipherTrafficState.status === 'loading' ||
+          cipherTrafficState.tracks.length > 0)));
   const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
     focusDelayKey: render.cipherFocusDelayMs > 0 ? roundIndex : null,
@@ -222,7 +219,10 @@ export function WebGlGlobe({
     () => hasAmbientAnimation(palette),
     [palette],
   );
-  const hasCapitalBlipAnimation = mode === 'capitals';
+  const hasCapitalBlipAnimation =
+    mode === 'capitals' &&
+    typeof targetFeature.properties.capitalLongitude === 'number' &&
+    typeof targetFeature.properties.capitalLatitude === 'number';
 
   useEffect(() => {
     frameStateRef.current = {
@@ -344,8 +344,8 @@ export function WebGlGlobe({
     [cipherTrafficState, mode, render],
   );
 
-  const drawCurrentFrame = useCallback(
-    (now = performance.now(), includeOverlay = true) => {
+  const drawBaseFrame = useCallback(
+    (now = performance.now()) => {
       const canvas = canvasRef.current;
       const resources = resourcesRef.current;
       const frameState = frameStateRef.current;
@@ -375,22 +375,34 @@ export function WebGlGlobe({
           ? [1 / reliefImage.naturalWidth, 1 / reliefImage.naturalHeight]
           : [1 / 2048, 1 / 1024],
       );
-
-      if (includeOverlay) {
-        drawOverlayFrame(now);
-      }
     },
-    [
-      drawOverlayFrame,
-      reliefImage,
-      render.reliefStrengthMultiplier,
-      slowScanlineStrength,
-    ],
+    [reliefImage, render.reliefStrengthMultiplier, slowScanlineStrength],
+  );
+
+  const drawCurrentFrame = useCallback(
+    (now = performance.now()) => {
+      drawBaseFrame(now);
+      drawOverlayFrame(now);
+    },
+    [drawBaseFrame, drawOverlayFrame],
   );
 
   useEffect(() => {
     drawCurrentFrameRef.current = drawCurrentFrame;
   }, [drawCurrentFrame]);
+
+  useEffect(
+    () => () => {
+      const resources = resourcesRef.current;
+      if (!resources) {
+        return;
+      }
+
+      disposeWebGl(resources);
+      resourcesRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -426,7 +438,6 @@ export function WebGlGlobe({
     const textureResolution = getTextureResolution(gl, width, height);
     const hasRaisedCountries = palette.countryElevation > 0;
     const textureCacheKey = getTextureCacheKey({
-      hasAtlasImagery: Boolean(atlasImageryImage),
       hasLakes: Boolean(lakesData),
       hasRaisedCountries,
       hasRivers: Boolean(riversData),
@@ -447,28 +458,23 @@ export function WebGlGlobe({
               palette,
               textureResolution,
               render,
-              hasAtlasStyle ? atlasImageryImage : null,
             )
           : buildCombinedTextureCanvas(
               world,
-              null,
               palette,
               quality,
               textureResolution,
               render,
-              hasAtlasStyle ? atlasImageryImage : null,
               lakesData,
               riversData,
             );
         const nextCountryTextureCanvas = hasRaisedCountries
           ? buildCountryTextureCanvas(
               world,
-              null,
               palette,
               quality,
               textureResolution,
               render,
-              hasAtlasStyle ? atlasImageryImage : null,
               lakesData,
               riversData,
             )
@@ -569,12 +575,10 @@ export function WebGlGlobe({
       cancelled = true;
     };
   }, [
-    atlasImageryImage,
     cityLightsImage,
     dayImageryImage,
     drawCurrentFrame,
     height,
-    hasAtlasStyle,
     lakesData,
     nightImageryImage,
     palette,
@@ -591,11 +595,12 @@ export function WebGlGlobe({
 
   useEffect(() => {
     drawCurrentFrame();
-  }, [criticalSites, drawCurrentFrame, height, palette, targetFeature, width]);
+  }, [criticalSites, drawCurrentFrame, targetFeature]);
 
   useGlobeRenderLoop({
     ambientAnimationEnabled,
-    drawCurrentFrame,
+    drawBaseFrame,
+    drawOverlayFrame,
     hasCapitalBlipAnimation,
     hasCipherOverlayAnimation,
     hasCipherTrafficAnimation,

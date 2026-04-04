@@ -1,9 +1,8 @@
-import { geoRotation } from 'd3';
 import type { GlobePalette, GlobeQualityConfig } from '@/app/theme';
 import { cssColorToVec3, parseCssColor } from '@/utils/globeColors';
 import {
   geoToSpherePosition,
-  getRotatedSunDirection,
+  getSunPosition,
   getTerminatorHalfAngleRadians,
   getTwilightHalfAngleRadians,
 } from '@/utils/globeShared';
@@ -19,6 +18,11 @@ interface SphereMesh {
 }
 
 export interface WebGlResources {
+  buffers: {
+    index: WebGLBuffer;
+    position: WebGLBuffer;
+    uv: WebGLBuffer;
+  };
   cityLightsGlowTexture: WebGLTexture;
   cityLightsPollutionTexture: WebGLTexture;
   cityLightsTexture: WebGLTexture;
@@ -82,6 +86,32 @@ export interface WebGlResources {
     waterMaskTexture: WebGLUniformLocation;
   };
 }
+
+interface ResolvedPaletteUniforms {
+  atmosphereTint: [number, number, number];
+  gridColor: [number, number, number];
+  nightAlpha: number;
+  nightColor: [number, number, number];
+  rimLightColor: [number, number, number];
+  specularColor: [number, number, number];
+}
+
+interface ResolvedQualityUniforms {
+  cityLightsColor: [number, number, number];
+  lightPollutionColor: [number, number, number];
+}
+
+interface CachedSunDirection {
+  minuteBucket: number;
+  vector: ReturnType<typeof geoToSpherePosition>;
+}
+
+const paletteUniformCache = new WeakMap<GlobePalette, ResolvedPaletteUniforms>();
+const qualityUniformCache = new WeakMap<
+  GlobeQualityConfig,
+  ResolvedQualityUniforms
+>();
+let cachedSunDirection: CachedSunDirection | null = null;
 
 function compileShader(
   gl: WebGLRenderingContext,
@@ -177,22 +207,101 @@ function createSphereMesh(
 }
 
 function createRotationMatrix(rotation: [number, number]) {
-  const rotate = geoRotation([rotation[0], rotation[1], 0]);
-  const xAxis = geoToSpherePosition(...rotate([90, 0]));
-  const yAxis = geoToSpherePosition(...rotate([0, 90]));
-  const zAxis = geoToSpherePosition(...rotate([180, 0]));
+  const longitude = (rotation[0] * Math.PI) / 180;
+  const latitude = (rotation[1] * Math.PI) / 180;
+  const cosLongitude = Math.cos(longitude);
+  const sinLongitude = Math.sin(longitude);
+  const cosLatitude = Math.cos(latitude);
+  const sinLatitude = Math.sin(latitude);
 
   return new Float32Array([
-    xAxis.x,
-    xAxis.y,
-    xAxis.z,
-    yAxis.x,
-    yAxis.y,
-    yAxis.z,
-    zAxis.x,
-    zAxis.y,
-    zAxis.z,
+    cosLongitude,
+    -sinLongitude * sinLatitude,
+    sinLongitude * cosLatitude,
+    0,
+    cosLatitude,
+    sinLatitude,
+    -sinLongitude,
+    -cosLongitude * sinLatitude,
+    cosLongitude * cosLatitude,
   ]);
+}
+
+function multiplyRotationMatrixVector(
+  rotationMatrix: Float32Array,
+  vector: ReturnType<typeof geoToSpherePosition>,
+) {
+  const [
+    m00 = 0,
+    m01 = 0,
+    m02 = 0,
+    m10 = 0,
+    m11 = 0,
+    m12 = 0,
+    m20 = 0,
+    m21 = 0,
+    m22 = 0,
+  ] = rotationMatrix;
+
+  return {
+    x: m00 * vector.x + m10 * vector.y + m20 * vector.z,
+    y: m01 * vector.x + m11 * vector.y + m21 * vector.z,
+    z: m02 * vector.x + m12 * vector.y + m22 * vector.z,
+  };
+}
+
+function getResolvedPaletteUniforms(palette: GlobePalette) {
+  const cachedPalette = paletteUniformCache.get(palette);
+  if (cachedPalette) {
+    return cachedPalette;
+  }
+
+  const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(palette.nightShade);
+  const resolvedPalette = {
+    atmosphereTint: cssColorToVec3(palette.atmosphereTint),
+    gridColor: cssColorToVec3(palette.gridColor),
+    nightAlpha,
+    nightColor: [
+      nightRgb[0] / 255,
+      nightRgb[1] / 255,
+      nightRgb[2] / 255,
+    ] as [number, number, number],
+    rimLightColor: cssColorToVec3(palette.rimLightColor),
+    specularColor: cssColorToVec3(palette.specularColor),
+  } satisfies ResolvedPaletteUniforms;
+
+  paletteUniformCache.set(palette, resolvedPalette);
+  return resolvedPalette;
+}
+
+function getResolvedQualityUniforms(quality: GlobeQualityConfig) {
+  const cachedQuality = qualityUniformCache.get(quality);
+  if (cachedQuality) {
+    return cachedQuality;
+  }
+
+  const resolvedQuality = {
+    cityLightsColor: cssColorToVec3(quality.cityLightsColor),
+    lightPollutionColor: cssColorToVec3(quality.lightPollutionColor),
+  } satisfies ResolvedQualityUniforms;
+
+  qualityUniformCache.set(quality, resolvedQuality);
+  return resolvedQuality;
+}
+
+function getCachedSunDirection(nowMs = Date.now()) {
+  const minuteBucket = Math.floor(nowMs / 60_000);
+  if (cachedSunDirection?.minuteBucket === minuteBucket) {
+    return cachedSunDirection.vector;
+  }
+
+  const [longitude, latitude] = getSunPosition();
+  const nextSunDirection = geoToSpherePosition(longitude, latitude);
+  cachedSunDirection = {
+    minuteBucket,
+    vector: nextSunDirection,
+  };
+  return nextSunDirection;
 }
 
 function getUniformLocation(
@@ -490,6 +599,11 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.uniform1i(uniforms.waterMaskTexture, 7);
 
   return {
+    buffers: {
+      index: indexBuffer,
+      position: positionBuffer,
+      uv: uvBuffer,
+    },
     cityLightsGlowTexture,
     cityLightsPollutionTexture,
     cityLightsTexture,
@@ -504,6 +618,24 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     waterMaskTexture,
     uniforms,
   };
+}
+
+export function disposeWebGl(resources: WebGlResources) {
+  const { gl } = resources;
+
+  gl.deleteBuffer(resources.buffers.index);
+  gl.deleteBuffer(resources.buffers.position);
+  gl.deleteBuffer(resources.buffers.uv);
+  gl.deleteTexture(resources.cityLightsGlowTexture);
+  gl.deleteTexture(resources.cityLightsPollutionTexture);
+  gl.deleteTexture(resources.cityLightsTexture);
+  gl.deleteTexture(resources.dayTexture);
+  gl.deleteTexture(resources.nightTexture);
+  gl.deleteTexture(resources.overlayTexture);
+  gl.deleteTexture(resources.reliefTexture);
+  gl.deleteTexture(resources.texture);
+  gl.deleteTexture(resources.waterMaskTexture);
+  gl.deleteProgram(resources.program);
 }
 
 export function drawGlobe(
@@ -549,33 +681,21 @@ export function drawGlobe(
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
   const rotationMatrix = createRotationMatrix(currentRotation);
-  const sunDirection = getRotatedSunDirection(currentRotation);
-  const [atmosphereRed, atmosphereGreen, atmosphereBlue] = cssColorToVec3(
-    palette.atmosphereTint,
+  const sunDirection = multiplyRotationMatrixVector(
+    rotationMatrix,
+    getCachedSunDirection(),
   );
-  const [cityLightsRed, cityLightsGreen, cityLightsBlue] = cssColorToVec3(
-    quality.cityLightsColor,
-  );
-  const [gridRed, gridGreen, gridBlue] = cssColorToVec3(palette.gridColor);
-  const [
-    lightPollutionRed,
-    lightPollutionGreen,
-    lightPollutionBlue,
-  ] = cssColorToVec3(quality.lightPollutionColor);
-  const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(palette.nightShade);
-  const [rimRed, rimGreen, rimBlue] = cssColorToVec3(palette.rimLightColor);
-  const [specularRed, specularGreen, specularBlue] = cssColorToVec3(
-    palette.specularColor,
-  );
+  const resolvedPalette = getResolvedPaletteUniforms(palette);
+  const resolvedQuality = getResolvedQualityUniforms(quality);
   const hasRaisedCountries = palette.countryElevation > 0;
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.useProgram(resources.program);
   gl.uniform3f(
     uniforms.cityLightsColor,
-    cityLightsRed,
-    cityLightsGreen,
-    cityLightsBlue,
+    resolvedQuality.cityLightsColor[0],
+    resolvedQuality.cityLightsColor[1],
+    resolvedQuality.cityLightsColor[2],
   );
   gl.uniform1f(uniforms.cityLightsGlow, quality.cityLightsGlow);
   gl.uniform1f(uniforms.cityLightsIntensity, quality.cityLightsIntensity);
@@ -585,9 +705,9 @@ export function drawGlobe(
   gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
   gl.uniform3f(
     uniforms.lightPollutionColor,
-    lightPollutionRed,
-    lightPollutionGreen,
-    lightPollutionBlue,
+    resolvedQuality.lightPollutionColor[0],
+    resolvedQuality.lightPollutionColor[1],
+    resolvedQuality.lightPollutionColor[2],
   );
   gl.uniform1f(
     uniforms.lightPollutionIntensity,
@@ -608,26 +728,36 @@ export function drawGlobe(
   gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
   gl.uniform3f(
     uniforms.atmosphereTint,
-    atmosphereRed,
-    atmosphereGreen,
-    atmosphereBlue,
+    resolvedPalette.atmosphereTint[0],
+    resolvedPalette.atmosphereTint[1],
+    resolvedPalette.atmosphereTint[2],
   );
   gl.uniform1f(uniforms.auroraStrength, palette.auroraStrength);
-  gl.uniform3f(uniforms.gridColor, gridRed, gridGreen, gridBlue);
+  gl.uniform3f(
+    uniforms.gridColor,
+    resolvedPalette.gridColor[0],
+    resolvedPalette.gridColor[1],
+    resolvedPalette.gridColor[2],
+  );
   gl.uniform1f(uniforms.gridStrength, palette.gridStrength);
-  gl.uniform1f(uniforms.nightAlpha, nightAlpha);
+  gl.uniform1f(uniforms.nightAlpha, resolvedPalette.nightAlpha);
   gl.uniform3f(
     uniforms.nightColor,
-    nightRgb[0] / 255,
-    nightRgb[1] / 255,
-    nightRgb[2] / 255,
+    resolvedPalette.nightColor[0],
+    resolvedPalette.nightColor[1],
+    resolvedPalette.nightColor[2],
   );
   gl.uniform1f(uniforms.noiseStrength, palette.noiseStrength);
   gl.uniformMatrix3fv(uniforms.rotationMatrix, false, rotationMatrix);
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
   gl.uniform1f(uniforms.penumbra, getTerminatorHalfAngleRadians());
   gl.uniform1f(uniforms.twilightPenumbra, getTwilightHalfAngleRadians());
-  gl.uniform3f(uniforms.rimLightColor, rimRed, rimGreen, rimBlue);
+  gl.uniform3f(
+    uniforms.rimLightColor,
+    resolvedPalette.rimLightColor[0],
+    resolvedPalette.rimLightColor[1],
+    resolvedPalette.rimLightColor[2],
+  );
   gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
   gl.uniform1f(uniforms.scanlineStrength, palette.scanlineStrength);
@@ -642,9 +772,9 @@ export function drawGlobe(
   );
   gl.uniform3f(
     uniforms.specularColor,
-    specularRed,
-    specularGreen,
-    specularBlue,
+    resolvedPalette.specularColor[0],
+    resolvedPalette.specularColor[1],
+    resolvedPalette.specularColor[2],
   );
   gl.uniform1f(uniforms.specularPower, palette.specularPower);
   gl.uniform1f(uniforms.specularStrength, palette.specularStrength);
