@@ -54,8 +54,7 @@ export const AboutDialog = NiceModal.create(() => {
             regions, island nations, microstates, and broader world pools.
           </Typography>
           <Typography>
-            Built with React, TanStack Router, MUI, and a typed game logic
-            layer.
+            Built with React, MUI, and a typed game logic layer.
           </Typography>
         </Stack>
       </DialogContent>

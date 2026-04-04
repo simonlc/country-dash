@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import sampleTrafficData from '@/data/cipher-traffic-sample.json';
 
 export interface CipherTrafficSample {
   altitude: number | null;
@@ -67,16 +68,6 @@ export const cipherTrafficQueryBounds = {
   lomin: -180,
 } as const;
 
-interface CachedCipherTrafficSnapshot {
-  endpoint: string;
-  fetchedAtMs: number;
-  state: CipherTrafficState;
-}
-
-let cachedSnapshot: CachedCipherTrafficSnapshot | null = null;
-let pendingSnapshotRequest: Promise<CachedCipherTrafficSnapshot> | null = null;
-let pendingSnapshotEndpoint: string | null = null;
-
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -90,18 +81,6 @@ export function normalizeLongitude(value: number) {
     normalized -= 360;
   }
   return normalized;
-}
-
-function buildCipherTrafficUrl(endpoint: string) {
-  const url = new URL(endpoint, window.location.origin);
-  url.searchParams.set('extended', '1');
-  url.searchParams.set('lamin', String(cipherTrafficQueryBounds.lamin));
-  url.searchParams.set('lamax', String(cipherTrafficQueryBounds.lamax));
-  url.searchParams.set('lomin', String(cipherTrafficQueryBounds.lomin));
-  url.searchParams.set('lomax', String(cipherTrafficQueryBounds.lomax));
-  url.searchParams.set('categories', '4,5,6');
-  url.searchParams.set('limit', String(maxReturnedTracks));
-  return url.toString();
 }
 
 function getLatestSample(track: CipherTrafficTrack) {
@@ -238,154 +217,39 @@ function buildTrafficTracks(response: CipherTrafficApiResponse) {
     .sort(compareTracks);
 }
 
-function resolveCachedSnapshot(endpoint: string): CipherTrafficState | null {
-  if (!cachedSnapshot || cachedSnapshot.endpoint !== endpoint) {
-    return null;
-  }
+const sampleCipherTrafficResponse = sampleTrafficData as CipherTrafficApiResponse;
+const mockCipherTrafficTracks = selectDiverseTrafficTracks(
+  buildTrafficTracks(sampleCipherTrafficResponse),
+  maxReturnedTracks,
+);
+const mockTrafficUpdatedAtMs =
+  sampleCipherTrafficResponse.time !== null
+    ? sampleCipherTrafficResponse.time * 1000
+    : Date.now();
 
-  return {
-    cacheAgeMs: Date.now() - cachedSnapshot.fetchedAtMs,
-    errorMessage: null,
-    source: 'cache',
-    status: 'live',
-    tracks: cachedSnapshot.state.tracks,
-    updatedAtMs: cachedSnapshot.state.updatedAtMs,
-  };
-}
+const mockCipherTrafficState: CipherTrafficState = {
+  cacheAgeMs: null,
+  errorMessage: null,
+  source: 'cache',
+  status: 'live',
+  tracks: mockCipherTrafficTracks,
+  updatedAtMs: mockTrafficUpdatedAtMs,
+};
 
-async function fetchCipherTrafficSnapshot(endpoint: string) {
-  if (pendingSnapshotRequest && pendingSnapshotEndpoint === endpoint) {
-    return pendingSnapshotRequest;
-  }
-
-  pendingSnapshotEndpoint = endpoint;
-  pendingSnapshotRequest = (async () => {
-    const response = await fetch(buildCipherTrafficUrl(endpoint), {
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-    const contentType = response.headers.get('content-type') ?? '';
-
-    if (!contentType.includes('application/json')) {
-      throw new Error(
-        'Traffic relay returned HTML instead of JSON. Restart the dev server so the OpenSky relay route is active.',
-      );
-    }
-
-    if (!response.ok) {
-      const payload = (await response.json()) as {
-        error?: string;
-      };
-      throw new Error(
-        payload.error ?? `Traffic feed returned ${response.status}.`,
-      );
-    }
-
-    const payload = (await response.json()) as CipherTrafficApiResponse;
-    const snapshot = {
-      endpoint,
-      fetchedAtMs: Date.now(),
-      state: {
-        cacheAgeMs:
-          typeof payload.meta?.cacheAgeMs === 'number'
-            ? payload.meta.cacheAgeMs
-            : null,
-        errorMessage: null,
-        source: payload.meta?.cached ? 'cache' : 'live',
-        status: 'live',
-        tracks: selectDiverseTrafficTracks(
-          buildTrafficTracks(payload),
-          maxReturnedTracks,
-        ),
-        updatedAtMs: payload.time !== null ? payload.time * 1000 : Date.now(),
-      } satisfies CipherTrafficState,
-    } satisfies CachedCipherTrafficSnapshot;
-
-    cachedSnapshot = snapshot;
-    return snapshot;
-  })().finally(() => {
-    pendingSnapshotRequest = null;
-    pendingSnapshotEndpoint = null;
-  });
-
-  return pendingSnapshotRequest;
-}
+const disabledCipherTrafficState: CipherTrafficState = {
+  cacheAgeMs: null,
+  errorMessage: null,
+  source: 'disabled',
+  status: 'disabled',
+  tracks: [],
+  updatedAtMs: null,
+};
 
 export function useCipherTraffic({
   enabled,
-  endpoint,
 }: UseCipherTrafficArgs): CipherTrafficState {
-  const [state, setState] = useState<CipherTrafficState>({
-    cacheAgeMs: null,
-    errorMessage: null,
-    source: enabled && endpoint ? 'loading' : 'disabled',
-    status: enabled && endpoint ? 'loading' : 'disabled',
-    tracks: [],
-    updatedAtMs: null,
-  });
-  const resolvedEndpoint = useMemo(() => endpoint?.trim() || null, [endpoint]);
-
-  useEffect(() => {
-    if (!enabled || !resolvedEndpoint) {
-      setState({
-        cacheAgeMs: null,
-        errorMessage: null,
-        source: 'disabled',
-        status: 'disabled',
-        tracks: [],
-        updatedAtMs: null,
-      });
-      return;
-    }
-
-    let cancelled = false;
-    const nextCachedState = resolveCachedSnapshot(resolvedEndpoint);
-    if (nextCachedState) {
-      setState(nextCachedState);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setState((current) =>
-      current.tracks.length > 0
-        ? current
-        : {
-            ...current,
-            cacheAgeMs: null,
-            errorMessage: null,
-            source: 'loading',
-            status: 'loading',
-          },
-    );
-
-    void fetchCipherTrafficSnapshot(resolvedEndpoint)
-      .then((snapshot) => {
-        if (!cancelled) {
-          setState(snapshot.state);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setState((current) => ({
-            cacheAgeMs: current.cacheAgeMs,
-            errorMessage:
-              error instanceof Error
-                ? error.message
-                : 'Traffic feed unavailable.',
-            source: 'error',
-            status: 'error',
-            tracks: current.tracks,
-            updatedAtMs: current.updatedAtMs,
-          }));
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, resolvedEndpoint]);
-
-  return state;
+  return useMemo(
+    () => (enabled ? mockCipherTrafficState : disabledCipherTrafficState),
+    [enabled],
+  );
 }

@@ -4,7 +4,6 @@
 
 - React 19
 - Vite 8
-- TanStack Router
 - MUI 7
 - NiceModal
 - Vitest

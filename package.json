@@ -8,8 +8,7 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "node scripts/dev-server.mjs",
-    "dev:vite": "vite",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit",
@@ -27,8 +26,6 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.5",
-    "@tanstack/react-router": "^1.132.18",
-    "@tanstack/react-router-devtools": "^1.166.11",
     "autosuggest-highlight": "^3.3.4",
     "countries-list": "^3.3.0",
     "country-capitals": "^1.0.2",

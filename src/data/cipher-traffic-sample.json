@@ -1,0 +1,57 @@
+{
+  "time": 1712003205,
+  "states": [
+    {
+      "icao24": "abc123",
+      "callsign": "CFR001",
+      "originCountry": "France",
+      "lastContact": 1712003205,
+      "longitude": 2.3522,
+      "latitude": 48.8566,
+      "baroAltitude": 11000,
+      "onGround": false,
+      "velocity": 230,
+      "trueTrack": 180,
+      "category": 4
+    },
+    {
+      "icao24": "def456",
+      "callsign": "DAL100",
+      "originCountry": "United States",
+      "lastContact": 1712003205,
+      "longitude": -87.6298,
+      "latitude": 41.8781,
+      "baroAltitude": 10000,
+      "onGround": false,
+      "velocity": 210,
+      "trueTrack": 135,
+      "category": 5
+    },
+    {
+      "icao24": "ghi789",
+      "callsign": "EMIR123",
+      "originCountry": "United Arab Emirates",
+      "lastContact": 1712003202,
+      "longitude": 55.2708,
+      "latitude": 25.2048,
+      "baroAltitude": 12000,
+      "onGround": false,
+      "velocity": 250,
+      "trueTrack": 90,
+      "category": 4
+    },
+    {
+      "icao24": "jkl012",
+      "callsign": "QFA007",
+      "originCountry": "Australia",
+      "lastContact": 1712003188,
+      "longitude": 151.2093,
+      "latitude": -33.8688,
+      "baroAltitude": 11500,
+      "onGround": false,
+      "velocity": 195,
+      "trueTrack": 60,
+      "category": 6
+    }
+  ]
+}
