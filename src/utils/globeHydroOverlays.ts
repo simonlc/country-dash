@@ -1,8 +1,9 @@
-import {
-  geoOrthographic,
-  geoPath,
-  type GeoPermissibleObjects,
-} from 'd3';
+import { type GeoPermissibleObjects } from 'd3';
+
+type AtlasPath = {
+  (feature: GeoPermissibleObjects): void;
+  bounds(feature: GeoPermissibleObjects): [[number, number], [number, number]];
+};
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import type { GlobeQualityConfig, GlobeRenderConfig } from '@/app/theme';
 import { shiftColor, withOpacity } from '@/utils/globeColors';
@@ -41,7 +42,7 @@ export async function loadHydroFeatureCollection(path: string) {
 export function drawHydroLayers(args: {
   context: CanvasRenderingContext2D;
   lakesData: HydroFeatureCollection | null;
-  path: ReturnType<typeof geoPath>;
+  path: AtlasPath;
   quality: GlobeQualityConfig;
   render: GlobeRenderConfig;
   riversData: HydroFeatureCollection | null;
@@ -203,8 +204,7 @@ export function drawCipherHydroOverlay(args: {
   height: number;
   lakesData: HydroFeatureCollection | null;
   nowMs: number;
-  path: ReturnType<typeof geoPath>;
-  projection: ReturnType<typeof geoOrthographic>;
+  path: AtlasPath;
   quality: GlobeQualityConfig;
   riversData: HydroFeatureCollection | null;
   width: number;
@@ -215,12 +215,10 @@ export function drawCipherHydroOverlay(args: {
     lakesData,
     nowMs,
     path,
-    projection,
     quality,
     riversData,
     width,
   } = args;
-  const measurePath = geoPath(projection);
 
   if (quality.showLakes && lakesData) {
     context.save();
@@ -297,7 +295,7 @@ export function drawCipherHydroOverlay(args: {
     let visibleLakeCount = 0;
     for (const feature of lakesData.features) {
       const lakeShape = feature as GeoPermissibleObjects;
-      const [[minX, minY], [maxX, maxY]] = measurePath.bounds(lakeShape);
+      const [[minX, minY], [maxX, maxY]] = path.bounds(lakeShape);
       const boundsWidth = maxX - minX;
       const boundsHeight = maxY - minY;
 

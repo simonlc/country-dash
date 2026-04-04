@@ -742,7 +742,7 @@ function buildControlSchema<Value>(
   const schema: Record<string, unknown> = {};
 
   for (const definition of definitions) {
-    const key = definition.key as keyof Value;
+    const key = definition.key;
     const targetSchema = upsertFolder(schema, definition.group);
 
     if (definition.kind === 'boolean') {

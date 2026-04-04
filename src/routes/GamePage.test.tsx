@@ -194,7 +194,7 @@ describe('GamePage', () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
 
-    await act(async () => {
+    act(() => {
       intro.onStartRandom({
         mode: 'classic',
         regionFilter: 'asia',
@@ -213,7 +213,7 @@ describe('GamePage', () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
 
-    await act(async () => {
+    act(() => {
       intro.onStartRandom({
         mode: 'classic',
         regionFilter: null,
@@ -235,7 +235,7 @@ describe('GamePage', () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();
 
-    await act(async () => {
+    act(() => {
       intro.onStartRandom({
         mode: 'classic',
         regionFilter: 'asia',
@@ -283,7 +283,7 @@ describe('GamePage', () => {
       },
     });
 
-    await act(async () => {
+    act(() => {
       intro.onStartDaily();
     });
 
@@ -304,7 +304,7 @@ describe('GamePage', () => {
     expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
     await user.click(screen.getByRole('button', { name: /copy results/i }));
     expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/),
+      expect.stringMatching(/^🧭 Country Dash Daily .*\n🌍 Score: 0\/5\n[⚫🟢]+$/u),
     );
     await user.click(screen.getByRole('button', { name: /main menu/i }));
     await waitFor(() => {

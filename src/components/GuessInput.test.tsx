@@ -46,7 +46,7 @@ describe('GuessInput', () => {
     expect(onSubmit).toHaveBeenCalledWith('Denmark');
   });
 
-  it('accepts the first matching hint on Tab', async () => {
+  it('accepts the first matching hint on Tab', () => {
     const onSubmit = vi.fn();
 
     renderWithProviders(

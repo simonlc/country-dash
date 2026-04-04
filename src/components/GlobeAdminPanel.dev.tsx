@@ -1,5 +1,5 @@
 import { Leva, button, useControls } from 'leva';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   GlobePalette,
   GlobeQualityConfig,
@@ -72,30 +72,43 @@ function GlobeAdminPanelImpl({
     values: Partial<GlobeRenderConfig>,
   ) => void;
 
+  const [resetSequence, setResetSequence] = useState(0);
+
   useControls(
     `${themeLabel} Globe Theme`,
     {
       reset: button(() => {
-        suppressPatchRef.current = true;
-        setPaletteControls(defaultSettings.globe);
-        setQualityControls(defaultSettings.quality);
-        setRenderControls(defaultSettings.render);
-        onReset();
-        schedulePatchResume();
+        setResetSequence((value) => value + 1);
       }),
     },
-    [
-      defaultSettings.globe,
-      defaultSettings.quality,
-      defaultSettings.render,
-      onReset,
-      schedulePatchResume,
-      setPaletteControls,
-      setQualityControls,
-      setRenderControls,
-      themeLabel,
-    ],
+    [themeLabel],
   );
+
+  useEffect(() => {
+    if (resetSequence === 0) {
+      return;
+    }
+
+    suppressPatchRef.current = true;
+    setPaletteControls(defaultSettings.globe);
+    setQualityControls(defaultSettings.quality);
+    setRenderControls(defaultSettings.render);
+    onReset();
+    schedulePatchResume();
+    queueMicrotask(() => {
+      setResetSequence(0);
+    });
+  }, [
+    defaultSettings.globe,
+    defaultSettings.quality,
+    defaultSettings.render,
+    onReset,
+    resetSequence,
+    schedulePatchResume,
+    setPaletteControls,
+    setQualityControls,
+    setRenderControls,
+  ]);
 
   useEffect(() => {
     suppressPatchRef.current = true;

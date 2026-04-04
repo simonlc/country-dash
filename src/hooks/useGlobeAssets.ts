@@ -49,7 +49,9 @@ function useOptionalImageAsset(path: string, enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) {
-      setImage(null);
+      queueMicrotask(() => {
+        setImage(null);
+      });
       return;
     }
 
@@ -111,7 +113,9 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
       !cityLightsImage ||
       (!quality.cityLightsEnabled && !quality.lightPollutionEnabled)
     ) {
-      setPreparedCityLightsMaps(null);
+      queueMicrotask(() => {
+        setPreparedCityLightsMaps(null);
+      });
       return;
     }
 
@@ -122,7 +126,9 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
     ].join(':');
     const cachedMaps = cityLightsMapsCache.get(cacheKey);
     if (cachedMaps) {
-      setPreparedCityLightsMaps(cachedMaps);
+      queueMicrotask(() => {
+        setPreparedCityLightsMaps(cachedMaps);
+      });
       return;
     }
 

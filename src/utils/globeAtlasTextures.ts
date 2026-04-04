@@ -1,11 +1,13 @@
-import { geoCircle, geoPath, type GeoPermissibleObjects } from 'd3';
+import { geoCircle, type GeoPermissibleObjects } from 'd3';
 import type { GlobePalette } from '@/app/theme';
 import type { FeatureCollectionLike } from '@/types/game';
 import { shiftColor } from '@/utils/globeColors';
 
+type AtlasPath = (feature: GeoPermissibleObjects) => void;
+
 function clipToAtlasLand(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
 ) {
   context.beginPath();
@@ -90,7 +92,7 @@ export function applyAtlasParchmentAging(
 
 export function applyAtlasBiomeWatercolor(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
 ) {
@@ -447,7 +449,7 @@ export function applyAtlasOceanCurrentHatching(
 
 export function applyAtlasWatercolorLand(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
 ) {
@@ -561,7 +563,7 @@ function drawAtlasMarginNotes(
 
 export function applyAtlasInkBleed(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
 ) {
@@ -583,7 +585,7 @@ export function applyAtlasInkBleed(
 
 export function applyAtlasInkCoastline(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
 ) {
@@ -621,7 +623,7 @@ export function applyAtlasInkCoastline(
 
 export function applyAtlasCoastalWash(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
   palette: GlobePalette,
@@ -653,7 +655,7 @@ export function applyAtlasCoastalWash(
 
 export function applyAtlasLandHachure(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   world: FeatureCollectionLike,
   textureCanvas: HTMLCanvasElement,
 ) {
@@ -692,7 +694,7 @@ export function applyAtlasLandHachure(
 
 export function drawAtlasExpeditionDetails(
   context: CanvasRenderingContext2D,
-  path: ReturnType<typeof geoPath>,
+  path: AtlasPath,
   textureCanvas: HTMLCanvasElement,
 ) {
   context.save();

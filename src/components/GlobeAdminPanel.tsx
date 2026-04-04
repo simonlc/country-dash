@@ -1,9 +1,10 @@
 import { Suspense, lazy } from 'react';
+import type { ComponentType } from 'react';
 import type { GlobeAdminPanelProps } from '@/components/GlobeAdminPanel.dev';
 
 const GlobeAdminPanelDev =
   import.meta.env.DEV
-    ? lazy<typeof import('@/components/GlobeAdminPanel.dev')['default']>(
+    ? lazy<ComponentType<GlobeAdminPanelProps>>(
         () => import('@/components/GlobeAdminPanel.dev'),
       )
     : null;

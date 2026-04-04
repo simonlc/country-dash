@@ -265,7 +265,9 @@ export function WebGlGlobe({
     if (!transitionEnabled) {
       previousCipherCountryRef.current = targetFeature;
       cipherTransitionRef.current = null;
-      setCipherTransition(null);
+      queueMicrotask(() => {
+        setCipherTransition(null);
+      });
       return;
     }
 
@@ -589,6 +591,7 @@ export function WebGlGlobe({
     waterMaskImage,
     width,
     world,
+    themeId,
     onRenderError,
     render,
   ]);

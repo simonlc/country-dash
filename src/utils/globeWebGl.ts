@@ -312,10 +312,11 @@ function getUniformLocation(
   const location = gl.getUniformLocation(program, name);
   if (location === null) {
     const activeUniformNames: string[] = [];
-    const activeUniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    const activeUniformCountValue =
+      gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) as unknown;
 
-    if (typeof activeUniformCount === 'number') {
-      for (let index = 0; index < activeUniformCount; index += 1) {
+    if (typeof activeUniformCountValue === 'number') {
+      for (let index = 0; index < activeUniformCountValue; index += 1) {
         const activeUniform = gl.getActiveUniform(program, index);
         if (activeUniform?.name) {
           activeUniformNames.push(activeUniform.name);
