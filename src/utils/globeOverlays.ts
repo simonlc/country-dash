@@ -93,20 +93,19 @@ export function drawSelectedCountryOverlay(args: {
   path({ type: 'Sphere' });
   context.clip();
 
-  if (render.cipherHydroOverlayOpacity > 0) {
-    context.save();
-    context.globalAlpha *= render.cipherHydroOverlayOpacity;
-    drawCipherHydroOverlay({
-      context,
-      height,
-      lakesData,
-      nowMs,
-      path,
-      projection,
-      quality,
-      riversData,
-      width,
-    });
+    if (render.cipherHydroOverlayOpacity > 0) {
+      context.save();
+      context.globalAlpha *= render.cipherHydroOverlayOpacity;
+      drawCipherHydroOverlay({
+        context,
+        height,
+        lakesData,
+        nowMs,
+        path,
+        quality,
+        riversData,
+        width,
+      });
     context.restore();
   }
 
