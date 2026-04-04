@@ -90,7 +90,7 @@ describe('IntroDialog', () => {
       />,
     );
 
-    expect(screen.getByText(/^Daily Challenge$/i)).toBeVisible();
+    expect(screen.getByText(/^Daily$/i)).toBeVisible();
     expect(screen.getByText(/^Done today$/i)).toBeVisible();
     expect(screen.getByText(/^4\/5$/i)).toBeVisible();
     expect(screen.getByText(/You already finished today's run/i)).toBeVisible();
