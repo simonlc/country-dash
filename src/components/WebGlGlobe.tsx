@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppThemeId, GlobePalette, GlobeQualityConfig } from '@/app/theme';
+import type {
+  AppThemeId,
+  GlobePalette,
+  GlobeQualityConfig,
+  GlobeRenderConfig,
+} from '@/app/theme';
 import { CipherTransitionOverlay } from '@/components/CipherTransitionOverlay';
 import {
   useCipherTraffic,
@@ -35,6 +40,7 @@ interface WebGlGlobeProps extends GlobeViewProps {
   onRenderError?: (error: Error) => void;
   palette: GlobePalette;
   quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   themeId: AppThemeId;
 }
 
@@ -52,6 +58,7 @@ function getTextureCacheKey(args: {
   hasRivers: boolean;
   palette: GlobePalette;
   quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   textureResolution: number;
   themeId: AppThemeId;
   worldFeatureCount: number;
@@ -114,16 +121,19 @@ export function WebGlGlobe({
   world,
   palette,
   quality,
+  render,
   themeId,
   onCipherTrafficStateChange,
   onRenderError,
 }: WebGlGlobeProps) {
-  const isAtlas = themeId === 'atlas';
-  const isCipher = themeId === 'cipher';
+  const hasAtlasStyle = render.atlasStyleEnabled;
+  const transitionEnabled =
+    render.cipherCountryTransitionEnabled ||
+    render.cipherScreenTransitionOverlayEnabled;
   const cipherTrafficEndpoint =
     import.meta.env.VITE_OPENSKY_PROXY_URL?.trim() ||
     (import.meta.env.DEV ? 'http://127.0.0.1:8787/api/opensky/states' : null);
-  const slowScanlineStrength = themeId === 'cipher' ? 1 : 0;
+  const slowScanlineStrength = render.slowScanlineStrength;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
@@ -160,7 +170,7 @@ export function WebGlGlobe({
     waterMaskImage,
   } = useGlobeAssets({
     quality,
-    themeId,
+    render,
   });
   const baseScale = useMemo(
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
@@ -174,20 +184,25 @@ export function WebGlGlobe({
     [country, world.features],
   );
   const cipherTrafficState = useCipherTraffic({
-    enabled: isCipher,
-    endpoint: cipherTrafficEndpoint,
+    enabled: render.cipherTrafficOverlayEnabled,
+    endpoint: render.cipherTrafficOverlayEnabled ? cipherTrafficEndpoint : null,
   });
-  const hasCipherOverlayAnimation = isCipher && mode !== 'capitals';
+  const hasCipherOverlayAnimation =
+    mode !== 'capitals' &&
+    (render.cipherCountryTransitionEnabled ||
+      render.cipherHydroOverlayEnabled ||
+      render.cipherMapAnnotationsEnabled ||
+      render.cipherSelectedCountryOverlayEnabled);
   const hasCipherTrafficAnimation =
-    isCipher &&
+    render.cipherTrafficOverlayEnabled &&
     cipherTrafficEndpoint !== null &&
     (cipherTrafficState.status === 'live' ||
       cipherTrafficState.status === 'loading' ||
       cipherTrafficState.tracks.length > 0);
   const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
-    focusDelayKey: isCipher ? roundIndex : null,
-    focusDelayMs: isCipher && roundIndex > 0 ? 420 : 0,
+    focusDelayKey: render.cipherFocusDelayMs > 0 ? roundIndex : null,
+    focusDelayMs: roundIndex > 0 ? render.cipherFocusDelayMs : 0,
     focusRequest,
     onFrame: ({ rotation: nextRotation, zoomScale: nextZoomScale }) => {
       frameStateRef.current = {
@@ -246,8 +261,10 @@ export function WebGlGlobe({
   }, [criticalSites]);
 
   useEffect(() => {
-    if (themeId !== 'cipher') {
+    if (!transitionEnabled) {
       previousCipherCountryRef.current = targetFeature;
+      cipherTransitionRef.current = null;
+      setCipherTransition(null);
       return;
     }
 
@@ -272,7 +289,7 @@ export function WebGlGlobe({
     cipherTransitionRef.current = nextTransition;
     setCipherTransition(nextTransition);
     drawCurrentFrameRef.current(startedAtMs);
-  }, [roundIndex, targetFeature, themeId]);
+  }, [roundIndex, targetFeature, transitionEnabled]);
 
   useEffect(() => {
     if (!cipherTransition) {
@@ -315,15 +332,15 @@ export function WebGlGlobe({
         nowMs: now,
         palette: paletteRef.current,
         quality: qualityRef.current,
+        render,
         riversData: riversDataRef.current,
-        themeId,
         trafficState: cipherTrafficState,
         transition: cipherTransitionRef.current,
         width: frameState.width,
         zoomScale: frameState.zoomScale,
       });
     },
-    [cipherTrafficState, mode, themeId],
+    [cipherTrafficState, mode, render],
   );
 
   const drawCurrentFrame = useCallback(
@@ -337,9 +354,8 @@ export function WebGlGlobe({
       }
 
       const currentQuality = qualityRef.current;
-      const baseReliefStrength = isAtlas ? 16 : 8;
       const reliefStrength = currentQuality.reliefMapEnabled
-        ? baseReliefStrength * currentQuality.reliefHeight
+        ? render.reliefStrengthMultiplier * currentQuality.reliefHeight
         : 0;
 
       drawGlobe(
@@ -363,7 +379,12 @@ export function WebGlGlobe({
         drawOverlayFrame(now);
       }
     },
-    [drawOverlayFrame, isAtlas, reliefImage, slowScanlineStrength],
+    [
+      drawOverlayFrame,
+      reliefImage,
+      render.reliefStrengthMultiplier,
+      slowScanlineStrength,
+    ],
   );
 
   useEffect(() => {
@@ -410,6 +431,7 @@ export function WebGlGlobe({
       hasRivers: Boolean(riversData),
       palette,
       quality,
+      render,
       textureResolution,
       themeId,
       worldFeatureCount: world.features.length,
@@ -423,8 +445,8 @@ export function WebGlGlobe({
               world,
               palette,
               textureResolution,
-              isAtlas,
-              isAtlas ? atlasImageryImage : null,
+              render,
+              hasAtlasStyle ? atlasImageryImage : null,
             )
           : buildCombinedTextureCanvas(
               world,
@@ -432,9 +454,8 @@ export function WebGlGlobe({
               palette,
               quality,
               textureResolution,
-              isAtlas,
-              isCipher,
-              isAtlas ? atlasImageryImage : null,
+              render,
+              hasAtlasStyle ? atlasImageryImage : null,
               lakesData,
               riversData,
             );
@@ -445,9 +466,8 @@ export function WebGlGlobe({
               palette,
               quality,
               textureResolution,
-              isAtlas,
-              isCipher,
-              isAtlas ? atlasImageryImage : null,
+              render,
+              hasAtlasStyle ? atlasImageryImage : null,
               lakesData,
               riversData,
             )
@@ -553,8 +573,7 @@ export function WebGlGlobe({
     dayImageryImage,
     drawCurrentFrame,
     height,
-    isAtlas,
-    isCipher,
+    hasAtlasStyle,
     lakesData,
     nightImageryImage,
     palette,
@@ -566,7 +585,7 @@ export function WebGlGlobe({
     width,
     world,
     onRenderError,
-    themeId,
+    render,
   ]);
 
   useEffect(() => {
@@ -627,7 +646,9 @@ export function WebGlGlobe({
           width: '100%',
         }}
       />
-      {isCipher ? <CipherTransitionOverlay transition={cipherTransition} /> : null}
+      {render.cipherScreenTransitionOverlayEnabled ? (
+        <CipherTransitionOverlay transition={cipherTransition} />
+      ) : null}
     </div>
   );
 }

@@ -59,7 +59,7 @@ describe('useGlobeAssets', () => {
           showRivers: false,
           waterMaskEnabled: false,
         },
-        themeId: 'daybreak',
+        render: appThemes[0]!.render,
       }),
     );
 
@@ -78,7 +78,7 @@ describe('useGlobeAssets', () => {
           showLakes: false,
           showRivers: false,
         },
-        themeId: 'atlas',
+        render: appThemes[3]!.render,
       }),
     );
 

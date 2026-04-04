@@ -5,7 +5,11 @@ import {
   geoPath,
   type GeoPermissibleObjects,
 } from 'd3';
-import type { GlobePalette, GlobeQualityConfig } from '@/app/theme';
+import type {
+  GlobePalette,
+  GlobeQualityConfig,
+  GlobeRenderConfig,
+} from '@/app/theme';
 import type { CountryFeature, FeatureCollectionLike } from '@/types/game';
 import {
   applyAtlasBiomeWatercolor,
@@ -346,7 +350,7 @@ export function buildOceanTextureCanvas(
   world: FeatureCollectionLike,
   palette: GlobePalette,
   textureSize: number,
-  isAtlas: boolean,
+  render: GlobeRenderConfig,
   atlasImageryImage: HTMLImageElement | null,
 ) {
   const textureCanvas = createCanvas(textureSize, textureSize / 2);
@@ -354,7 +358,7 @@ export function buildOceanTextureCanvas(
   withTextureContext(textureCanvas, (context) => {
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
       const projection = geoEquirectangular()
         .translate([textureCanvas.width / 2, textureCanvas.height / 2])
         .scale(textureCanvas.width / (2 * Math.PI));
@@ -367,21 +371,36 @@ export function buildOceanTextureCanvas(
         palette,
         atlasImageryImage,
       );
+    }
+    if (render.atlasStyleEnabled && render.atlasWatercolorOceanEnabled) {
       applyAtlasWatercolorOcean(context, textureCanvas, palette);
+    }
+    if (render.atlasStyleEnabled && render.atlasOceanCurrentHatchingEnabled) {
       applyAtlasOceanCurrentHatching(context, textureCanvas);
     }
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
       applyAtlasParchmentAging(context, textureCanvas, palette);
     }
 
-    if (isAtlas) {
+    if (
+      render.atlasStyleEnabled &&
+      (render.atlasCoastalWashEnabled ||
+        render.atlasInkCoastlineEnabled ||
+        render.atlasInkBleedEnabled)
+    ) {
       const projection = geoEquirectangular()
         .translate([textureCanvas.width / 2, textureCanvas.height / 2])
         .scale(textureCanvas.width / (2 * Math.PI));
       const path = geoPath(projection, context);
-      applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
-      applyAtlasInkCoastline(context, path, world, textureCanvas);
-      applyAtlasInkBleed(context, path, world, textureCanvas);
+      if (render.atlasCoastalWashEnabled) {
+        applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
+      }
+      if (render.atlasInkCoastlineEnabled) {
+        applyAtlasInkCoastline(context, path, world, textureCanvas);
+      }
+      if (render.atlasInkBleedEnabled) {
+        applyAtlasInkBleed(context, path, world, textureCanvas);
+      }
     }
 
     if (palette.countryElevation > 0) {
@@ -402,8 +421,7 @@ export function buildCombinedTextureCanvas(
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
-  isAtlas: boolean,
-  isCipher: boolean,
+  render: GlobeRenderConfig,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
@@ -418,12 +436,22 @@ export function buildCombinedTextureCanvas(
     context.fillStyle = palette.oceanFill;
     context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
 
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasWatercolorOceanEnabled) {
       applyAtlasWatercolorOcean(context, textureCanvas, palette);
+    }
+    if (render.atlasStyleEnabled && render.atlasOceanCurrentHatchingEnabled) {
       applyAtlasOceanCurrentHatching(context, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
       applyAtlasParchmentAging(context, textureCanvas, palette);
+    }
+    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsEnabled) {
       drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasWatercolorLandEnabled) {
       applyAtlasWatercolorLand(context, path, world, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
       applyAtlasBiomeWatercolor(
         context,
         path,
@@ -432,26 +460,42 @@ export function buildCombinedTextureCanvas(
         palette,
         atlasImageryImage,
       );
+    }
+    if (render.atlasStyleEnabled && render.atlasCoastalWashEnabled) {
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
 
-    context.beginPath();
-    path(geoGraticule10());
-    context.strokeStyle = palette.graticule;
-    context.lineWidth = isAtlas ? 1.4 : 1.2;
-    if (isAtlas) {
-      context.setLineDash([3, 8]);
+    if (
+      !render.atlasStyleEnabled ||
+      render.atlasGraticuleStrokeEnabled
+    ) {
+      context.beginPath();
+      path(geoGraticule10());
+      context.strokeStyle = palette.graticule;
+      context.lineWidth = render.atlasStyleEnabled
+        ? render.atlasGraticuleLineWidth
+        : render.standardGraticuleLineWidth;
+      if (
+        render.atlasStyleEnabled &&
+        render.atlasGraticuleDashLength > 0 &&
+        render.atlasGraticuleGapLength > 0
+      ) {
+        context.setLineDash([
+          render.atlasGraticuleDashLength,
+          render.atlasGraticuleGapLength,
+        ]);
+      }
+      context.stroke();
+      context.setLineDash([]);
     }
-    context.stroke();
-    context.setLineDash([]);
 
     applyCountryShadow(context, path, world, palette);
-    if (!isAtlas) {
+    if (!render.atlasStyleEnabled) {
       drawFeatureFills(context, path, world, palette.countryFill);
     }
     drawHydroLayers({
       context,
-      isCipher,
+      render,
       lakesData,
       path,
       quality,
@@ -463,10 +507,14 @@ export function buildCombinedTextureCanvas(
       path,
       world,
       palette.countryStroke,
-      isAtlas ? 1.4 : 1.2,
+      render.atlasStyleEnabled
+        ? render.atlasCountryStrokeWidth
+        : render.standardCountryStrokeWidth,
     );
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasInkCoastlineEnabled) {
       applyAtlasInkCoastline(context, path, world, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasInkBleedEnabled) {
       applyAtlasInkBleed(context, path, world, textureCanvas);
     }
     applyCountryDeboss(context, path, world, palette);
@@ -480,7 +528,9 @@ export function buildCombinedTextureCanvas(
       path(targetFeature as GeoPermissibleObjects);
       context.fillStyle = palette.selectedFill;
       context.strokeStyle = palette.countryStroke;
-      context.lineWidth = isAtlas ? 2 : 1.6;
+      context.lineWidth = render.atlasStyleEnabled
+        ? render.atlasSelectedCountryStrokeWidth
+        : render.standardSelectedCountryStrokeWidth;
       context.fill();
       context.stroke();
 
@@ -503,8 +553,7 @@ export function buildCountryTextureCanvas(
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
-  isAtlas: boolean,
-  isCipher: boolean,
+  render: GlobeRenderConfig,
   atlasImageryImage: HTMLImageElement | null,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
@@ -517,10 +566,16 @@ export function buildCountryTextureCanvas(
       .scale(textureCanvas.width / (2 * Math.PI));
     const path = geoPath(projection, context);
     context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasParchmentAgingEnabled) {
       applyAtlasParchmentAging(context, textureCanvas, palette);
+    }
+    if (render.atlasStyleEnabled && render.atlasExpeditionDetailsEnabled) {
       drawAtlasExpeditionDetails(context, path, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasWatercolorLandEnabled) {
       applyAtlasWatercolorLand(context, path, world, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasBiomeWatercolorEnabled) {
       applyAtlasBiomeWatercolor(
         context,
         path,
@@ -529,24 +584,40 @@ export function buildCountryTextureCanvas(
         palette,
         atlasImageryImage,
       );
+    }
+    if (render.atlasStyleEnabled && render.atlasCoastalWashEnabled) {
       applyAtlasCoastalWash(context, path, world, textureCanvas, palette);
     }
-    context.beginPath();
-    path(geoGraticule10());
-    context.strokeStyle = palette.graticule;
-    context.lineWidth = isAtlas ? 1.4 : 1.2;
-    if (isAtlas) {
-      context.setLineDash([3, 8]);
+    if (
+      !render.atlasStyleEnabled ||
+      render.atlasGraticuleStrokeEnabled
+    ) {
+      context.beginPath();
+      path(geoGraticule10());
+      context.strokeStyle = palette.graticule;
+      context.lineWidth = render.atlasStyleEnabled
+        ? render.atlasGraticuleLineWidth
+        : render.standardGraticuleLineWidth;
+      if (
+        render.atlasStyleEnabled &&
+        render.atlasGraticuleDashLength > 0 &&
+        render.atlasGraticuleGapLength > 0
+      ) {
+        context.setLineDash([
+          render.atlasGraticuleDashLength,
+          render.atlasGraticuleGapLength,
+        ]);
+      }
+      context.stroke();
+      context.setLineDash([]);
     }
-    context.stroke();
-    context.setLineDash([]);
 
-    if (!isAtlas) {
+    if (!render.atlasStyleEnabled) {
       drawFeatureFills(context, path, world, palette.countryFill);
     }
     drawHydroLayers({
       context,
-      isCipher,
+      render,
       lakesData,
       path,
       quality,
@@ -558,10 +629,14 @@ export function buildCountryTextureCanvas(
       path,
       world,
       palette.countryStroke,
-      isAtlas ? 1.4 : 1.2,
+      render.atlasStyleEnabled
+        ? render.atlasCountryStrokeWidth
+        : render.standardCountryStrokeWidth,
     );
-    if (isAtlas) {
+    if (render.atlasStyleEnabled && render.atlasInkCoastlineEnabled) {
       applyAtlasInkCoastline(context, path, world, textureCanvas);
+    }
+    if (render.atlasStyleEnabled && render.atlasInkBleedEnabled) {
       applyAtlasInkBleed(context, path, world, textureCanvas);
     }
     applyCountryDeboss(context, path, world, palette);
@@ -575,7 +650,9 @@ export function buildCountryTextureCanvas(
       path(targetFeature as GeoPermissibleObjects);
       context.fillStyle = palette.selectedFill;
       context.strokeStyle = palette.countryStroke;
-      context.lineWidth = isAtlas ? 2 : 1.6;
+      context.lineWidth = render.atlasStyleEnabled
+        ? render.atlasSelectedCountryStrokeWidth
+        : render.standardSelectedCountryStrokeWidth;
       context.fill();
       context.stroke();
 

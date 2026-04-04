@@ -5,6 +5,7 @@ import {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
   type AppThemeDefinition,
+  type GlobeThemeSettings,
 } from '@/app/theme';
 import { AboutDialog } from '@/components/AboutDialog';
 import { IntroDialog } from '@/components/IntroDialog';
@@ -12,6 +13,7 @@ import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
 import { useDailyShare } from '@/hooks/useDailyShare';
 import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
 import { useWindowSize } from '@/hooks/useWindowSize';
+import type { GlobeThemeSettingsPatch } from '@/utils/globeQualityControls';
 import { loadWorldData } from '@/utils/loadWorldData';
 import {
   buildRegionCountryPool,
@@ -148,7 +150,7 @@ interface UseGamePageStateResult {
   displayAccentSurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   displayElapsedMs: number;
   displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
-  effectiveQuality: AppThemeDefinition['qualityDefaults'];
+  effectiveThemeSettings: GlobeThemeSettings;
   focusRequest: number;
   gameState: GameState;
   handlers: {
@@ -161,9 +163,9 @@ interface UseGamePageStateResult {
     onSubmit: (term: string) => void;
     openAbout: () => void;
   };
-  isAtlas: boolean;
+  atlasStyleEnabled: boolean;
   isCapitalMode: boolean;
-  isCipher: boolean;
+  cipherThemeEnabled: boolean;
   isDailyRun: boolean;
   isLoading: boolean;
   isReviewComplete: boolean;
@@ -178,7 +180,7 @@ interface UseGamePageStateResult {
   sessionModeLabel: string;
   sessionSummaryLabel: string;
   setAdminOverridePatch: (
-    patch: Partial<AppThemeDefinition['qualityDefaults']>,
+    patch: GlobeThemeSettingsPatch,
   ) => void;
   showRefocus: boolean;
   size: {
@@ -193,8 +195,13 @@ interface UseGamePageStateResult {
 export function useGamePageState(): UseGamePageStateResult {
   const size = useWindowSize();
   const { activeTheme } = useAppearance();
-  const isAtlas = activeTheme.id === 'atlas';
-  const isCipher = activeTheme.id === 'cipher';
+  const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
+  const cipherThemeEnabled =
+    activeTheme.render.cipherCountryTransitionEnabled ||
+    activeTheme.render.cipherHydroOverlayEnabled ||
+    activeTheme.render.cipherMapAnnotationsEnabled ||
+    activeTheme.render.cipherSelectedCountryOverlayEnabled ||
+    activeTheme.render.cipherTrafficOverlayEnabled;
   const panelSurface = useMemo(
     () => getThemeSurfaceStyles(activeTheme, 'elevated'),
     [activeTheme],
@@ -205,6 +212,14 @@ export function useGamePageState(): UseGamePageStateResult {
   );
   const displayAccentSurface = useMemo(
     () => getThemeDisplaySurfaceStyles(activeTheme, 'accent'),
+    [activeTheme],
+  );
+  const defaultThemeSettings = useMemo(
+    () => ({
+      globe: activeTheme.globe,
+      quality: activeTheme.qualityDefaults,
+      render: activeTheme.render,
+    }),
     [activeTheme],
   );
   const todayDateKey = useMemo(() => getTodayDateKey(), []);
@@ -227,12 +242,12 @@ export function useGamePageState(): UseGamePageStateResult {
     useState<CipherTrafficState>(emptyCipherTrafficState);
   const {
     adminEnabled,
-    effectiveQuality,
+    effectiveSettings,
     resetAdminOverride,
     resetRevision,
     setAdminOverridePatch,
   } = useGlobeAdminTuning({
-    defaults: activeTheme.qualityDefaults,
+    defaults: defaultThemeSettings,
     themeId: activeTheme.id,
   });
 
@@ -576,7 +591,7 @@ export function useGamePageState(): UseGamePageStateResult {
   return {
     activeTheme,
     adminEnabled,
-    cipherTelemetry: isCipher
+    cipherTelemetry: cipherThemeEnabled
       ? {
           errorMessage: cipherTrafficState.errorMessage,
           statusColor: getCipherTrafficStatusColor(cipherTrafficState),
@@ -593,7 +608,7 @@ export function useGamePageState(): UseGamePageStateResult {
     displayAccentSurface,
     displayElapsedMs,
     displaySurface,
-    effectiveQuality,
+    effectiveThemeSettings: effectiveSettings,
     focusRequest,
     gameState,
     handlers: {
@@ -606,9 +621,9 @@ export function useGamePageState(): UseGamePageStateResult {
       onSubmit: handleSubmit,
       openAbout,
     },
-    isAtlas,
+    atlasStyleEnabled,
     isCapitalMode,
-    isCipher,
+    cipherThemeEnabled,
     isDailyRun,
     isLoading: !worldData || !currentCountry,
     isReviewComplete,

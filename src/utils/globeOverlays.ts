@@ -4,7 +4,11 @@ import {
   geoPath,
   type GeoPermissibleObjects,
 } from 'd3';
-import type { AppThemeId, GlobePalette, GlobeQualityConfig } from '@/app/theme';
+import type {
+  GlobePalette,
+  GlobeQualityConfig,
+  GlobeRenderConfig,
+} from '@/app/theme';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
 import type { CountryFeature, GameMode } from '@/types/game';
 import {
@@ -31,8 +35,8 @@ export function drawSelectedCountryOverlay(args: {
   nowMs: number;
   palette: GlobePalette;
   quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   riversData: HydroFeatureCollection | null;
-  themeId: AppThemeId;
   trafficState: CipherTrafficState;
   transition: CipherCountryTransition | null;
   width: number;
@@ -49,8 +53,8 @@ export function drawSelectedCountryOverlay(args: {
     nowMs,
     palette,
     quality,
+    render,
     riversData,
-    themeId,
     trafficState,
     transition,
     width,
@@ -89,7 +93,7 @@ export function drawSelectedCountryOverlay(args: {
   path({ type: 'Sphere' });
   context.clip();
 
-  if (themeId === 'cipher') {
+  if (render.cipherHydroOverlayEnabled) {
     drawCipherHydroOverlay({
       context,
       height,
@@ -101,6 +105,9 @@ export function drawSelectedCountryOverlay(args: {
       riversData,
       width,
     });
+  }
+
+  if (render.cipherTrafficOverlayEnabled) {
     drawCipherTrafficOverlay({
       criticalSites,
       context,
@@ -148,48 +155,59 @@ export function drawSelectedCountryOverlay(args: {
         }
       }
     }
-  } else if (themeId === 'cipher') {
-    drawCipherSelectedCountryOverlay({
-      context,
-      country,
-      nowMs,
-      palette,
-      path,
-      projection,
-    });
-    drawCipherCountryTransitionOverlay({
-      context,
-      nowMs,
-      palette,
-      path,
-      projection,
-      transition,
-    });
   } else {
-    const ringPaths = getCountryHighlightRings(country).map((ring) =>
-      geoCircle().center(ring.center).radius(ring.radius)(),
-    );
+    let usedSpecialSelectionOverlay = false;
 
-    context.beginPath();
-    path(country as GeoPermissibleObjects);
-    context.fillStyle = palette.selectedFill;
-    context.strokeStyle = palette.selectedFill;
-    context.globalAlpha = 0.9;
-    context.lineWidth = 0.18;
-    context.fill();
-    context.stroke();
-    context.globalAlpha = 1;
+    if (render.cipherSelectedCountryOverlayEnabled) {
+      drawCipherSelectedCountryOverlay({
+        context,
+        country,
+        nowMs,
+        palette,
+        path,
+        projection,
+      });
+      usedSpecialSelectionOverlay = true;
+    }
 
-    context.strokeStyle = palette.smallCountryCircle;
-    context.lineWidth = 1.7;
-    for (const ringPath of ringPaths) {
+    if (render.cipherCountryTransitionEnabled) {
+      drawCipherCountryTransitionOverlay({
+        context,
+        nowMs,
+        palette,
+        path,
+        projection,
+        transition,
+      });
+      usedSpecialSelectionOverlay = true;
+    }
+
+    if (!usedSpecialSelectionOverlay) {
+      const ringPaths = getCountryHighlightRings(country).map((ring) =>
+        geoCircle().center(ring.center).radius(ring.radius)(),
+      );
+
       context.beginPath();
-      path(ringPath);
+      path(country as GeoPermissibleObjects);
+      context.fillStyle = palette.selectedFill;
+      context.strokeStyle = palette.selectedFill;
+      context.globalAlpha = 0.9;
+      context.lineWidth = 0.18;
+      context.fill();
       context.stroke();
+      context.globalAlpha = 1;
+
+      context.strokeStyle = palette.smallCountryCircle;
+      context.lineWidth = 1.7;
+      for (const ringPath of ringPaths) {
+        context.beginPath();
+        path(ringPath);
+        context.stroke();
+      }
     }
   }
 
-  if (themeId === 'cipher') {
+  if (render.cipherMapAnnotationsEnabled) {
     drawCipherMapAnnotations({
       context,
       country,

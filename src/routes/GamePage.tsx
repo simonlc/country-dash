@@ -46,7 +46,7 @@ export function GamePage() {
         position: 'relative',
       }}
     >
-      <GameBackground isAtlas={state.isAtlas} />
+      <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
       <Box sx={{ height: '100%' }}>
         <Globe
           country={state.currentCountry}
@@ -54,8 +54,9 @@ export function GamePage() {
           focusRequest={state.focusRequest}
           height={state.size.height}
           onCipherTrafficStateChange={state.handlers.onCipherTrafficStateChange}
-          palette={state.activeTheme.globe}
-          quality={state.effectiveQuality}
+          palette={state.effectiveThemeSettings.globe}
+          quality={state.effectiveThemeSettings.quality}
+          render={state.effectiveThemeSettings.render}
           roundIndex={state.gameState.roundIndex}
           rotation={state.rotation}
           themeId={state.activeTheme.id}
@@ -72,9 +73,13 @@ export function GamePage() {
       {state.adminEnabled ? (
         <GlobeAdminPanel
           key={`${state.activeTheme.id}:${state.resetRevision}`}
-          defaultQuality={state.activeTheme.qualityDefaults}
-          quality={state.effectiveQuality}
-          setQualityPatch={state.setAdminOverridePatch}
+          defaultSettings={{
+            globe: state.activeTheme.globe,
+            quality: state.activeTheme.qualityDefaults,
+            render: state.activeTheme.render,
+          }}
+          settings={state.effectiveThemeSettings}
+          setSettingsPatch={state.setAdminOverridePatch}
           themeLabel={state.activeTheme.label}
           onReset={state.resetAdminOverride}
         />

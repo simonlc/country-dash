@@ -1,31 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { AppThemeId, GlobeQualityConfig } from '@/app/theme';
+import type { AppThemeId, GlobeThemeSettings } from '@/app/theme';
+import { appThemes } from '@/app/theme';
 import { useGlobeAdminTuning } from './useGlobeAdminTuning';
 
-const defaults: GlobeQualityConfig = {
-  cityLightsEnabled: true,
-  cityLightsIntensity: 2.25,
-  cityLightsThreshold: 0.04,
-  cityLightsGlow: 1.6,
-  cityLightsColor: '#fff3cf',
-  dayImageryEnabled: false,
-  lightPollutionEnabled: true,
-  lightPollutionIntensity: 0.85,
-  lightPollutionSpread: 1.8,
-  lightPollutionColor: '#ffb46a',
-  nightImageryEnabled: false,
-  reliefHeight: 1,
-  reliefMapEnabled: true,
-  umbraDarkness: 1,
-  waterMaskEnabled: false,
-  showLakes: true,
-  showRivers: true,
-  lakesOpacity: 0.35,
-  riversOpacity: 0.55,
-  riversWidth: 0.9,
-  lakesColor: '#5aaee8',
-  riversColor: '#4a96d6',
+const defaults: GlobeThemeSettings = {
+  globe: { ...appThemes[0]!.globe },
+  quality: { ...appThemes[0]!.qualityDefaults },
+  render: { ...appThemes[0]!.render },
 };
 
 function createStorage() {
@@ -45,7 +27,7 @@ function createStorage() {
 }
 
 function getStorageKey(themeId: AppThemeId) {
-  return `country-guesser-admin-quality:${themeId}`;
+  return `country-guesser-admin-theme:${themeId}`;
 }
 
 describe('useGlobeAdminTuning', () => {
@@ -66,15 +48,24 @@ describe('useGlobeAdminTuning', () => {
     );
 
     expect(result.current.adminEnabled).toBe(true);
-    expect(result.current.effectiveQuality).toEqual(defaults);
+    expect(result.current.effectiveSettings).toEqual(defaults);
   });
 
-  it('loads and merges stored override for the active theme', () => {
+  it('loads and merges stored overrides for globe, quality, and render settings', () => {
     window.localStorage.setItem(
       getStorageKey('atlas'),
       JSON.stringify({
-        dayImageryEnabled: true,
-        reliefHeight: 1.75,
+        globe: {
+          atmosphereOpacity: 0.4,
+        },
+        quality: {
+          dayImageryEnabled: true,
+          reliefHeight: 1.75,
+        },
+        render: {
+          atlasStyleEnabled: true,
+          reliefStrengthMultiplier: 16,
+        },
       }),
     );
 
@@ -85,34 +76,17 @@ describe('useGlobeAdminTuning', () => {
       }),
     );
 
-    expect(result.current.effectiveQuality.dayImageryEnabled).toBe(true);
-    expect(result.current.effectiveQuality.reliefHeight).toBe(1.75);
-    expect(result.current.effectiveQuality.nightImageryEnabled).toBe(false);
-  });
-
-  it('applies patches and persists per-theme override', () => {
-    const { result } = renderHook(() =>
-      useGlobeAdminTuning({
-        defaults,
-        themeId: 'glacier',
-      }),
+    expect(result.current.effectiveSettings.globe.atmosphereOpacity).toBe(0.4);
+    expect(result.current.effectiveSettings.quality.dayImageryEnabled).toBe(
+      true,
     );
-
-    act(() => {
-      result.current.setAdminOverridePatch({
-        nightImageryEnabled: true,
-        reliefHeight: 2.25,
-      });
-    });
-
-    expect(result.current.effectiveQuality.nightImageryEnabled).toBe(true);
-    expect(result.current.effectiveQuality.reliefHeight).toBe(2.25);
-    expect(window.localStorage.getItem(getStorageKey('glacier'))).toContain(
-      '"nightImageryEnabled":true',
+    expect(result.current.effectiveSettings.quality.reliefHeight).toBe(1.75);
+    expect(result.current.effectiveSettings.render.atlasStyleEnabled).toBe(
+      true,
     );
   });
 
-  it('clamps reliefHeight patch values to supported range', () => {
+  it('applies nested patches and persists them per theme', () => {
     const { result } = renderHook(() =>
       useGlobeAdminTuning({
         defaults,
@@ -122,72 +96,31 @@ describe('useGlobeAdminTuning', () => {
 
     act(() => {
       result.current.setAdminOverridePatch({
-        reliefHeight: 9,
+        globe: {
+          noiseStrength: 0.22,
+        },
+        quality: {
+          nightImageryEnabled: true,
+        },
+        render: {
+          slowScanlineStrength: 0.8,
+        },
       });
     });
 
-    expect(result.current.effectiveQuality.reliefHeight).toBe(3);
-
-    act(() => {
-      result.current.setAdminOverridePatch({
-        reliefHeight: -2,
-      });
-    });
-
-    expect(result.current.effectiveQuality.reliefHeight).toBe(0);
-  });
-
-  it('clamps umbraDarkness patch values to supported range', () => {
-    const { result } = renderHook(() =>
-      useGlobeAdminTuning({
-        defaults,
-        themeId: 'cipher',
-      }),
+    expect(result.current.effectiveSettings.globe.noiseStrength).toBe(0.22);
+    expect(result.current.effectiveSettings.quality.nightImageryEnabled).toBe(
+      true,
     );
-
-    act(() => {
-      result.current.setAdminOverridePatch({
-        umbraDarkness: 9,
-      });
-    });
-
-    expect(result.current.effectiveQuality.umbraDarkness).toBe(1);
-
-    act(() => {
-      result.current.setAdminOverridePatch({
-        umbraDarkness: -2,
-      });
-    });
-
-    expect(result.current.effectiveQuality.umbraDarkness).toBe(0);
-  });
-
-  it('clamps city light and pollution controls to supported ranges', () => {
-    const { result } = renderHook(() =>
-      useGlobeAdminTuning({
-        defaults,
-        themeId: 'cipher',
-      }),
+    expect(result.current.effectiveSettings.render.slowScanlineStrength).toBe(
+      0.8,
     );
-
-    act(() => {
-      result.current.setAdminOverridePatch({
-        cityLightsIntensity: 9,
-        cityLightsThreshold: -1,
-        cityLightsGlow: 7,
-        lightPollutionIntensity: -2,
-        lightPollutionSpread: 12,
-      });
-    });
-
-    expect(result.current.effectiveQuality.cityLightsIntensity).toBe(4);
-    expect(result.current.effectiveQuality.cityLightsThreshold).toBe(0);
-    expect(result.current.effectiveQuality.cityLightsGlow).toBe(4);
-    expect(result.current.effectiveQuality.lightPollutionIntensity).toBe(0);
-    expect(result.current.effectiveQuality.lightPollutionSpread).toBe(6);
+    expect(window.localStorage.getItem(getStorageKey('cipher'))).toContain(
+      '"slowScanlineStrength":0.8',
+    );
   });
 
-  it('resets active theme override and clears storage', () => {
+  it('clamps numeric quality and render values to supported ranges', () => {
     const { result } = renderHook(() =>
       useGlobeAdminTuning({
         defaults,
@@ -197,30 +130,63 @@ describe('useGlobeAdminTuning', () => {
 
     act(() => {
       result.current.setAdminOverridePatch({
-        dayImageryEnabled: true,
-        waterMaskEnabled: true,
+        quality: {
+          cityLightsIntensity: 9,
+          reliefHeight: -2,
+        },
+        render: {
+          slowScanlineStrength: 8,
+          reliefStrengthMultiplier: 40,
+        },
       });
     });
 
-    expect(result.current.effectiveQuality.dayImageryEnabled).toBe(true);
+    expect(result.current.effectiveSettings.quality.cityLightsIntensity).toBe(4);
+    expect(result.current.effectiveSettings.quality.reliefHeight).toBe(0);
+    expect(result.current.effectiveSettings.render.slowScanlineStrength).toBe(1);
+    expect(result.current.effectiveSettings.render.reliefStrengthMultiplier).toBe(
+      32,
+    );
+  });
+
+  it('resets active theme override and clears storage', () => {
+    const { result } = renderHook(() =>
+      useGlobeAdminTuning({
+        defaults,
+        themeId: 'glacier',
+      }),
+    );
+
+    act(() => {
+      result.current.setAdminOverridePatch({
+        globe: {
+          atmosphereOpacity: 0.3,
+        },
+        quality: {
+          waterMaskEnabled: true,
+        },
+      });
+    });
+
+    expect(result.current.effectiveSettings.quality.waterMaskEnabled).toBe(true);
 
     act(() => {
       result.current.resetAdminOverride();
     });
 
-    expect(result.current.effectiveQuality).toEqual(defaults);
+    expect(result.current.effectiveSettings).toEqual(defaults);
     expect(result.current.resetRevision).toBe(1);
-    expect(window.localStorage.getItem(getStorageKey('midnight'))).toBeNull();
+    expect(window.localStorage.getItem(getStorageKey('glacier'))).toBeNull();
   });
 
   it('loads overrides separately for each theme id', () => {
     window.localStorage.setItem(
       getStorageKey('daybreak'),
-      JSON.stringify({ dayImageryEnabled: true }),
+      JSON.stringify({ quality: { dayImageryEnabled: true } }),
     );
     window.localStorage.setItem(
       getStorageKey('ember'),
-      JSON.stringify({ nightImageryEnabled: true }),
+      JSON.stringify({ quality: { nightImageryEnabled: true } }),
     );
 
     const { result, rerender } = renderHook(
@@ -234,12 +200,20 @@ describe('useGlobeAdminTuning', () => {
       },
     );
 
-    expect(result.current.effectiveQuality.dayImageryEnabled).toBe(true);
-    expect(result.current.effectiveQuality.nightImageryEnabled).toBe(false);
+    expect(result.current.effectiveSettings.quality.dayImageryEnabled).toBe(
+      true,
+    );
+    expect(result.current.effectiveSettings.quality.nightImageryEnabled).toBe(
+      false,
+    );
 
     rerender({ themeId: 'ember' });
 
-    expect(result.current.effectiveQuality.dayImageryEnabled).toBe(false);
-    expect(result.current.effectiveQuality.nightImageryEnabled).toBe(true);
+    expect(result.current.effectiveSettings.quality.dayImageryEnabled).toBe(
+      false,
+    );
+    expect(result.current.effectiveSettings.quality.nightImageryEnabled).toBe(
+      true,
+    );
   });
 });

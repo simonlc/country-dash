@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AppThemeId, GlobeQualityConfig } from '@/app/theme';
-import { sanitizeGlobeQualityPatch } from '@/utils/globeQualityControls';
+import type { AppThemeId, GlobeThemeSettings } from '@/app/theme';
+import {
+  hasThemeSettingsPatch,
+  mergeThemeSettings,
+  sanitizeGlobeThemeSettingsPatch,
+  type GlobeThemeSettingsPatch,
+} from '@/utils/globeQualityControls';
 
 interface UseGlobeAdminTuningArgs {
-  defaults: GlobeQualityConfig;
+  defaults: GlobeThemeSettings;
   themeId: AppThemeId;
 }
 
 interface UseGlobeAdminTuningResult {
   adminEnabled: boolean;
-  effectiveQuality: GlobeQualityConfig;
+  effectiveSettings: GlobeThemeSettings;
   resetAdminOverride: () => void;
   resetRevision: number;
-  setAdminOverridePatch: (patch: Partial<GlobeQualityConfig>) => void;
+  setAdminOverridePatch: (patch: GlobeThemeSettingsPatch) => void;
 }
 
 function isBrowser() {
@@ -20,10 +25,10 @@ function isBrowser() {
 }
 
 function getStorageKey(themeId: AppThemeId) {
-  return `country-guesser-admin-quality:${themeId}`;
+  return `country-guesser-admin-theme:${themeId}`;
 }
 
-function parseStoredOverride(storageKey: string): Partial<GlobeQualityConfig> {
+function parseStoredOverride(storageKey: string): GlobeThemeSettingsPatch {
   if (!isBrowser()) {
     return {};
   }
@@ -39,14 +44,10 @@ function parseStoredOverride(storageKey: string): Partial<GlobeQualityConfig> {
       return {};
     }
 
-    return sanitizeGlobeQualityPatch(parsed as Partial<GlobeQualityConfig>);
+    return sanitizeGlobeThemeSettingsPatch(parsed as GlobeThemeSettingsPatch);
   } catch {
     return {};
   }
-}
-
-function isOverrideEmpty(value: Partial<GlobeQualityConfig>) {
-  return Object.keys(value).length === 0;
 }
 
 export function useGlobeAdminTuning({
@@ -57,9 +58,9 @@ export function useGlobeAdminTuning({
 
   const storageKey = useMemo(() => getStorageKey(themeId), [themeId]);
   const [resetRevision, setResetRevision] = useState(0);
-  const [adminOverride, setAdminOverride] = useState<
-    Partial<GlobeQualityConfig>
-  >(() => parseStoredOverride(storageKey));
+  const [adminOverride, setAdminOverride] = useState<GlobeThemeSettingsPatch>(
+    () => parseStoredOverride(storageKey),
+  );
 
   useEffect(() => {
     setAdminOverride(parseStoredOverride(storageKey));
@@ -70,7 +71,7 @@ export function useGlobeAdminTuning({
       return;
     }
 
-    if (isOverrideEmpty(adminOverride)) {
+    if (!hasThemeSettingsPatch(adminOverride)) {
       window.localStorage.removeItem(storageKey);
       return;
     }
@@ -79,15 +80,25 @@ export function useGlobeAdminTuning({
   }, [adminEnabled, adminOverride, storageKey]);
 
   const setAdminOverridePatch = useCallback(
-    (patch: Partial<GlobeQualityConfig>) => {
-      const sanitizedPatch = sanitizeGlobeQualityPatch(patch);
-      if (isOverrideEmpty(sanitizedPatch)) {
+    (patch: GlobeThemeSettingsPatch) => {
+      const sanitizedPatch = sanitizeGlobeThemeSettingsPatch(patch);
+      if (!hasThemeSettingsPatch(sanitizedPatch)) {
         return;
       }
 
       setAdminOverride((previous) => ({
-        ...previous,
-        ...sanitizedPatch,
+        globe: {
+          ...previous.globe,
+          ...sanitizedPatch.globe,
+        },
+        quality: {
+          ...previous.quality,
+          ...sanitizedPatch.quality,
+        },
+        render: {
+          ...previous.render,
+          ...sanitizedPatch.render,
+        },
       }));
     },
     [],
@@ -101,20 +112,15 @@ export function useGlobeAdminTuning({
     }
   }, [storageKey]);
 
-  const effectiveQuality = useMemo(
+  const effectiveSettings = useMemo(
     () =>
-      adminEnabled
-        ? {
-            ...defaults,
-            ...adminOverride,
-          }
-        : defaults,
+      adminEnabled ? mergeThemeSettings(defaults, adminOverride) : defaults,
     [adminEnabled, adminOverride, defaults],
   );
 
   return {
     adminEnabled,
-    effectiveQuality,
+    effectiveSettings,
     resetAdminOverride,
     resetRevision,
     setAdminOverridePatch,

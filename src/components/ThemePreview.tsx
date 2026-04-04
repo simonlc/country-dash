@@ -6,7 +6,7 @@ interface ThemePreviewProps {
 }
 
 export function ThemePreview({ theme }: ThemePreviewProps) {
-  const isAtlas = theme.id === 'atlas';
+  const atlasStyleEnabled = theme.render.atlasStyleEnabled;
 
   return (
     <Box
@@ -18,7 +18,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
-        '&::before': isAtlas
+        '&::before': atlasStyleEnabled
           ? {
               background:
                 'radial-gradient(circle at 16% 28%, rgba(126, 92, 61, 0.16) 0, rgba(126, 92, 61, 0.08) 11%, rgba(126, 92, 61, 0) 22%), radial-gradient(circle at 82% 78%, rgba(63, 78, 92, 0.14) 0, rgba(63, 78, 92, 0.06) 14%, rgba(63, 78, 92, 0) 26%), linear-gradient(180deg, rgba(255,255,255,0.14), rgba(120,99,73,0.08))',
@@ -28,7 +28,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
               position: 'absolute',
             }
           : undefined,
-        '&::after': isAtlas
+        '&::after': atlasStyleEnabled
           ? {
               backgroundImage:
                 'linear-gradient(90deg, rgba(82, 62, 43, 0.08) 0, rgba(82, 62, 43, 0.08) 1px, transparent 1px), linear-gradient(rgba(82, 62, 43, 0.07) 0, rgba(82, 62, 43, 0.07) 1px, transparent 1px), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 32%)',
@@ -43,13 +43,13 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
     >
       <Box
         sx={{
-          background: isAtlas
+          background: atlasStyleEnabled
             ? `radial-gradient(circle at 34% 30%, rgba(255,255,255,0.2), transparent 22%), radial-gradient(circle at 54% 36%, ${theme.preview.glow}, transparent 42%), linear-gradient(180deg, rgba(78, 95, 112, 0.3), rgba(245, 238, 221, 0) 58%), ${theme.preview.ocean}`
             : `radial-gradient(circle at 36% 34%, ${theme.preview.glow}, transparent 38%), ${theme.preview.ocean}`,
           border: `1px solid ${theme.globe.countryStroke}`,
           borderRadius: '50%',
           bottom: -12,
-          boxShadow: isAtlas
+          boxShadow: atlasStyleEnabled
             ? 'inset 0 0 0 1px rgba(255,255,255,0.12), inset 0 -12px 24px rgba(61, 77, 87, 0.14)'
             : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
           height: 76,
@@ -61,11 +61,11 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
       >
         <Box
           sx={{
-            background: isAtlas
+            background: atlasStyleEnabled
               ? `linear-gradient(160deg, rgba(237, 231, 208, 0.22), rgba(237, 231, 208, 0)), ${theme.preview.land}`
               : theme.preview.land,
             borderRadius: '46% 54% 47% 53% / 37% 54% 46% 63%',
-            boxShadow: isAtlas
+            boxShadow: atlasStyleEnabled
               ? `0 0 0 1px ${theme.globe.countryStroke}`
               : undefined,
             height: 16,
@@ -78,11 +78,11 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
         />
         <Box
           sx={{
-            background: isAtlas
+            background: atlasStyleEnabled
               ? `linear-gradient(160deg, rgba(237, 231, 208, 0.22), rgba(237, 231, 208, 0)), ${theme.preview.land}`
               : theme.preview.land,
             borderRadius: '49% 51% 65% 35% / 50% 36% 64% 50%',
-            boxShadow: isAtlas
+            boxShadow: atlasStyleEnabled
               ? `0 0 0 1px ${theme.globe.countryStroke}`
               : undefined,
             height: 18,

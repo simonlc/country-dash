@@ -6,6 +6,10 @@ interface LevaControlValue {
   value: boolean | number | string;
 }
 
+interface LevaFolderValue {
+  schema: Record<string, unknown>;
+}
+
 function isLevaControlValue(value: unknown): value is LevaControlValue {
   return (
     typeof value === 'object' &&
@@ -17,10 +21,42 @@ function isLevaControlValue(value: unknown): value is LevaControlValue {
   );
 }
 
+function isLevaFolderValue(value: unknown): value is LevaFolderValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'schema' in value &&
+    typeof (value as { schema: unknown }).schema === 'object'
+  );
+}
+
+function collectLevaValues(
+  schema: Record<string, unknown>,
+  output: Record<string, boolean | number | string>,
+) {
+  for (const [key, value] of Object.entries(schema)) {
+    if (isLevaControlValue(value)) {
+      output[key] = value.value;
+      continue;
+    }
+
+    if (isLevaFolderValue(value)) {
+      collectLevaValues(value.schema, output);
+    }
+  }
+}
+
 vi.mock('leva', () => ({
   Leva: () => null as ReactNode,
   button: (onClick: () => void) => ({
     onClick,
+  }),
+  folder: (
+    schema: Record<string, unknown>,
+    settings?: Record<string, unknown>,
+  ) => ({
+    schema,
+    settings,
   }),
   useControls: (
     _folder: string,
@@ -34,12 +70,7 @@ vi.mock('leva', () => ({
     const schema =
       typeof schemaOrFactory === 'function' ? schemaOrFactory() : schemaOrFactory;
     const next: Record<string, boolean | number | string> = {};
-
-    for (const [key, value] of Object.entries(schema)) {
-      if (isLevaControlValue(value)) {
-        next[key] = value.value;
-      }
-    }
+    collectLevaValues(schema, next);
 
     if (typeof schemaOrFactory === 'function') {
       return [next, () => undefined];

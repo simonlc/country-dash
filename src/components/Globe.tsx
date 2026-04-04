@@ -3,6 +3,7 @@ import type {
   AppThemeId,
   GlobePalette,
   GlobeQualityConfig,
+  GlobeRenderConfig,
 } from '@/app/theme';
 import { GlobeRenderError } from '@/components/GlobeRenderError';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
@@ -24,6 +25,7 @@ interface GlobeProps {
   world: FeatureCollectionLike;
   palette: GlobePalette;
   quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   themeId: AppThemeId;
   onCipherTrafficStateChange?: (state: CipherTrafficState) => void;
 }

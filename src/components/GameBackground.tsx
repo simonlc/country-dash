@@ -1,11 +1,11 @@
 import { Box } from '@mui/material';
 
 interface GameBackgroundProps {
-  isAtlas: boolean;
+  atlasStyleEnabled: boolean;
 }
 
-export function GameBackground({ isAtlas }: GameBackgroundProps) {
-  if (!isAtlas) {
+export function GameBackground({ atlasStyleEnabled }: GameBackgroundProps) {
+  if (!atlasStyleEnabled) {
     return null;
   }
 

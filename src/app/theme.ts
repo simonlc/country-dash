@@ -74,12 +74,50 @@ export interface GlobeQualityConfig {
   riversColor: string;
 }
 
+export interface GlobeRenderConfig {
+  atlasBiomeWatercolorEnabled: boolean;
+  atlasCoastalWashEnabled: boolean;
+  atlasCountryStrokeWidth: number;
+  atlasExpeditionDetailsEnabled: boolean;
+  atlasGraticuleDashLength: number;
+  atlasGraticuleGapLength: number;
+  atlasGraticuleLineWidth: number;
+  atlasGraticuleStrokeEnabled: boolean;
+  atlasInkBleedEnabled: boolean;
+  atlasInkCoastlineEnabled: boolean;
+  atlasOceanCurrentHatchingEnabled: boolean;
+  atlasParchmentAgingEnabled: boolean;
+  atlasSelectedCountryStrokeWidth: number;
+  atlasStyleEnabled: boolean;
+  atlasWatercolorLandEnabled: boolean;
+  atlasWatercolorOceanEnabled: boolean;
+  cipherCountryTransitionEnabled: boolean;
+  cipherFocusDelayMs: number;
+  cipherHydroOverlayEnabled: boolean;
+  cipherHydroTextureEffectEnabled: boolean;
+  cipherMapAnnotationsEnabled: boolean;
+  cipherScreenTransitionOverlayEnabled: boolean;
+  cipherSelectedCountryOverlayEnabled: boolean;
+  cipherTrafficOverlayEnabled: boolean;
+  reliefStrengthMultiplier: number;
+  slowScanlineStrength: number;
+  standardCountryStrokeWidth: number;
+  standardGraticuleLineWidth: number;
+  standardSelectedCountryStrokeWidth: number;
+}
+
 export interface ThemePreview {
   sky: string;
   glow: string;
   ocean: string;
   land: string;
   accent: string;
+}
+
+export interface GlobeThemeSettings {
+  globe: GlobePalette;
+  quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
 }
 
 export interface AppThemeDefinition {
@@ -104,6 +142,7 @@ export interface AppThemeDefinition {
   };
   globe: GlobePalette;
   qualityDefaults: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   preview: ThemePreview;
 }
 
@@ -114,6 +153,66 @@ const bodyFont = '"Nunito Sans", system-ui, sans-serif';
 const atlasHeadingFont =
   '"Cinzel", "Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
 const atlasBodyFont = '"Alegreya", "Nunito Sans", system-ui, sans-serif';
+
+const defaultGlobeRenderConfig: GlobeRenderConfig = {
+  atlasBiomeWatercolorEnabled: false,
+  atlasCoastalWashEnabled: false,
+  atlasCountryStrokeWidth: 1.4,
+  atlasExpeditionDetailsEnabled: false,
+  atlasGraticuleDashLength: 3,
+  atlasGraticuleGapLength: 8,
+  atlasGraticuleLineWidth: 1.4,
+  atlasGraticuleStrokeEnabled: true,
+  atlasInkBleedEnabled: false,
+  atlasInkCoastlineEnabled: false,
+  atlasOceanCurrentHatchingEnabled: false,
+  atlasParchmentAgingEnabled: false,
+  atlasSelectedCountryStrokeWidth: 2,
+  atlasStyleEnabled: false,
+  atlasWatercolorLandEnabled: false,
+  atlasWatercolorOceanEnabled: false,
+  cipherCountryTransitionEnabled: false,
+  cipherFocusDelayMs: 0,
+  cipherHydroOverlayEnabled: false,
+  cipherHydroTextureEffectEnabled: false,
+  cipherMapAnnotationsEnabled: false,
+  cipherScreenTransitionOverlayEnabled: false,
+  cipherSelectedCountryOverlayEnabled: false,
+  cipherTrafficOverlayEnabled: false,
+  reliefStrengthMultiplier: 8,
+  slowScanlineStrength: 0,
+  standardCountryStrokeWidth: 1.2,
+  standardGraticuleLineWidth: 1.2,
+  standardSelectedCountryStrokeWidth: 1.6,
+};
+
+const atlasGlobeRenderConfig: GlobeRenderConfig = {
+  ...defaultGlobeRenderConfig,
+  atlasBiomeWatercolorEnabled: true,
+  atlasCoastalWashEnabled: true,
+  atlasExpeditionDetailsEnabled: true,
+  atlasInkBleedEnabled: true,
+  atlasInkCoastlineEnabled: true,
+  atlasOceanCurrentHatchingEnabled: true,
+  atlasParchmentAgingEnabled: true,
+  atlasStyleEnabled: true,
+  atlasWatercolorLandEnabled: true,
+  atlasWatercolorOceanEnabled: true,
+  reliefStrengthMultiplier: 16,
+};
+
+const cipherGlobeRenderConfig: GlobeRenderConfig = {
+  ...defaultGlobeRenderConfig,
+  cipherCountryTransitionEnabled: true,
+  cipherFocusDelayMs: 420,
+  cipherHydroOverlayEnabled: true,
+  cipherHydroTextureEffectEnabled: true,
+  cipherMapAnnotationsEnabled: true,
+  cipherScreenTransitionOverlayEnabled: true,
+  cipherSelectedCountryOverlayEnabled: true,
+  cipherTrafficOverlayEnabled: true,
+  slowScanlineStrength: 1,
+};
 
 export const appThemes: AppThemeDefinition[] = [
   {
@@ -199,6 +298,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#5aaee8',
       riversColor: '#4a96d6',
     },
+    render: defaultGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(140deg, #edf7ff, #c7e1ff)',
       glow: '#8dd7ff',
@@ -290,6 +390,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#5aaee8',
       riversColor: '#4a96d6',
     },
+    render: defaultGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(145deg, #08131f, #15314e)',
       glow: '#2d5f89',
@@ -381,6 +482,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#d27d5a',
       riversColor: '#ffb07b',
     },
+    render: defaultGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(145deg, #2a1614, #99563d)',
       glow: '#d27d5a',
@@ -473,6 +575,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#b9a889',
       riversColor: '#a79272',
     },
+    render: atlasGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(145deg, #f3ead8, #ceb996)',
       glow: '#e4d8be',
@@ -565,6 +668,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#00ffec',
       riversColor: '#00ffec',
     },
+    render: cipherGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(145deg, #020907, #0b3025)',
       glow: '#7cffdb',
@@ -656,6 +760,7 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#5aaee8',
       riversColor: '#4a96d6',
     },
+    render: defaultGlobeRenderConfig,
     preview: {
       sky: 'linear-gradient(145deg, #f6fbff, #cfe5fb)',
       glow: '#73d7ff',
@@ -676,7 +781,7 @@ export function getThemeSurfaceStyles(
   definition: AppThemeDefinition,
   tone: ThemeSurfaceTone = 'panel',
 ) {
-  const isAtlas = definition.id === 'atlas';
+  const atlasStyleEnabled = definition.render.atlasStyleEnabled;
   const isGlacier = definition.id === 'glacier';
   const backgroundColor =
     tone === 'muted'
@@ -686,7 +791,7 @@ export function getThemeSurfaceStyles(
   return {
     backdropFilter: isGlacier
       ? 'blur(22px) saturate(1.45)'
-      : isAtlas
+      : atlasStyleEnabled
         ? 'blur(8px) saturate(0.9)'
         : 'blur(18px)',
     backgroundColor,
@@ -697,7 +802,7 @@ export function getThemeSurfaceStyles(
           }), rgba(255,255,255,0))`
         : isGlacier
           ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
-          : isAtlas
+          : atlasStyleEnabled
             ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
             : 'none',
     border: `1px solid ${definition.background.panelBorder}`,
@@ -709,7 +814,7 @@ export function getThemeSurfaceStyles(
               : 'rgba(0, 0, 0, 0.32)'
           }, ${definition.background.panelShadow}`
         : definition.background.panelShadow,
-    overflow: isAtlas ? 'hidden' : undefined,
+    overflow: atlasStyleEnabled ? 'hidden' : undefined,
     position: 'relative' as const,
   };
 }
@@ -826,7 +931,7 @@ function pickBestTextColor(background: string, candidates: string[]) {
 export function createAppTheme(themeId: AppThemeId): Theme {
   const definition = getAppThemeDefinition(themeId);
   const isGlacier = definition.id === 'glacier';
-  const isAtlas = definition.id === 'atlas';
+  const atlasStyleEnabled = definition.render.atlasStyleEnabled;
   const paperSurface = getThemeSurfaceStyles(definition);
   const elevatedSurface = getThemeSurfaceStyles(definition, 'elevated');
   const accentSurface = getThemeAccentSurfaceStyles(definition);
@@ -925,7 +1030,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
               paperSurface.boxShadow,
               isGlacier
                 ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
-                : isAtlas
+                : atlasStyleEnabled
                   ? 'inset 0 1px 0 rgba(255,249,231,0.72), inset 0 -18px 28px rgba(116, 74, 31, 0.08)'
                   : `inset 0 1px 0 ${lightInset}`,
             ]
@@ -943,7 +1048,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
               elevatedSurface.boxShadow,
               isGlacier
                 ? 'inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)'
-                : isAtlas
+                : atlasStyleEnabled
                   ? 'inset 0 1px 0 rgba(255,248,228,0.86), inset 0 -24px 42px rgba(116, 74, 31, 0.08)'
                   : `inset 0 1px 0 ${lightInset}`,
             ]
@@ -1172,10 +1277,12 @@ export function createAppTheme(themeId: AppThemeId): Theme {
       },
     },
     shape: {
-      borderRadius: isAtlas ? designTokens.radius.sm : designTokens.radius.md,
+      borderRadius: atlasStyleEnabled
+        ? designTokens.radius.sm
+        : designTokens.radius.md,
     },
     typography: {
-      fontFamily: isAtlas ? atlasBodyFont : bodyFont,
+      fontFamily: atlasStyleEnabled ? atlasBodyFont : bodyFont,
       body1: {
         fontSize: designTokens.fontSize.md,
         fontWeight: designTokens.fontWeight.regular,
@@ -1193,41 +1300,41 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         lineHeight: designTokens.lineHeight.base,
       },
       h1: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxxl,
         fontWeight: designTokens.fontWeight.bold,
         lineHeight: designTokens.lineHeight.tight,
-        letterSpacing: isAtlas ? '0.06em' : '0.02em',
+        letterSpacing: atlasStyleEnabled ? '0.06em' : '0.02em',
       },
       h2: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxl,
         fontWeight: designTokens.fontWeight.bold,
         lineHeight: designTokens.lineHeight.tight,
-        letterSpacing: isAtlas ? '0.05em' : '0.02em',
+        letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
       },
       h3: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xl,
         fontWeight: designTokens.fontWeight.bold,
         lineHeight: designTokens.lineHeight.tight,
-        letterSpacing: isAtlas ? '0.07em' : '0.03em',
+        letterSpacing: atlasStyleEnabled ? '0.07em' : '0.03em',
       },
       h4: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.lg,
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,
-        letterSpacing: isAtlas ? '0.05em' : '0.02em',
+        letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
       },
       h5: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.lg,
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,
       },
       h6: {
-        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.md,
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,
@@ -1249,10 +1356,10 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         lineHeight: designTokens.lineHeight.tight,
       },
       button: {
-        fontFamily: isAtlas ? atlasHeadingFont : undefined,
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : undefined,
         fontSize: designTokens.fontSize.sm,
         fontWeight: designTokens.fontWeight.semibold,
-        letterSpacing: isAtlas ? '0.08em' : '0.03em',
+        letterSpacing: atlasStyleEnabled ? '0.08em' : '0.03em',
       },
     },
   });

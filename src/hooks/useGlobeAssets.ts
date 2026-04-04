@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AppThemeId, GlobeQualityConfig } from '@/app/theme';
+import type { GlobeQualityConfig, GlobeRenderConfig } from '@/app/theme';
 import {
   loadCipherCriticalSites,
   type CipherCriticalSite,
@@ -47,17 +47,18 @@ function useOptionalImageAsset(path: string, enabled: boolean) {
 
 interface UseGlobeAssetsArgs {
   quality: GlobeQualityConfig;
-  themeId: AppThemeId;
+  render: GlobeRenderConfig;
 }
 
-export function useGlobeAssets({ quality, themeId }: UseGlobeAssetsArgs) {
-  const isAtlas = themeId === 'atlas';
-  const isCipher = themeId === 'cipher';
+export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
   const reliefImage = useOptionalImageAsset(
     '/textures/world-relief.png',
     quality.reliefMapEnabled,
   );
-  const atlasImageryImage = useOptionalImageAsset('/textures/world-imagery.jpg', false);
+  const atlasImageryImage = useOptionalImageAsset(
+    '/textures/world-imagery.jpg',
+    false,
+  );
   const cityLightsImage = useOptionalImageAsset(
     '/textures/world-city-lights.jpg',
     quality.cityLightsEnabled || quality.lightPollutionEnabled,
@@ -166,7 +167,7 @@ export function useGlobeAssets({ quality, themeId }: UseGlobeAssetsArgs) {
   }, [quality.showRivers, riversData]);
 
   useEffect(() => {
-    if (!isCipher || criticalSites.length > 0) {
+    if (!render.cipherTrafficOverlayEnabled || criticalSites.length > 0) {
       return;
     }
 
@@ -186,7 +187,7 @@ export function useGlobeAssets({ quality, themeId }: UseGlobeAssetsArgs) {
     return () => {
       cancelled = true;
     };
-  }, [criticalSites.length, isCipher]);
+  }, [criticalSites.length, render.cipherTrafficOverlayEnabled]);
 
   return {
     atlasImageryImage,

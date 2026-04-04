@@ -4,7 +4,7 @@ import {
   type GeoPermissibleObjects,
 } from 'd3';
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
-import type { GlobeQualityConfig } from '@/app/theme';
+import type { GlobeQualityConfig, GlobeRenderConfig } from '@/app/theme';
 import { shiftColor, withOpacity } from '@/utils/globeColors';
 
 export type HydroFeatureCollection = FeatureCollection<
@@ -40,25 +40,25 @@ export async function loadHydroFeatureCollection(path: string) {
 
 export function drawHydroLayers(args: {
   context: CanvasRenderingContext2D;
-  isCipher: boolean;
   lakesData: HydroFeatureCollection | null;
   path: ReturnType<typeof geoPath>;
   quality: GlobeQualityConfig;
+  render: GlobeRenderConfig;
   riversData: HydroFeatureCollection | null;
   textureCanvas: HTMLCanvasElement;
 }) {
   const {
     context,
-    isCipher,
     lakesData,
     path,
     quality,
+    render,
     riversData,
     textureCanvas,
   } = args;
 
   if (quality.showLakes && lakesData) {
-    if (isCipher) {
+    if (render.cipherHydroTextureEffectEnabled) {
       context.save();
       context.globalCompositeOperation = 'screen';
       context.shadowColor = withOpacity(quality.lakesColor, 0.52);
@@ -138,7 +138,7 @@ export function drawHydroLayers(args: {
   }
 
   if (quality.showRivers && riversData) {
-    if (isCipher) {
+    if (render.cipherHydroTextureEffectEnabled) {
       context.save();
       context.globalCompositeOperation = 'screen';
       context.lineCap = 'round';
@@ -173,7 +173,7 @@ export function drawHydroLayers(args: {
     }
     context.globalAlpha = 1;
 
-    if (isCipher) {
+    if (render.cipherHydroTextureEffectEnabled) {
       context.save();
       context.globalCompositeOperation = 'screen';
       context.lineCap = 'round';
