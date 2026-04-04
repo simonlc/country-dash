@@ -12,7 +12,12 @@ import type { PropsWithChildren } from 'react';
 import { loadWorldData } from '@/utils/loadWorldData';
 import { renderWithProviders } from '@/test/render';
 import { GamePage } from './GamePage';
-import type { CountryFeature, FeatureCollectionLike, WorldData } from '@/types/game';
+import type {
+  CountryFeature,
+  DailyChallengeResult,
+  FeatureCollectionLike,
+  WorldData,
+} from '@/types/game';
 import { formatDailyStorageKey, getTodayDateKey } from '@/utils/gameLogic';
 
 const { showModalMock } = vi.hoisted(() => ({
@@ -128,6 +133,10 @@ const world: FeatureCollectionLike = {
 };
 
 const mockedLoadWorldData = vi.mocked(loadWorldData);
+
+interface IntroDialogProps {
+  dailyResult: DailyChallengeResult | null;
+}
 
 function createStorage() {
   const store = new Map<string, string>();
@@ -306,9 +315,9 @@ describe('GamePage', () => {
 
       expect(await screen.findByRole('button', { name: /main menu/i })).toBeVisible();
       const todayDateKey = getTodayDateKey();
-      const storedResult = JSON.parse(
+      const storedResult: DailyChallengeResult | null = JSON.parse(
         window.localStorage.getItem(formatDailyStorageKey(todayDateKey)) ?? 'null',
-      );
+      ) as DailyChallengeResult | null;
       expect(storedResult).toMatchObject({
         correctCount: 0,
         date: todayDateKey,
@@ -322,12 +331,11 @@ describe('GamePage', () => {
       await waitFor(() => {
         expect(showModalMock).toHaveBeenCalledTimes(2);
       });
-      expect(showModalMock.mock.calls[1]?.[1]).toMatchObject({
-        dailyResult: expect.objectContaining({
-          correctCount: 0,
-          date: todayDateKey,
-          totalCount: 5,
-        }),
+      const secondIntroProps = showModalMock.mock.calls[1]?.[1] as IntroDialogProps | undefined;
+      expect(secondIntroProps?.dailyResult).toMatchObject({
+        correctCount: 0,
+        date: todayDateKey,
+        totalCount: 5,
       });
     },
     10_000,
