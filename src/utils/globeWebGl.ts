@@ -676,6 +676,19 @@ export function drawGlobe(
   gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
   if (hasRaisedCountries) {
+    gl.uniform1f(uniforms.useCityLights, 0);
+    gl.uniform1f(uniforms.useDayImagery, 0);
+    gl.uniform1f(uniforms.useLightPollution, 0);
+    gl.uniform1f(uniforms.useNightImagery, 0);
+    gl.uniform1f(uniforms.useWaterMask, 0);
+    gl.uniform1f(uniforms.atmosphereOpacity, 0);
+    gl.uniform1f(uniforms.auroraStrength, 0);
+    gl.uniform1f(uniforms.gridStrength, 0);
+    gl.uniform1f(uniforms.noiseStrength, 0);
+    gl.uniform1f(uniforms.rimLightStrength, 0);
+    gl.uniform1f(uniforms.scanlineStrength, 0);
+    gl.uniform1f(uniforms.slowScanlineStrength, 0);
+    gl.uniform1f(uniforms.specularStrength, 0);
     gl.uniform1f(uniforms.surfaceScale, 1 + palette.countryElevation);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
