@@ -166,7 +166,6 @@ interface UseGamePageStateResult {
   isKeyboardOpen: boolean;
   isLoading: boolean;
   isReviewComplete: boolean;
-  keyboardInset: number;
   loadingError: string | null;
   locale: string;
   panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
@@ -657,7 +656,6 @@ export function useGamePageState(): UseGamePageStateResult {
     isKeyboardOpen: size.isKeyboardOpen,
     isLoading: !worldData || !currentCountry,
     isReviewComplete,
-    keyboardInset: size.isKeyboardOpen ? size.keyboardInset : 0,
     loadingError,
     locale,
     panelSurface,

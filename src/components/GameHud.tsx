@@ -21,6 +21,7 @@ interface GameHudProps {
   displayElapsedMs: number;
   displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   incorrect: number;
+  isKeyboardOpen: boolean;
   livesRemaining: number | null;
   onRefocus: () => void;
   panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
@@ -40,6 +41,7 @@ export function GameHud({
   displayElapsedMs,
   displaySurface,
   incorrect,
+  isKeyboardOpen,
   livesRemaining,
   onRefocus,
   panelSurface,
@@ -54,6 +56,7 @@ export function GameHud({
 }: GameHudProps) {
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
+  const isKeyboardCompact = isCompactLayout && isKeyboardOpen;
   const statItems = isCompactLayout
     ? [
         { label: m.game_stat_score(), value: score },
@@ -82,7 +85,7 @@ export function GameHud({
           flex: 1,
           p: {
             md: designTokens.componentSpacing.dialogPanel.desktop,
-            xs: 0.85,
+            xs: isKeyboardCompact ? 0.55 : 0.85,
           },
           pointerEvents: 'auto',
         },
@@ -92,17 +95,25 @@ export function GameHud({
         sx={{
           alignItems: 'center',
           display: 'grid',
-          gap: 1,
-          paddingLeft: { md: 3, xs: 0.25 },
+          gap: isKeyboardCompact ? 0.65 : 1,
+          paddingLeft: { md: 3, xs: isKeyboardCompact ? 0 : 0.25 },
           paddingRight: { md: 1, xs: 0 },
           gridTemplateColumns: {
             md: 'minmax(0, 1.3fr) auto auto auto auto auto auto',
             sm: 'repeat(4, minmax(0, 1fr))',
-            xs: 'repeat(3, minmax(0, 1fr))',
+            xs: isKeyboardCompact ? 'repeat(4, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
           },
         }}
       >
-        <Stack spacing={0.15} sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
+        <Stack
+          spacing={0.15}
+          sx={{
+            gridColumn: {
+              xs: isKeyboardCompact ? '1 / span 2' : '1 / -1',
+              md: 'auto',
+            },
+          }}
+        >
           <Typography
             color="text.secondary"
             letterSpacing="0.12em"
@@ -112,10 +123,10 @@ export function GameHud({
             {roundLabel}
           </Typography>
           <Stack direction="row" flexWrap="wrap" gap={0.6}>
-            <Typography variant={isCompactLayout ? 'subtitle2' : 'h6'}>
+            <Typography variant={isKeyboardCompact ? 'caption' : isCompactLayout ? 'subtitle2' : 'h6'}>
               {sessionModeLabel}
             </Typography>
-            {sessionSummaryLabel && !isCompactLayout ? (
+            {sessionSummaryLabel && !isCompactLayout && !isKeyboardCompact ? (
               <Typography
                 color="text.secondary"
                 lineHeight={1.3}
@@ -125,7 +136,7 @@ export function GameHud({
               </Typography>
             ) : null}
           </Stack>
-          {!isCompactLayout ? (
+          {!isCompactLayout && !isKeyboardCompact ? (
             <Stack direction="row" flexWrap="wrap" gap={0.6}>
               {sessionLabels.map((label) => (
                 <Typography key={label} color="text.secondary" variant="caption">
@@ -144,7 +155,7 @@ export function GameHud({
                 borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
                 minWidth: { md: 74, sm: 64, xs: 0 },
                 px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
-                py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
+                py: { md: designTokens.componentSpacing.hudChip.py, xs: isKeyboardCompact ? 0.35 : 0.5 },
                 textAlign: 'center',
               },
             ]}

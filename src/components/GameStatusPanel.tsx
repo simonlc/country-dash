@@ -150,15 +150,18 @@ export function GameStatusPanel({
                 boxShadow: 'none',
               }
             : null),
-          borderRadius: designTokens.radius.xs,
-          maxWidth: 560,
+          borderRadius: {
+            md: designTokens.radius.xs,
+            xs: isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
+          },
+          maxWidth: { md: 560, xs: isKeyboardOpen ? 'none' : 560 },
           mb: {
             md: isPlaying ? 16 : 4,
             xs: isKeyboardOpen ? 0 : isPlaying ? 8 : 2,
           },
           p: {
             md: designTokens.componentSpacing.overlayPanel.desktop,
-            xs: designTokens.componentSpacing.overlayPanel.mobile,
+            xs: isKeyboardOpen ? 1.4 : designTokens.componentSpacing.overlayPanel.mobile,
           },
           pointerEvents: 'auto',
           overflow: 'visible',
@@ -167,7 +170,7 @@ export function GameStatusPanel({
         },
       ]}
     >
-      <Stack spacing={isResultView ? 1.1 : 2}>
+      <Stack spacing={isResultView ? 1.1 : isKeyboardOpen ? 1.1 : 2}>
         {gameState.status === 'gameOver' ? (
           <>
             <Stack spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -500,7 +503,7 @@ export function GameStatusPanel({
           </>
         ) : gameState.status === 'playing' ? (
           <>
-            <Typography variant="h6">
+            <Typography variant={isKeyboardOpen ? 'subtitle2' : 'h6'}>
               {isCapitalMode
                 ? m.game_guess_capital_prompt()
                 : m.game_guess_country_prompt()}

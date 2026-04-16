@@ -1,4 +1,6 @@
 :root {
+  --keyboard-fallback-inset: 0px;
+  --visual-viewport-height: 100dvh;
   color: #101828;
   font-synthesis: none;
   font-weight: 400;

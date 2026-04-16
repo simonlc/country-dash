@@ -12,11 +12,12 @@ import { useGamePageState } from '@/hooks/useGamePageState';
 
 export function GamePage() {
   const state = useGamePageState();
+  const keyboardInset = 'max(env(keyboard-inset-height, 0px), var(--keyboard-fallback-inset, 0px))';
   const mobileHudTopPadding = state.isKeyboardOpen
-    ? 'max(env(safe-area-inset-top), 10px)'
+    ? 'max(env(safe-area-inset-top), 8px)'
     : 'max(env(safe-area-inset-top), 56px)';
-  const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${state.keyboardInset}px)`;
-  const mobileStatusBottomPadding = `calc(max(env(safe-area-inset-bottom), 12px) + ${state.keyboardInset}px)`;
+  const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${keyboardInset})`;
+  const mobileStatusBottomPadding = `calc(max(env(safe-area-inset-bottom), 12px) + ${keyboardInset})`;
 
   if (state.loadingError) {
     return (
@@ -50,10 +51,11 @@ export function GamePage() {
     <Box
       sx={{
         backgroundImage: state.activeTheme.background.app,
-        height: '100%',
-        minHeight: '100dvh',
+        height: state.size.height,
+        minHeight: '100svh',
         overflow: 'hidden',
         position: 'relative',
+        width: state.size.width,
       }}
     >
       <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
@@ -132,6 +134,7 @@ export function GamePage() {
             displayElapsedMs={state.displayElapsedMs}
             displaySurface={state.displaySurface}
             incorrect={state.gameState.incorrect}
+            isKeyboardOpen={state.isKeyboardOpen}
             livesRemaining={state.gameState.livesRemaining}
             onRefocus={state.handlers.onRefocus}
             panelSurface={state.panelSurface}

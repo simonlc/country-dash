@@ -284,13 +284,15 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
                   md: 0.25,
                   xs: 1,
                 },
-              },
-              maxHeight: {
-                md: 280,
-                xs: '42vh',
-              },
-            },
-          },
+               },
+               maxHeight: {
+                 md: 280,
+                 xs: 'min(calc(var(--visual-viewport-height, 100dvh) * 0.36), 240px)',
+               },
+               overflowY: 'auto',
+               overscrollBehavior: 'contain',
+             },
+           },
           popper: {
             modifiers: [
               {
