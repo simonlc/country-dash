@@ -228,6 +228,8 @@ const languageByWorldNameKey: Record<string, string> = {
   ZHT: 'zh-hant',
 };
 
+const nonLanguageWorldNameKeys = new Set(['ALT', 'CIAWF', 'LONG', 'SORT']);
+
 function normalizeWorldNameKeyToLanguage(nameKey: string) {
   const key = nameKey.trim().toUpperCase();
   return languageByWorldNameKey[key] ?? key.toLowerCase();
@@ -246,7 +248,12 @@ function extractLocalizedCountryNames(properties: SourceCountryProperties) {
       continue;
     }
 
-    const languageTag = normalizeWorldNameKeyToLanguage(key.slice('NAME_'.length));
+    const worldNameKey = key.slice('NAME_'.length);
+    if (nonLanguageWorldNameKeys.has(worldNameKey.toUpperCase())) {
+      continue;
+    }
+
+    const languageTag = normalizeWorldNameKeyToLanguage(worldNameKey);
     localizedNames[languageTag] = trimmedValue;
   }
 
