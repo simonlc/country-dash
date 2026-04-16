@@ -178,7 +178,7 @@ export const IntroDialog = NiceModal.create(
   }: IntroDialogProps) => {
     const modal = useModal();
     const theme = useTheme();
-    const isCompactLayout = useMediaQuery(theme.breakpoints.down('md'));
+    const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
     const { locale } = useI18n();
     const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
@@ -257,17 +257,17 @@ export const IntroDialog = NiceModal.create(
     return (
       <Dialog
         fullScreen={isCompactLayout}
-        fullWidth
+        fullWidth={isCompactLayout}
         maxWidth="md"
         open={modal.visible}
         PaperProps={{
           sx: {
             borderRadius: { md: 9, xs: 0 },
             height: { md: 'auto', xs: '100dvh' },
-            maxWidth: { xs: '100%' },
+            maxWidth: { md: 960, xs: '100%' },
             m: { xs: 0 },
             overflow: 'hidden',
-            width: { xs: '100%' },
+            width: { md: 'min(960px, calc(100% - 64px))', xs: '100%' },
           },
         }}
       >
