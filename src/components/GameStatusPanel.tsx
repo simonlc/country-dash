@@ -17,7 +17,10 @@ import type {
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { GuessInput } from '@/components/GuessInput';
-import { getFloatingPanelSx } from '@/utils/controlStyles';
+import {
+  getEdgeAttachedPanelRadiusSx,
+  getFloatingPanelSx,
+} from '@/utils/controlStyles';
 import { formatElapsed } from '@/utils/gameLogic';
 import { getLocalizedGeographyLabel } from '@/utils/geographyLabels';
 import type { CountryProperties, GameState } from '@/types/game';
@@ -88,7 +91,8 @@ export function GameStatusPanel({
         .filter((value): value is string => Boolean(value))
         .join(' • ')
     : '';
-  const playerGuess = gameState.lastRound?.playerGuess.trim() || m.game_no_answer();
+  const playerGuess =
+    gameState.lastRound?.playerGuess.trim() || m.game_no_answer();
   const showPlayerGuess =
     gameState.lastRound?.answerResult === 'incorrect' ||
     playerGuess === m.game_no_answer();
@@ -124,6 +128,10 @@ export function GameStatusPanel({
   const dividerColor = (theme: Theme) =>
     theme.vars?.palette.divider ?? theme.palette.divider;
   const isDensePanel = isKeyboardOpen || isPlaying;
+  const isBottomDockedMobile = isPlaying || isResultView;
+  const mobileFreeRadius = isKeyboardOpen
+    ? designTokens.radius.sm
+    : designTokens.radius.xs;
   const panelSpacing = isResultView ? 1.1 : isDensePanel ? 1.1 : 2;
   const panelPaddingInline = isKeyboardOpen
     ? designTokens.componentDensity.mobile.px
@@ -143,13 +151,14 @@ export function GameStatusPanel({
           boxShadow: 'none',
         }
       : null),
-    borderRadius: {
-      md: designTokens.radius.sm,
-      xs: isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
-    },
+    ...getEdgeAttachedPanelRadiusSx({
+      desktopRadius: designTokens.radius.sm,
+      mobileAttach: isBottomDockedMobile ? 'bottom' : 'none',
+      mobileFreeRadius,
+    }),
     marginBlockEnd: {
       md: designTokens.layout.floatingOffset.desktopBottom,
-      xs: isPlaying || isKeyboardOpen ? 0 : 2,
+      xs: 0,
     },
     maxInlineSize: { md: isPlaying ? 720 : 560, xs: '100%' },
     overflow: 'visible',
@@ -163,12 +172,8 @@ export function GameStatusPanel({
     },
     pointerEvents: 'auto',
     textAlign: 'center',
-    ...(isPlaying
+    ...(isBottomDockedMobile
       ? {
-          borderEndEndRadius: 0,
-          borderEndStartRadius: 0,
-          borderStartEndRadius: designTokens.radius.sm,
-          borderStartStartRadius: designTokens.radius.sm,
           paddingBlockEnd: 'calc(16px + env(safe-area-inset-bottom))',
         }
       : null),
@@ -192,13 +197,7 @@ export function GameStatusPanel({
   } as const;
 
   return (
-    <Paper
-      elevation={0}
-      sx={[
-        panelSurface,
-        panelShellSx,
-      ]}
-    >
+    <Paper elevation={0} sx={[panelSurface, panelShellSx]}>
       <Stack spacing={panelSpacing}>
         {gameState.status === 'gameOver' ? (
           <>
@@ -207,12 +206,16 @@ export function GameStatusPanel({
                 sx={{
                   alignItems: 'center',
                   bgcolor: 'primary.main',
-                  borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
+                  borderRadius: {
+                    sm: designTokens.radius.sm,
+                    xs: designTokens.radius.xs,
+                  },
                   color: 'primary.contrastText',
                   display: 'grid',
-                  blockSize: 36,
+                  minBlockSize: designTokens.touchTarget.min,
                   justifyItems: 'center',
-                  inlineSize: 36,
+                  minInlineSize: designTokens.touchTarget.min,
+                  padding: 1,
                 }}
               >
                 <Award size={16} />
@@ -251,7 +254,10 @@ export function GameStatusPanel({
                       sx={[
                         displaySurface,
                         {
-                          borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
+                          borderRadius: {
+                            sm: designTokens.radius.md,
+                            xs: designTokens.radius.xs,
+                          },
                           backgroundImage: 'none',
                           p: 1.5,
                         },
@@ -291,7 +297,10 @@ export function GameStatusPanel({
                 sx={{
                   border: '1px solid',
                   borderColor: dividerColor,
-                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
+                  borderRadius: {
+                    sm: designTokens.radius.md,
+                    xs: designTokens.radius.xs,
+                  },
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   inlineSize: '100%',
@@ -401,14 +410,18 @@ export function GameStatusPanel({
                 sx={{
                   alignItems: 'center',
                   bgcolor: isCorrect ? 'primary.main' : 'error.main',
-                  borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
+                  borderRadius: {
+                    sm: designTokens.radius.sm,
+                    xs: designTokens.radius.xs,
+                  },
                   color: isCorrect
                     ? 'primary.contrastText'
                     : 'error.contrastText',
                   display: 'grid',
-                  blockSize: 36,
+                  minBlockSize: designTokens.touchTarget.min,
                   justifyItems: 'center',
-                  inlineSize: 36,
+                  minInlineSize: designTokens.touchTarget.min,
+                  padding: 1,
                 }}
               >
                 {isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
@@ -445,16 +458,19 @@ export function GameStatusPanel({
                 sx={{
                   border: '1px solid',
                   borderColor: dividerColor,
-                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
+                  borderRadius: {
+                    sm: designTokens.radius.md,
+                    xs: designTokens.radius.xs,
+                  },
                   px: { sm: 4, xs: 2 },
                   py: 1,
                   textAlign: 'center',
                   inlineSize: '100%',
                 }}
               >
-                  <Typography color="text.secondary" variant="caption">
-                    {m.game_your_guess()}
-                  </Typography>
+                <Typography color="text.secondary" variant="caption">
+                  {m.game_your_guess()}
+                </Typography>
                 <Typography variant="body1">{playerGuess}</Typography>
               </Box>
             ) : null}
@@ -462,7 +478,10 @@ export function GameStatusPanel({
               sx={{
                 border: '1px solid',
                 borderColor: dividerColor,
-                borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
+                borderRadius: {
+                  sm: designTokens.radius.md,
+                  xs: designTokens.radius.xs,
+                },
                 display: 'grid',
                 gap: 0,
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -527,8 +546,8 @@ export function GameStatusPanel({
                 },
               ]}
             >
-               {isReviewComplete ? m.action_finish() : m.action_next()}
-             </Button>
+              {isReviewComplete ? m.action_finish() : m.action_next()}
+            </Button>
           </>
         ) : gameState.status === 'playing' ? (
           <>

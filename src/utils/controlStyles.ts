@@ -52,9 +52,9 @@ export function getSelectorCardSx(
     margin: 0,
     outline: 'none',
     textDecoration: 'none',
-    textAlign: 'left',
+    textAlign: 'start',
     transition: `border-color ${designTokens.motion.fast} ease, box-shadow ${designTokens.motion.fast} ease, background-color ${designTokens.motion.fast} ease`,
-    width: '100%',
+    inlineSize: '100%',
     boxShadow: 'none',
     '&:hover': {
       backgroundColor: selected
@@ -115,12 +115,101 @@ export function getChipShellSx({
 
   return {
     borderRadius: usePill ? designTokens.radius.pill : designTokens.chip.fallbackRadius,
-    maxBlockSize: compact
-      ? designTokens.chip.compactMaxHeight
-      : designTokens.chip.regularMaxHeight,
+    minBlockSize: compact
+      ? designTokens.touchTarget.min
+      : designTokens.touchTarget.comfortable,
+    overflow: 'hidden',
     paddingBlock: compact
       ? designTokens.componentDensity.mobile.py
       : designTokens.componentDensity.desktop.py,
     paddingInline: designTokens.chip.minInlinePadding,
+  };
+}
+
+interface OverlayLayerSxOptions {
+  alignItems: 'start' | 'end';
+  desktopBlockEndPadding: number;
+  desktopBlockStartPadding: number;
+  desktopInlinePadding: number;
+  mobileBlockEndPadding: number | string;
+  mobileBlockStartPadding: number | string;
+  mobileInlineEndInset: string;
+  mobileInlineStartInset: string;
+}
+
+interface EdgeAttachedPanelRadiusSxOptions {
+  desktopRadius: number;
+  mobileAttach: 'bottom' | 'none' | 'top';
+  mobileFreeRadius: number;
+}
+
+export function getEdgeAttachedPanelRadiusSx({
+  desktopRadius,
+  mobileAttach,
+  mobileFreeRadius,
+}: EdgeAttachedPanelRadiusSxOptions) {
+  // Explicit mobile edge rule:
+  // - top-attached panel => top corners must be square
+  // - bottom-attached panel => bottom corners must be square
+  // - unattached panel => all corners may be rounded
+  if (mobileAttach === 'top') {
+    return {
+      borderEndEndRadius: { md: desktopRadius, xs: mobileFreeRadius },
+      borderEndStartRadius: { md: desktopRadius, xs: mobileFreeRadius },
+      borderStartEndRadius: { md: desktopRadius, xs: 0 },
+      borderStartStartRadius: { md: desktopRadius, xs: 0 },
+    };
+  }
+
+  if (mobileAttach === 'bottom') {
+    return {
+      borderEndEndRadius: { md: desktopRadius, xs: 0 },
+      borderEndStartRadius: { md: desktopRadius, xs: 0 },
+      borderStartEndRadius: { md: desktopRadius, xs: mobileFreeRadius },
+      borderStartStartRadius: { md: desktopRadius, xs: mobileFreeRadius },
+    };
+  }
+
+  return {
+    borderRadius: { md: desktopRadius, xs: mobileFreeRadius },
+  };
+}
+
+export function getOverlayLayerSx({
+  alignItems,
+  desktopBlockEndPadding,
+  desktopBlockStartPadding,
+  desktopInlinePadding,
+  mobileBlockEndPadding,
+  mobileBlockStartPadding,
+  mobileInlineEndInset,
+  mobileInlineStartInset,
+}: OverlayLayerSxOptions): SxProps<Theme> {
+  return {
+    alignItems: alignItems === 'start' ? 'flex-start' : 'flex-end',
+    display: 'flex',
+    insetBlockEnd: 0,
+    insetBlockStart: 0,
+    insetInlineEnd: 0,
+    insetInlineStart: 0,
+    justifyContent: 'center',
+    paddingBlockEnd: {
+      md: desktopBlockEndPadding,
+      xs: mobileBlockEndPadding,
+    },
+    paddingBlockStart: {
+      md: desktopBlockStartPadding,
+      xs: mobileBlockStartPadding,
+    },
+    paddingInlineEnd: {
+      md: desktopInlinePadding,
+      xs: mobileInlineEndInset,
+    },
+    paddingInlineStart: {
+      md: desktopInlinePadding,
+      xs: mobileInlineStartInset,
+    },
+    pointerEvents: 'none',
+    position: 'absolute',
   };
 }

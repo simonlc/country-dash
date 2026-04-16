@@ -71,7 +71,9 @@ describe('ThemeMenu', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
+    await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('button', { name: /select language/i }));
-    expect((await screen.findAllByRole('menuitem')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('dialog', { name: /select language/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /english/i })).toBeVisible();
   });
 });

@@ -8,15 +8,13 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Menu,
-  MenuItem,
   Paper,
   Stack,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Check, Crosshair, Globe, Info, RotateCcw, XCircle } from 'react-feather';
+import { Check, Crosshair, Globe, Info, MoreVertical, RotateCcw, XCircle } from 'react-feather';
 import { useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { useI18n } from '@/app/i18n';
@@ -34,6 +32,7 @@ interface ThemeMenuProps {
 }
 
 interface MenuAction {
+  color?: 'error' | 'primary';
   icon: typeof Crosshair;
   label: string;
   onClick: () => void;
@@ -47,17 +46,14 @@ export function ThemeMenu({
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
-  const [languageAnchorEl, setLanguageAnchorEl] = useState<HTMLElement | null>(null);
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { languages, locale, setLocale } = useI18n();
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const menuPanelId = 'theme-menu-panel';
-  const languageMenuId = 'language-menu-panel';
-  const languageMenuOpen = Boolean(languageAnchorEl);
   const isRtlDocument = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
-  const inlineStartAnchor = isRtlDocument ? 'right' : 'left';
   const menuTransformOrigin = isRtlDocument ? 'top left' : 'top right';
 
   const closeMenu = () => {
@@ -84,6 +80,7 @@ export function ThemeMenu({
     {
       icon: XCircle,
       label: m.action_quit(),
+      color: 'error',
       onClick: () => {
         closeMenu();
         setConfirmQuitOpen(true);
@@ -95,6 +92,14 @@ export function ThemeMenu({
       onClick: () => {
         closeMenu();
         onAbout();
+      },
+    },
+    {
+      icon: Globe,
+      label: m.menu_language_selector_aria(),
+      onClick: () => {
+        closeMenu();
+        setLanguageDialogOpen(true);
       },
     },
   ];
@@ -122,6 +127,7 @@ export function ThemeMenu({
                   ? m.game_refocus_country_aria()
                   : action.label
               }
+              color={action.color ?? 'primary'}
               key={action.label}
               size="small"
               startIcon={<ActionIcon size={14} />}
@@ -193,85 +199,23 @@ export function ThemeMenu({
           }}
         >
           <Stack alignItems="flex-end" spacing={1} sx={{ position: 'relative' }}>
-            <Stack direction="row" spacing={1}>
-              <Button
-                aria-controls={menuPanelId}
-                aria-expanded={open}
-                size={isCompactLayout ? 'medium' : 'small'}
-                sx={{
+            <IconButton
+              aria-controls={open ? menuPanelId : undefined}
+              aria-expanded={open ? 'true' : undefined}
+              aria-label={open ? m.action_close() : m.action_menu()}
+              color="primary"
+              size={isCompactLayout ? 'medium' : 'small'}
+              sx={[
+                panelSurface,
+                {
                   minBlockSize: designTokens.touchTarget.min,
-                  minInlineSize: 0,
-                  paddingBlock: 0.85,
-                  paddingInline: 2,
-                }}
-                variant="contained"
-                onClick={() => setOpen((value) => !value)}
-              >
-                {open ? m.action_close() : m.action_menu()}
-              </Button>
-              <IconButton
-                aria-controls={languageMenuOpen ? languageMenuId : undefined}
-                aria-expanded={languageMenuOpen ? 'true' : undefined}
-                aria-haspopup="menu"
-                aria-label={m.menu_language_selector_aria()}
-                color="primary"
-                size={isCompactLayout ? 'medium' : 'small'}
-                sx={[
-                  panelSurface,
-                  {
-                    minBlockSize: designTokens.touchTarget.min,
-                    minInlineSize: designTokens.touchTarget.min,
-                  },
-                ]}
-                onClick={(event) => {
-                  setLanguageAnchorEl(event.currentTarget);
-                }}
-              >
-                <Globe size={16} />
-              </IconButton>
-              <Menu
-                anchorEl={languageAnchorEl}
-                anchorOrigin={{ horizontal: inlineStartAnchor, vertical: 'bottom' }}
-                id={languageMenuId}
-                open={languageMenuOpen}
-                transformOrigin={{ horizontal: inlineStartAnchor, vertical: 'top' }}
-                onClose={() => setLanguageAnchorEl(null)}
-              >
-                {languages.map((language) => {
-                  const isActiveLocale = language.locale === locale;
-
-                  return (
-                    <MenuItem
-                      key={language.locale}
-                      selected={isActiveLocale}
-                      sx={{ minInlineSize: designTokens.menu.languageItemMinWidth }}
-                      onClick={() => {
-                        void setLocale(language.locale);
-                        setLanguageAnchorEl(null);
-                      }}
-                    >
-                      <Stack
-                        alignItems="center"
-                        direction="row"
-                        justifyContent="space-between"
-                        spacing={2}
-                        sx={{ width: '100%' }}
-                      >
-                        <Stack spacing={0}>
-                          <Typography variant="body2">{language.nativeLabel}</Typography>
-                          {language.englishLabel !== language.nativeLabel ? (
-                            <Typography color="text.secondary" variant="caption">
-                              {language.englishLabel}
-                            </Typography>
-                          ) : null}
-                        </Stack>
-                        {isActiveLocale ? <Check size={15} /> : null}
-                      </Stack>
-                    </MenuItem>
-                  );
-                })}
-              </Menu>
-            </Stack>
+                  minInlineSize: designTokens.touchTarget.min,
+                },
+              ]}
+              onClick={() => setOpen((value) => !value)}
+            >
+              <MoreVertical size={17} />
+            </IconButton>
             <Collapse
               in={open}
               sx={{
@@ -309,6 +253,67 @@ export function ThemeMenu({
           </Stack>
         </ClickAwayListener>
       </Box>
+      <Dialog
+        fullScreen={isCompactLayout}
+        fullWidth
+        maxWidth="xs"
+        open={languageDialogOpen}
+        PaperProps={{
+          sx: {
+            ...panelSurface,
+            borderRadius: { md: designTokens.radius.md, xs: designTokens.radius.xs },
+            backgroundImage: 'none',
+          },
+        }}
+        onClose={() => setLanguageDialogOpen(false)}
+      >
+        <DialogTitle>{m.menu_language_selector_aria()}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1}>
+            {languages.map((language) => {
+              const isActiveLocale = language.locale === locale;
+
+              return (
+                <Button
+                  key={language.locale}
+                  size="large"
+                  sx={{
+                    justifyContent: 'space-between',
+                    minBlockSize: designTokens.touchTarget.comfortable,
+                    paddingBlock: 1.1,
+                    paddingInline: 1.4,
+                    textAlign: 'start',
+                    textTransform: 'none',
+                    whiteSpace: 'normal',
+                  }}
+                  variant={isActiveLocale ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    void setLocale(language.locale);
+                    setLanguageDialogOpen(false);
+                  }}
+                >
+                  <Stack spacing={0} sx={{ alignItems: 'flex-start', minInlineSize: 0 }}>
+                    <Typography sx={{ fontWeight: designTokens.fontWeight.medium }} variant="body2">
+                      {language.nativeLabel}
+                    </Typography>
+                    {language.englishLabel !== language.nativeLabel ? (
+                      <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">
+                        {language.englishLabel}
+                      </Typography>
+                    ) : null}
+                  </Stack>
+                  {isActiveLocale ? <Check size={15} /> : null}
+                </Button>
+              );
+            })}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLanguageDialogOpen(false)}>
+            {m.action_close()}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         fullScreen={isCompactLayout}
         fullWidth

@@ -15,7 +15,11 @@ import type {
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { GameTimer } from '@/components/GameTimer';
-import { getChipShellSx, getFloatingPanelSx } from '@/utils/controlStyles';
+import {
+  getChipShellSx,
+  getEdgeAttachedPanelRadiusSx,
+  getFloatingPanelSx,
+} from '@/utils/controlStyles';
 
 interface GameHudProps {
   correct: number;
@@ -86,16 +90,11 @@ export function GameHud({
       : 'h6';
   const hudPanelSx = {
     ...getFloatingPanelSx({ compact: isDenseHud, maxWidth: '100%' }),
-    borderEndEndRadius: {
-      md: designTokens.radius.pill,
-      xs: designTokens.radius.sm,
-    },
-    borderEndStartRadius: {
-      md: designTokens.radius.pill,
-      xs: designTokens.radius.sm,
-    },
-    borderStartEndRadius: 0,
-    borderStartStartRadius: 0,
+    ...getEdgeAttachedPanelRadiusSx({
+      desktopRadius: designTokens.radius.md,
+      mobileAttach: 'top',
+      mobileFreeRadius: designTokens.radius.sm,
+    }),
     pointerEvents: 'auto',
     paddingBlock: {
       md: designTokens.componentDensity.desktop.py,
@@ -110,13 +109,30 @@ export function GameHud({
       xs: isKeyboardCompact ? 0.65 : designTokens.componentDensity.mobile.px,
     },
   } as const;
+  const statContainerSx = isCompactLayout
+    ? {
+        display: 'grid',
+        gap: 0.7,
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      }
+    : {
+        alignItems: 'stretch',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 0.7,
+      };
   const chipShellSx = getChipShellSx({
     compact: isDenseHud,
     wrapped: isCompactLayout,
   });
   const baseChipSx = {
-    flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
-    minInlineSize: { md: 74, xs: 0 },
+    alignContent: 'center',
+    display: 'grid',
+    flex: { md: '0 1 auto', xs: '1 1 auto' },
+    gap: 0.2,
+    inlineSize: { md: 'auto', xs: '100%' },
+    justifyItems: 'center',
+    minInlineSize: { md: 82, xs: 0 },
     textAlign: 'center',
   } as const;
 
@@ -140,11 +156,11 @@ export function GameHud({
               {roundLabel}
             </Typography>
             <Stack alignItems="baseline" direction="row" flexWrap="wrap" gap={0.6}>
-              <Typography variant={sessionModeVariant}>
+              <Typography sx={{ overflowWrap: 'anywhere' }} variant={sessionModeVariant}>
                 {sessionModeLabel}
               </Typography>
               {sessionSummaryLabel && !isKeyboardCompact ? (
-                <Typography color="text.secondary" lineHeight={1.3} variant="body2">
+                <Typography color="text.secondary" lineHeight={1.3} sx={{ overflowWrap: 'anywhere' }} variant="body2">
                   {sessionSummaryLabel}
                 </Typography>
               ) : null}
@@ -163,7 +179,7 @@ export function GameHud({
           </Stack>
         ) : null}
 
-        <Stack direction="row" flexWrap="wrap" gap={0.7}>
+        <Box sx={statContainerSx}>
           {statItems.map((item) => (
             <Box
               key={item.label}
@@ -173,7 +189,12 @@ export function GameHud({
                 baseChipSx,
               ]}
             >
-              <Typography color="text.secondary" lineHeight={1} variant="caption">
+              <Typography
+                color="text.secondary"
+                lineHeight={1.2}
+                sx={{ overflowWrap: 'anywhere' }}
+                variant="caption"
+              >
                 {item.label}
               </Typography>
               <Typography
@@ -184,6 +205,7 @@ export function GameHud({
                     xs: theme.typography.body1.fontSize,
                   },
                   fontVariantNumeric: 'tabular-nums',
+                  overflowWrap: 'anywhere',
                 }}
                 variant="subtitle2"
               >
@@ -197,8 +219,12 @@ export function GameHud({
               displayAccentSurface,
               chipShellSx,
               {
-                flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
-                minInlineSize: { md: 86, xs: 0 },
+                alignContent: 'center',
+                display: 'grid',
+                flex: { md: '0 1 auto', xs: '1 1 auto' },
+                inlineSize: { md: 'auto', xs: '100%' },
+                justifyItems: 'center',
+                minInlineSize: { md: 90, xs: 0 },
               },
             ]}
           >
@@ -219,7 +245,7 @@ export function GameHud({
               {m.action_refocus()}
             </Button>
           ) : null}
-        </Stack>
+        </Box>
       </Stack>
     </Paper>
   );

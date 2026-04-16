@@ -527,3 +527,23 @@ const mobileStatChipSx = {
 3. Floating desktop UI that scales well across widths.
 4. RTL/LTR-safe styling pass on major surfaces.
 5. Documented a11y/l10n checks and resolved issues.
+
+---
+
+## 17. Post-implementation regression fixes (completed)
+
+- [x] Refactor overlay positioning to a shared base layer component for top and bottom HUD/status alignment.
+- [x] Encode explicit edge-attachment corner rules in shared style helpers:
+  - top-attached mobile panels: top corners always square
+  - bottom-attached mobile panels: bottom corners always square
+- [x] Stabilize shared overlay layer alignment using a single flex-based positioning primitive for top/bottom HUD surfaces.
+- [x] Apply conditional bottom-attachment radius rules so only mobile bottom-docked states use square screen-edge corners.
+- [x] Restore desktop floating behavior for top HUD with consistent token-driven offsets and rounded panel shell.
+- [x] Remove fixed-height constraints from top HUD chips/timer shells and harden text wrapping to prevent mobile overflow.
+- [x] Align post-guess mobile panel behavior with the playing panel by docking review/game-over states to the bottom safe area.
+- [x] Update timer formatting to seconds-only output (no millisecond decimals).
+- [x] Refactor menu interaction model:
+  - icon-only menu trigger button
+  - language selection moved inside the menu actions
+  - language options displayed in a dedicated modal dialog
+- [x] Re-run full quality suite after regression fixes (typecheck, lint, unit tests, build, E2E).

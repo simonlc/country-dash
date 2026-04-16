@@ -21,7 +21,7 @@ export function GameTimer({
 
     const intervalId = window.setInterval(() => {
       setTickNow(performance.now());
-    }, 50);
+    }, 250);
 
     return () => {
       window.clearInterval(intervalId);
@@ -34,14 +34,18 @@ export function GameTimer({
       : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
 
   return (
-    <Stack spacing={0.2} sx={{ minWidth: { sm: 88, xs: 0 } }}>
+    <Stack spacing={0.2} sx={{ inlineSize: '100%', minInlineSize: 0 }}>
       <Typography color="text.primary" variant="caption">
         {m.game_stat_time()}
       </Typography>
       <Typography
         component="p"
-        sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
-        variant="h6"
+        sx={{
+          fontVariantNumeric: 'tabular-nums',
+          fontSize: { sm: '1.1rem', xs: '1rem' },
+          whiteSpace: 'nowrap',
+        }}
+        variant="subtitle1"
       >
         {formatElapsed(liveElapsedMs)}
       </Typography>

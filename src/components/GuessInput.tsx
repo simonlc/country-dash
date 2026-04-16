@@ -1,3 +1,12 @@
+import { designTokens } from '@/app/designSystem';
+import { useI18n } from '@/app/i18n';
+import { m } from '@/paraglide/messages.js';
+import type { CountryProperties } from '@/types/game';
+import {
+  getCountryDisplayName,
+  getCountryNameCandidates,
+} from '@/utils/countryNames';
+import { normalizeGuess } from '@/utils/gameLogic';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import { useTheme } from '@mui/material/styles';
@@ -14,15 +23,6 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
-import { useI18n } from '@/app/i18n';
-import { designTokens } from '@/app/designSystem';
-import { m } from '@/paraglide/messages.js';
-import { normalizeGuess } from '@/utils/gameLogic';
-import {
-  getCountryDisplayName,
-  getCountryNameCandidates,
-} from '@/utils/countryNames';
-import type { CountryProperties } from '@/types/game';
 
 interface HighlightPart {
   highlight: boolean;
@@ -75,9 +75,8 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
   const theme = useTheme();
   const isMobileLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { locale } = useI18n();
-  const [highlightedChoice, setHighlightedChoice] = useState<GuessChoice | null>(
-    null,
-  );
+  const [highlightedChoice, setHighlightedChoice] =
+    useState<GuessChoice | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [hintValue, setHintValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -89,8 +88,9 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
     () =>
       variant === 'capital'
         ? options
-            .filter((option): option is CountryProperties & { capitalName: string } =>
-              Boolean(option.capitalName),
+            .filter(
+              (option): option is CountryProperties & { capitalName: string } =>
+                Boolean(option.capitalName),
             )
             .map((option) => ({
               aliases: option.capitalAliases ?? [option.capitalName],
@@ -175,7 +175,8 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         return;
       }
 
-      const submittedValue = findExactMatch(enteredValue)?.label ?? enteredValue;
+      const submittedValue =
+        findExactMatch(enteredValue)?.label ?? enteredValue;
       setOpen(false);
       onSubmit(submittedValue);
     },
@@ -203,12 +204,16 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         }
 
         const currentIndex = highlightedChoice
-          ? filteredOptions.findIndex((option) => option.id === highlightedChoice.id)
+          ? filteredOptions.findIndex(
+              (option) => option.id === highlightedChoice.id,
+            )
           : -1;
         const nextIndex =
           event.key === 'ArrowDown'
-            ? (currentIndex + 1 + filteredOptions.length) % filteredOptions.length
-            : (currentIndex - 1 + filteredOptions.length) % filteredOptions.length;
+            ? (currentIndex + 1 + filteredOptions.length) %
+              filteredOptions.length
+            : (currentIndex - 1 + filteredOptions.length) %
+              filteredOptions.length;
 
         setHighlightedChoice(filteredOptions[nextIndex] ?? null);
         event.preventDefault();
@@ -254,7 +259,6 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
       sx={{
         display: 'grid',
         gap: 1,
-        maxWidth: 520,
         width: '100%',
       }}
     >
@@ -284,15 +288,15 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
                   md: 0.25,
                   xs: 1,
                 },
-               },
-               maxHeight: {
-                 md: 280,
-                 xs: 'min(calc(var(--visual-viewport-height, 100dvh) * 0.36), 240px)',
-               },
-               overflowY: 'auto',
-               overscrollBehavior: 'contain',
-             },
-           },
+              },
+              maxHeight: {
+                md: 280,
+                xs: 'min(calc(var(--visual-viewport-height, 100dvh) * 0.36), 240px)',
+              },
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+            },
+          },
           popper: {
             modifiers: [
               {
@@ -408,15 +412,21 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               sx={{
                 '&.MuiAutocomplete-option': {
                   backgroundColor:
-                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                    highlightedChoice?.id === option.id
+                      ? 'action.selected'
+                      : 'transparent',
                 },
                 '&.MuiAutocomplete-option.Mui-focused': {
                   backgroundColor:
-                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                    highlightedChoice?.id === option.id
+                      ? 'action.selected'
+                      : 'transparent',
                 },
                 '&.MuiAutocomplete-option[aria-selected="true"]': {
                   backgroundColor:
-                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                    highlightedChoice?.id === option.id
+                      ? 'action.selected'
+                      : 'transparent',
                 },
                 alignItems: 'center',
               }}
