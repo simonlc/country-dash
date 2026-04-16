@@ -1,5 +1,6 @@
 import { geoCentroid } from 'd3';
 import { weights, weightedShuffle } from '@/weights';
+import { getCountryNameCandidates } from '@/utils/countryNames';
 import type {
   AnswerResult,
   CountrySizeFilter,
@@ -394,16 +395,7 @@ export function normalizeGuess(value: string) {
 }
 
 function getCountryAliases(country: CountryFeature) {
-  return [
-    country.properties.nameEn,
-    country.properties.name,
-    country.properties.abbr,
-    country.properties.formalName,
-    country.properties.nameAlt,
-    country.properties.isocode,
-    country.properties.isocode3,
-  ]
-    .filter((value): value is string => Boolean(value))
+  return getCountryNameCandidates(country.properties)
     .map((value) => normalizeGuess(value));
 }
 
@@ -776,14 +768,23 @@ function getDailyEmoji(answerResult: AnswerResult) {
   return answerResult === 'correct' ? '🟢' : '⚫';
 }
 
-export function buildDailyShareText(result: DailyChallengeResult) {
+export function buildDailyShareText(
+  result: DailyChallengeResult,
+  labels: {
+    scoreLabel: string;
+    titlePrefix: string;
+  } = {
+    scoreLabel: 'Score',
+    titlePrefix: 'Country Dash Daily',
+  },
+) {
   const emojiLine = result.rounds
     .map((round) => getDailyEmoji(round.answerResult))
     .join('');
 
   return [
-    `🧭 Country Dash Daily ${result.date}`,
-    `🌍 Score: ${result.correctCount}/${result.totalCount}`,
+    `🧭 ${labels.titlePrefix} ${result.date}`,
+    `🌍 ${labels.scoreLabel}: ${result.correctCount}/${result.totalCount}`,
     emojiLine,
   ].join('\n');
 }

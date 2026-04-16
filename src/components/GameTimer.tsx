@@ -1,5 +1,6 @@
 import { Stack, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { m } from '@/paraglide/messages.js';
 import { formatElapsed } from '@/utils/gameLogic';
 
 interface GameTimerProps {
@@ -35,7 +36,7 @@ export function GameTimer({
   return (
     <Stack spacing={0.2} sx={{ minWidth: { sm: 88, xs: 0 } }}>
       <Typography color="text.primary" variant="caption">
-        Time
+        {m.game_stat_time()}
       </Typography>
       <Typography
         component="p"

@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
+import { m } from '@/paraglide/messages.js';
 import { buildDailyShareText } from '@/utils/gameLogic';
 import type { DailyChallengeResult, GameState } from '@/types/game';
 
 interface UseDailyShareArgs {
   gameState: GameState;
   isDailyRun: boolean;
+  locale: string;
   storedDailyResult: DailyChallengeResult | null;
   todayDateKey: string;
   totalRounds: number;
@@ -18,6 +20,7 @@ interface UseDailyShareResult {
 export function useDailyShare({
   gameState,
   isDailyRun,
+  locale,
   storedDailyResult,
   todayDateKey,
   totalRounds,
@@ -54,16 +57,20 @@ export function useDailyShare({
   ]);
 
   const dailyShareText = useMemo(() => {
+    void locale;
     if (!isDailyRun || gameState.status !== 'gameOver') {
       return null;
     }
     if (completedDailyResult) {
-      return buildDailyShareText(completedDailyResult);
+      return buildDailyShareText(completedDailyResult, {
+        scoreLabel: `${m.daily_share_score_label()}`,
+        titlePrefix: `${m.daily_share_title_prefix()}`,
+      });
     }
 
     const summary = [
-      `🧭 Country Dash Daily ${todayDateKey}`,
-      `🌍 Score: ${gameState.correct}/${totalRounds}`,
+      `🧭 ${m.daily_share_title_prefix().toString()} ${todayDateKey}`,
+      `🌍 ${m.daily_share_score_label().toString()}: ${gameState.correct}/${totalRounds}`,
     ].join('\n');
     const emojiLine = gameState.rounds
       .map((round) => (round.answerResult === 'correct' ? '🟢' : '⚫'))
@@ -76,6 +83,7 @@ export function useDailyShare({
     gameState.rounds,
     gameState.status,
     isDailyRun,
+    locale,
     todayDateKey,
     totalRounds,
   ]);

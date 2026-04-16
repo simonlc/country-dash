@@ -1,6 +1,7 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import type { PropsWithChildren } from 'react';
 import { AppearanceProvider, useAppearance } from './appearance';
+import { I18nProvider } from './i18n';
 
 function ThemedProviders({ children }: PropsWithChildren) {
   const { muiTheme } = useAppearance();
@@ -15,8 +16,10 @@ function ThemedProviders({ children }: PropsWithChildren) {
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <AppearanceProvider>
-      <ThemedProviders>{children}</ThemedProviders>
-    </AppearanceProvider>
+    <I18nProvider>
+      <AppearanceProvider>
+        <ThemedProviders>{children}</ThemedProviders>
+      </AppearanceProvider>
+    </I18nProvider>
   );
 }

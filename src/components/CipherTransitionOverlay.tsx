@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { m } from '@/paraglide/messages.js';
 import {
   cipherCountryTransitionDurationMs,
   type CipherCountryTransition,
@@ -11,15 +12,15 @@ interface CipherTransitionOverlayProps {
 
 function getCipherTransitionStage(progress: number) {
   if (progress < 0.22) {
-    return 'Route synthesis';
+    return m.cipher_stage_route_synthesis();
   }
   if (progress < 0.52) {
-    return 'Orbital handoff';
+    return m.cipher_stage_orbital_handoff();
   }
   if (progress < 0.82) {
-    return 'Vector scramble';
+    return m.cipher_stage_vector_scramble();
   }
-  return 'Lock reacquired';
+  return m.cipher_stage_lock_reacquired();
 }
 
 function getCipherTransitionOpacity(progress: number) {
@@ -75,9 +76,9 @@ export function CipherTransitionOverlay({
     .padStart(3, '0')}%`;
   const transitionOpacity = getCipherTransitionOpacity(progress) * opacity;
   const statusLines = [
-    `HANDOFF // ${stage}`,
-    'ROTATION // ACTIVE',
-    'REDACTION // COUNTRY MASKED',
+    `${m.cipher_transition_handoff_label()} // ${stage}`,
+    `${m.cipher_transition_rotation_label()} // ${m.cipher_transition_rotation_active()}`,
+    `${m.cipher_transition_redaction_label()} // ${m.cipher_transition_country_masked()}`,
   ];
 
   return (
@@ -115,7 +116,7 @@ export function CipherTransitionOverlay({
             textTransform: 'uppercase',
           }}
         >
-          <span>Signal relay</span>
+          <span>{m.cipher_transition_signal_relay()}</span>
           <span>{percentLabel}</span>
         </div>
         <div className="cipher-transition-progress-track">

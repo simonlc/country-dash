@@ -7,19 +7,28 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
+  IconButton,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
+import { Check, Crosshair, Globe, Info, RotateCcw, XCircle } from 'react-feather';
 import { useState } from 'react';
 import { useAppearance } from '@/app/appearance';
+import { useI18n } from '@/app/i18n';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import { getThemeSurfaceStyles } from '@/app/theme';
 import { ThemePreview } from '@/components/ThemePreview';
 import { getSelectorCardSx } from '@/utils/controlStyles';
+import {
+  getThemeDescription,
+  getThemeLabel,
+} from '@/utils/themeTranslations';
 
 interface ThemeMenuProps {
   onAbout: () => void;
@@ -42,11 +51,15 @@ export function ThemeMenu({
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<HTMLElement | null>(null);
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
+  const { languages, locale, setLocale } = useI18n();
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const menuPanelId = 'theme-menu-panel';
+  const languageMenuId = 'language-menu-panel';
+  const languageMenuOpen = Boolean(languageAnchorEl);
 
   const closeMenu = () => {
     setOpen(false);
@@ -55,7 +68,7 @@ export function ThemeMenu({
   const actions: MenuAction[] = [
     {
       icon: Crosshair,
-      label: 'Refocus',
+      label: m.action_refocus(),
       onClick: () => {
         closeMenu();
         onRefocus();
@@ -63,7 +76,7 @@ export function ThemeMenu({
     },
     {
       icon: RotateCcw,
-      label: 'Retry',
+      label: m.action_retry(),
       onClick: () => {
         closeMenu();
         onRestart();
@@ -71,7 +84,7 @@ export function ThemeMenu({
     },
     {
       icon: XCircle,
-      label: 'Quit',
+      label: m.action_quit(),
       onClick: () => {
         closeMenu();
         setConfirmQuitOpen(true);
@@ -79,7 +92,7 @@ export function ThemeMenu({
     },
     {
       icon: Info,
-      label: 'About',
+      label: m.action_about(),
       onClick: () => {
         closeMenu();
         onAbout();
@@ -102,7 +115,11 @@ export function ThemeMenu({
       >
         {actions.map((action) => (
           <Button
-            aria-label={action.label === 'Refocus' ? 'Refocus country' : action.label}
+            aria-label={
+              action.label === m.action_refocus()
+                ? m.game_refocus_country_aria()
+                : action.label
+            }
             key={action.label}
             size="small"
             sx={{
@@ -119,7 +136,7 @@ export function ThemeMenu({
         ))}
       </Box>
       <Typography color="text.secondary" sx={{ px: 0.25 }} variant="caption">
-        Themes
+        {m.menu_themes()}
       </Typography>
       <Stack spacing={0.9}>
         {themes.map((themeOption) => {
@@ -155,9 +172,11 @@ export function ThemeMenu({
                   <ThemePreview theme={themeOption} />
                 </Box>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="subtitle2">{themeOption.label}</Typography>
+                  <Typography variant="subtitle2">
+                    {getThemeLabel(themeOption.id)}
+                  </Typography>
                   <Typography color="text.secondary" variant="caption">
-                    {themeOption.description}
+                    {getThemeDescription(themeOption.id)}
                   </Typography>
                 </Box>
               </Stack>
@@ -187,21 +206,85 @@ export function ThemeMenu({
         }}
       >
         <Stack alignItems="flex-start" spacing={1.5} sx={{ pointerEvents: 'auto' }}>
-          <Button
-            aria-controls={menuPanelId}
-            aria-expanded={open}
-            size={isCompactLayout ? 'medium' : 'small'}
-            sx={{
-              minHeight: { xs: 40 },
-              minWidth: 0,
-              px: 2,
-              py: 0.85,
-            }}
-            variant="contained"
-            onClick={() => setOpen((value) => !value)}
-          >
-            {open ? 'Close' : 'Menu'}
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              aria-controls={menuPanelId}
+              aria-expanded={open}
+              size={isCompactLayout ? 'medium' : 'small'}
+              sx={{
+                minHeight: { xs: 40 },
+                minWidth: 0,
+                px: 2,
+                py: 0.85,
+              }}
+              variant="contained"
+              onClick={() => setOpen((value) => !value)}
+            >
+              {open ? m.action_close() : m.action_menu()}
+            </Button>
+            <IconButton
+              aria-controls={languageMenuOpen ? languageMenuId : undefined}
+              aria-expanded={languageMenuOpen ? 'true' : undefined}
+              aria-haspopup="menu"
+              aria-label={m.menu_language_selector_aria()}
+              color="primary"
+              size={isCompactLayout ? 'medium' : 'small'}
+              sx={[
+                panelSurface,
+                {
+                  minHeight: { xs: 40 },
+                  minWidth: { xs: 40 },
+                },
+              ]}
+              onClick={(event) => {
+                setLanguageAnchorEl(event.currentTarget);
+              }}
+            >
+              <Globe size={16} />
+            </IconButton>
+            <Menu
+              anchorEl={languageAnchorEl}
+              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+              id={languageMenuId}
+              open={languageMenuOpen}
+              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+              onClose={() => setLanguageAnchorEl(null)}
+            >
+              {languages.map((language) => {
+                const isActiveLocale = language.locale === locale;
+
+                return (
+                  <MenuItem
+                    key={language.locale}
+                    selected={isActiveLocale}
+                    sx={{ minWidth: 224 }}
+                    onClick={() => {
+                      void setLocale(language.locale);
+                      setLanguageAnchorEl(null);
+                    }}
+                  >
+                    <Stack
+                      alignItems="center"
+                      direction="row"
+                      justifyContent="space-between"
+                      spacing={2}
+                      sx={{ width: '100%' }}
+                    >
+                      <Stack spacing={0}>
+                        <Typography variant="body2">{language.nativeLabel}</Typography>
+                        {language.englishLabel !== language.nativeLabel ? (
+                          <Typography color="text.secondary" variant="caption">
+                            {language.englishLabel}
+                          </Typography>
+                        ) : null}
+                      </Stack>
+                      {isActiveLocale ? <Check size={15} /> : null}
+                    </Stack>
+                  </MenuItem>
+                );
+              })}
+            </Menu>
+          </Stack>
           {!isCompactLayout ? (
             <Collapse in={open} sx={{ width: '100%' }}>
               <Paper
@@ -258,14 +341,16 @@ export function ThemeMenu({
         }}
         onClose={() => setConfirmQuitOpen(false)}
       >
-        <DialogTitle>Quit current run?</DialogTitle>
+        <DialogTitle>{m.menu_quit_current_run_title()}</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">
-            Return to the main menu? Your current run progress will be lost.
+            {m.menu_quit_current_run_body()}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmQuitOpen(false)}>Cancel</Button>
+          <Button onClick={() => setConfirmQuitOpen(false)}>
+            {m.action_cancel()}
+          </Button>
           <Button
             color="error"
             variant="contained"
@@ -274,7 +359,7 @@ export function ThemeMenu({
               onQuit();
             }}
           >
-            Quit
+            {m.action_quit()}
           </Button>
         </DialogActions>
       </Dialog>

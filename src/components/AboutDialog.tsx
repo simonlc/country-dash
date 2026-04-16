@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useAppearance } from '@/app/appearance';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import { getThemeDisplaySurfaceStyles } from '@/app/theme';
 
 export const AboutDialog = NiceModal.create(() => {
@@ -36,9 +37,9 @@ export const AboutDialog = NiceModal.create(() => {
       <DialogTitle>
         <Stack spacing={0.75}>
           <Typography color="text.secondary" variant="overline">
-            About
+            {m.about_overline()}
           </Typography>
-          <Typography variant="h4">Country Dash</Typography>
+          <Typography variant="h4">{m.app_name()}</Typography>
         </Stack>
       </DialogTitle>
       <DialogContent>
@@ -51,21 +52,16 @@ export const AboutDialog = NiceModal.create(() => {
             }}
           >
             <Typography variant="body1">
-              A globe-first geography game for fast country recognition.
+              {m.about_description_1()}
             </Typography>
           </Box>
-          <Typography>
-            Daily challenge for one fixed route, plus custom runs across
-            regions, island nations, microstates, and broader world pools.
-          </Typography>
-          <Typography>
-            Built with React, MUI, and a typed game logic layer.
-          </Typography>
+          <Typography>{m.about_description_2()}</Typography>
+          <Typography>{m.about_description_3()}</Typography>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => void modal.hide()}>
-          Close
+          {m.action_close()}
         </Button>
       </DialogActions>
     </Dialog>

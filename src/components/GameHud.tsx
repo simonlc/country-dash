@@ -7,6 +7,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { m } from '@/paraglide/messages.js';
 import { designTokens } from '@/app/designSystem';
 import type {
   getThemeDisplaySurfaceStyles,
@@ -55,16 +56,20 @@ export function GameHud({
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const statItems = isCompactLayout
     ? [
-        { label: 'Score', value: score },
-        { label: 'Streak', value: streak },
-        ...(livesRemaining !== null ? [{ label: 'Lives', value: livesRemaining }] : []),
+        { label: m.game_stat_score(), value: score },
+        { label: m.game_stat_streak(), value: streak },
+        ...(livesRemaining !== null
+          ? [{ label: m.game_stat_lives(), value: livesRemaining }]
+          : []),
       ]
     : [
-        { label: 'Score', value: score },
-        { label: 'Streak', value: streak },
-        { label: 'Hit', value: correct },
-        { label: 'Miss', value: incorrect },
-        ...(livesRemaining !== null ? [{ label: 'Lives', value: livesRemaining }] : []),
+        { label: m.game_stat_score(), value: score },
+        { label: m.game_stat_streak(), value: streak },
+        { label: m.game_stat_hit(), value: correct },
+        { label: m.game_stat_miss(), value: incorrect },
+        ...(livesRemaining !== null
+          ? [{ label: m.game_stat_lives(), value: livesRemaining }]
+          : []),
       ];
 
   return (
@@ -176,7 +181,7 @@ export function GameHud({
         </Paper>
         {showRefocus && !isCompactLayout ? (
           <Button
-            aria-label="Refocus country"
+            aria-label={m.game_refocus_country_aria()}
             size="small"
             sx={{
               borderColor: 'rgba(150, 201, 255, 0.22)',
@@ -187,7 +192,7 @@ export function GameHud({
             variant="contained"
             onClick={onRefocus}
           >
-            Refocus
+            {m.action_refocus()}
           </Button>
         ) : null}
       </Box>

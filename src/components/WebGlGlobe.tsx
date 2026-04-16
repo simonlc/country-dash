@@ -35,6 +35,7 @@ import {
   initializeWebGl,
   type WebGlResources,
 } from '@/utils/globeWebGl';
+import { m } from '@/paraglide/messages.js';
 
 interface WebGlGlobeProps extends GlobeViewProps {
   onCipherTrafficStateChange?: (state: CipherTrafficState) => void;
@@ -454,7 +455,7 @@ export function WebGlGlobe({
         const nextMessage =
           error instanceof Error
             ? error.message
-            : 'WebGL initialization failed.';
+            : m.error_webgl_initialization_failed();
         window.setTimeout(() => {
           if (!cancelled) {
             onRenderError?.(new Error(nextMessage));

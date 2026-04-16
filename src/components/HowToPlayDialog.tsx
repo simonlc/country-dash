@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useAppearance } from '@/app/appearance';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import { getThemeDisplaySurfaceStyles } from '@/app/theme';
 
 export const HowToPlayDialog = NiceModal.create(() => {
@@ -36,9 +37,9 @@ export const HowToPlayDialog = NiceModal.create(() => {
       <DialogTitle>
         <Stack spacing={0.75}>
           <Typography color="text.secondary" variant="overline">
-            How To Play
+            {m.how_to_play_overline()}
           </Typography>
-          <Typography variant="h4">Country Dash</Typography>
+          <Typography variant="h4">{m.app_name()}</Typography>
         </Stack>
       </DialogTitle>
       <DialogContent>
@@ -51,45 +52,30 @@ export const HowToPlayDialog = NiceModal.create(() => {
             }}
           >
             <Typography variant="body1">
-              Identify the highlighted country on the globe as quickly and
-              accurately as you can.
+              {m.how_to_play_intro()}
             </Typography>
           </Box>
 
           <Stack spacing={1}>
-            <Typography variant="h6">What the game is</Typography>
-            <Typography variant="body2">
-              Country Dash is a globe-based geography game. Each round
-              highlights one location, and your job is to type the correct
-              country name.
-            </Typography>
+            <Typography variant="h6">{m.how_to_play_what_title()}</Typography>
+            <Typography variant="body2">{m.how_to_play_what_body()}</Typography>
           </Stack>
 
           <Stack spacing={1}>
-            <Typography variant="h6">How to play</Typography>
-            <Typography variant="body2">
-              Start a daily challenge or custom run, study the highlighted area,
-              type your guess, and submit it before moving to the next round.
-            </Typography>
-            <Typography variant="body2">
-              Custom runs let you choose a mode and pool. You can play broad
-              world runs, tighter country-size sets, or focused regional pools.
-            </Typography>
+            <Typography variant="h6">{m.how_to_play_how_title()}</Typography>
+            <Typography variant="body2">{m.how_to_play_how_body_1()}</Typography>
+            <Typography variant="body2">{m.how_to_play_how_body_2()}</Typography>
           </Stack>
 
           <Stack spacing={1}>
-            <Typography variant="h6">Modes</Typography>
-            <Typography variant="body2">
-              Classic is open-ended scoring, 3 Lives ends after three misses,
-              Capitals swaps countries for capital-city answers, and Streak ends
-              on the first mistake.
-            </Typography>
+            <Typography variant="h6">{m.how_to_play_modes_title()}</Typography>
+            <Typography variant="body2">{m.how_to_play_modes_body()}</Typography>
           </Stack>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => void modal.hide()}>
-          Close
+          {m.action_close()}
         </Button>
       </DialogActions>
     </Dialog>

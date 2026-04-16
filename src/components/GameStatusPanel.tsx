@@ -11,17 +11,20 @@ import {
   XCircle,
 } from 'react-feather';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import type {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { GuessInput } from '@/components/GuessInput';
 import { formatElapsed } from '@/utils/gameLogic';
+import { getLocalizedGeographyLabel } from '@/utils/geographyLabels';
 import type { CountryProperties, GameState } from '@/types/game';
 
 interface GameStatusPanelProps {
   copyState: 'idle' | 'copied' | 'failed';
   countryOptions: CountryProperties[];
+  currentCountryName: string | null;
   dailyShareText: string | null;
   displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   gameState: GameState;
@@ -44,6 +47,7 @@ interface GameStatusPanelProps {
 export function GameStatusPanel({
   copyState,
   countryOptions,
+  currentCountryName,
   dailyShareText,
   displaySurface,
   gameState,
@@ -65,30 +69,34 @@ export function GameStatusPanel({
   const isResultView = isReviewing || gameState.status === 'gameOver';
   const reviewAnswer = gameState.lastRound
     ? isCapitalMode
-      ? (gameState.lastRound.capitalName ?? gameState.lastRound.countryName)
-      : gameState.lastRound.countryName
+      ? (gameState.lastRound.capitalName ??
+        currentCountryName ??
+        gameState.lastRound.countryName)
+      : (currentCountryName ?? gameState.lastRound.countryName)
     : '';
   const reviewMetadata = gameState.lastRound
     ? [
-        isCapitalMode ? gameState.lastRound.countryName : null,
-        gameState.lastRound.continent,
-        gameState.lastRound.subregion,
+        isCapitalMode
+          ? (currentCountryName ?? gameState.lastRound.countryName)
+          : null,
+        getLocalizedGeographyLabel(gameState.lastRound.continent),
+        getLocalizedGeographyLabel(gameState.lastRound.subregion),
       ]
         .filter((value): value is string => Boolean(value))
         .join(' • ')
     : '';
-  const playerGuess = gameState.lastRound?.playerGuess.trim() || 'No answer';
+  const playerGuess = gameState.lastRound?.playerGuess.trim() || m.game_no_answer();
   const showPlayerGuess =
     gameState.lastRound?.answerResult === 'incorrect' ||
-    playerGuess === 'No answer';
+    playerGuess === m.game_no_answer();
   const reviewStats = gameState.lastRound
     ? [
         {
-          label: 'Time',
+          label: m.game_stat_time(),
           value: formatElapsed(gameState.lastRound.roundElapsedMs),
         },
         {
-          label: 'Score',
+          label: m.game_stat_score(),
           value: `${gameState.lastRound.scoreDelta >= 0 ? '+' : ''}${
             gameState.lastRound.scoreDelta
           }`,
@@ -96,15 +104,18 @@ export function GameStatusPanel({
       ]
     : [];
   const gameOverSummary = isDailyRun
-    ? `${gameState.correct}/${totalRounds} correct today`
-    : `${gameState.correct}/${totalRounds} correct`;
+    ? m.game_correct_today({ correct: gameState.correct, total: totalRounds })
+    : m.game_correct({ correct: gameState.correct, total: totalRounds });
   const gameOverMeta = isDailyRun
-    ? `Best streak ${gameState.bestStreak} • ${formatElapsed(
-        gameState.totalElapsedMs,
-      )}`
-    : `${gameState.score} points • Best streak ${gameState.bestStreak} • ${formatElapsed(
-        gameState.totalElapsedMs,
-      )}`;
+    ? m.game_meta_daily({
+        bestStreak: gameState.bestStreak,
+        elapsed: formatElapsed(gameState.totalElapsedMs),
+      })
+    : m.game_meta_random({
+        bestStreak: gameState.bestStreak,
+        elapsed: formatElapsed(gameState.totalElapsedMs),
+        score: gameState.score,
+      });
   const isCorrect = gameState.lastRound?.answerResult === 'correct';
   const statusColor = isCorrect ? 'primary.main' : 'error.main';
   const dividerColor = (theme: Theme) =>
@@ -183,7 +194,7 @@ export function GameStatusPanel({
                   textTransform: 'uppercase',
                 }}
               >
-                {isDailyRun ? 'Daily complete' : 'Run complete'}
+                {isDailyRun ? m.game_daily_complete() : m.game_run_complete()}
               </Typography>
               <Typography
                 sx={{
@@ -234,10 +245,10 @@ export function GameStatusPanel({
                       sx={flatActionButtonSx}
                     >
                       {copyState === 'copied'
-                        ? 'Copied'
+                        ? m.game_copied()
                         : copyState === 'failed'
-                          ? 'Copy failed'
-                          : 'Copy results'}
+                          ? m.game_copy_failed()
+                          : m.action_copy_results()}
                     </Button>
                   </>
                 ) : null}
@@ -257,14 +268,14 @@ export function GameStatusPanel({
                 {[
                   {
                     icon: TrendingUp,
-                    label: 'Score',
-                    value: gameState.score,
-                  },
-                  {
-                    icon: Clock,
-                    label: 'Time',
-                    value: formatElapsed(gameState.totalElapsedMs),
-                  },
+                     label: m.game_stat_score(),
+                     value: gameState.score,
+                   },
+                   {
+                     icon: Clock,
+                     label: m.game_stat_time(),
+                     value: formatElapsed(gameState.totalElapsedMs),
+                   },
                 ].map((item, index) => (
                   <Box
                     key={item.label}
@@ -325,7 +336,7 @@ export function GameStatusPanel({
                     },
                   ]}
                 >
-                  Play again
+                  {m.action_play_again()}
                 </Button>
               ) : null}
               <Button
@@ -342,7 +353,7 @@ export function GameStatusPanel({
                       },
                 ]}
               >
-                Main menu
+                {m.action_main_menu()}
               </Button>
             </Stack>
           </>
@@ -379,7 +390,7 @@ export function GameStatusPanel({
                   textTransform: 'uppercase',
                 }}
               >
-                {isCorrect ? 'Correct' : 'Missed'}
+                {isCorrect ? m.game_correct_label() : m.game_missed()}
               </Typography>
               <Typography
                 sx={{
@@ -409,9 +420,9 @@ export function GameStatusPanel({
                   width: '100%',
                 }}
               >
-                <Typography color="text.secondary" variant="caption">
-                  Your guess
-                </Typography>
+                  <Typography color="text.secondary" variant="caption">
+                    {m.game_your_guess()}
+                  </Typography>
                 <Typography variant="body1">{playerGuess}</Typography>
               </Box>
             ) : null}
@@ -451,7 +462,7 @@ export function GameStatusPanel({
                         gap: 0.6,
                       }}
                     >
-                      {item.label === 'Time' ? (
+                      {item.label === m.game_stat_time() ? (
                         <Clock size={14} />
                       ) : (
                         <TrendingUp size={14} />
@@ -484,15 +495,15 @@ export function GameStatusPanel({
                 },
               ]}
             >
-              {isReviewComplete ? 'Finish' : 'Next'}
-            </Button>
+               {isReviewComplete ? m.action_finish() : m.action_next()}
+             </Button>
           </>
         ) : gameState.status === 'playing' ? (
           <>
             <Typography variant="h6">
               {isCapitalMode
-                ? 'Guess the capital city.'
-                : 'Guess the highlighted country.'}
+                ? m.game_guess_capital_prompt()
+                : m.game_guess_country_prompt()}
             </Typography>
             <GuessInput
               options={countryOptions}
@@ -502,15 +513,17 @@ export function GameStatusPanel({
           </>
         ) : (
           <>
-            <Typography variant="body1">Choose a run to begin.</Typography>
+            <Typography variant="body1">{m.game_choose_run()}</Typography>
             {storedDailyResult ? (
               <Typography color="text.secondary" variant="body2">
-                Daily complete: {storedDailyResult.correctCount}/
-                {storedDailyResult.totalCount}
+                {m.game_daily_complete_short({
+                  correct: storedDailyResult.correctCount,
+                  total: storedDailyResult.totalCount,
+                })}
               </Typography>
             ) : (
               <Typography color="text.secondary" variant="body2">
-                Open the menu for today&apos;s daily.
+                {m.game_open_menu_daily()}
               </Typography>
             )}
           </>

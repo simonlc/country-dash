@@ -1,5 +1,7 @@
 import { useAppearance } from '@/app/appearance';
+import { useI18n } from '@/app/i18n';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import { getThemeSurfaceStyles } from '@/app/theme';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import type {
@@ -11,11 +13,15 @@ import type {
 } from '@/types/game';
 import { getSelectorCardSx } from '@/utils/controlStyles';
 import {
-  countrySizeLabels,
   formatDailyResetCountdown,
   randomRunPresetDifficulties,
-  regionLabels,
 } from '@/utils/gameLogic';
+import {
+  countrySizeFilters,
+  getCountrySizeLabel,
+  getModeLabel,
+  getRegionLabel,
+} from '@/utils/labelTranslations';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import {
   Box,
@@ -55,98 +61,83 @@ interface IntroDialogProps {
 }
 
 const modeDetails: Array<{
-  description: string;
   icon: typeof Circle;
-  label: string;
   value: GameMode;
 }> = [
   {
-    description: 'Standard scoring with no life limit.',
     icon: Circle,
     value: 'classic',
-    label: 'Classic',
   },
   {
-    description: 'Run ends after 3 incorrect answers.',
     icon: Heart,
     value: 'threeLives',
-    label: '3 Lives',
   },
   {
-    description: 'Guess capital cities instead of countries.',
     icon: MapPin,
     value: 'capitals',
-    label: 'Capitals',
   },
   {
-    description: 'Build longest correct-answer streak.',
     icon: Triangle,
     value: 'streak',
-    label: 'Streak',
   },
 ];
 
-const difficultyLabels: Record<Difficulty, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-  veryHard: 'Very hard',
-};
+function getDifficultyLabel(difficulty: Difficulty) {
+  switch (difficulty) {
+    case 'easy':
+      return m.difficulty_easy();
+    case 'medium':
+      return m.difficulty_medium();
+    case 'hard':
+      return m.difficulty_hard();
+    case 'veryHard':
+      return m.difficulty_very_hard();
+  }
+}
 
 const categoryOptions: Array<{
   icon: typeof Globe;
-  label: string;
   value: RegionFilter;
 }> = [
   {
     icon: MapPin,
     value: 'microstates',
-    label: 'Micro Countries',
   },
   {
     icon: Compass,
     value: 'islandNations',
-    label: 'Island Nations',
   },
   {
     icon: Map,
     value: 'caribbean',
-    label: 'Caribbean',
   },
   {
     icon: Crop,
     value: 'middleEast',
-    label: 'Middle East',
   },
   {
     icon: Globe,
     value: 'africa',
-    label: 'Africa',
   },
   {
     icon: Globe,
     value: 'asia',
-    label: 'Asia',
   },
   {
     icon: Globe,
     value: 'europe',
-    label: 'Europe',
   },
   {
     icon: Globe,
     value: 'northAmerica',
-    label: 'North America',
   },
   {
     icon: Globe,
     value: 'southAmerica',
-    label: 'South America',
   },
   {
     icon: Globe,
     value: 'oceania',
-    label: 'Oceania',
   },
 ];
 
@@ -155,14 +146,14 @@ function getSelectedPoolLabel(
   regionFilter: RegionFilter | null,
 ) {
   if (regionFilter) {
-    return regionLabels[regionFilter];
+    return getRegionLabel(regionFilter);
   }
 
-  return countrySizeLabels[countrySizeFilter];
+  return getCountrySizeLabel(countrySizeFilter);
 }
 
-function formatCompletedDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
+function formatCompletedDate(locale: string, value: string) {
+  return new Date(value).toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -170,7 +161,9 @@ function formatCompletedDate(value: string) {
 }
 
 function formatCountryCountLabel(count: number) {
-  return `${count} ${count === 1 ? 'country' : 'countries'}`;
+  return count === 1
+    ? m.country_count_single({ count })
+    : m.country_count_plural({ count });
 }
 
 const dailyAccentStrong = '#d7902d';
@@ -186,6 +179,7 @@ export const IntroDialog = NiceModal.create(
     const modal = useModal();
     const theme = useTheme();
     const isCompactLayout = useMediaQuery(theme.breakpoints.down('md'));
+    const { locale } = useI18n();
     const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
     const [countrySizeFilter, setCountrySizeFilter] =
@@ -213,18 +207,22 @@ export const IntroDialog = NiceModal.create(
 
       return `${dailyResult.correctCount}/${dailyResult.totalCount}`;
     }, [dailyResult]);
-    const sizeItems = (
-      Object.keys(countrySizeLabels) as CountrySizeFilter[]
-    ).map((key) => ({
+    const sizeItems = countrySizeFilters.map((key) => ({
       description:
         key === 'large'
-          ? `${formatCountryCountLabel(counts[key])} with higher difficulty.`
+          ? m.intro_pool_size_large_description({
+              countLabel: formatCountryCountLabel(counts[key]),
+            })
           : key === 'mixed'
-            ? `${formatCountryCountLabel(counts[key])} with medium difficulty.`
-            : `${formatCountryCountLabel(counts[key])} with lower difficulty.`,
-      detail: difficultyLabels[randomRunPresetDifficulties[key]],
+            ? m.intro_pool_size_mixed_description({
+                countLabel: formatCountryCountLabel(counts[key]),
+              })
+            : m.intro_pool_size_small_description({
+                countLabel: formatCountryCountLabel(counts[key]),
+              }),
+      detail: getDifficultyLabel(randomRunPresetDifficulties[key]),
       icon: key === 'large' ? Globe : key === 'mixed' ? Map : Clock,
-      label: countrySizeLabels[key],
+      label: getCountrySizeLabel(key),
       meta: formatCountryCountLabel(counts[key]),
       selected: regionFilter === null && countrySizeFilter === key,
       value: key,
@@ -232,25 +230,25 @@ export const IntroDialog = NiceModal.create(
     const categoryItems = categoryOptions.map((option) => ({
       description:
         option.value === 'microstates'
-          ? 'Tiny targets and high-precision geography.'
+          ? m.intro_region_microstates_description()
           : option.value === 'islandNations'
-            ? 'Ocean-heavy runs with distinct coastlines.'
+            ? m.intro_region_island_nations_description()
             : option.value === 'caribbean'
-              ? 'Clustered islands and coastal memory checks.'
+              ? m.intro_region_caribbean_description()
               : option.value === 'middleEast'
-                ? 'Dense borders and strong regional similarity.'
+                ? m.intro_region_middle_east_description()
                 : option.value === 'africa'
-                  ? 'Every African country in one complete regional pool.'
+                  ? m.intro_region_africa_description()
                   : option.value === 'asia'
-                    ? 'The full Asian region, from the Gulf to the Pacific.'
+                    ? m.intro_region_asia_description()
                     : option.value === 'europe'
-                      ? 'The full European region as one complete set.'
+                      ? m.intro_region_europe_description()
                       : option.value === 'northAmerica'
-                        ? 'All North American countries in a single pool.'
+                        ? m.intro_region_north_america_description()
                         : option.value === 'southAmerica'
-                          ? 'The complete South American region.'
-                          : 'The full Oceania region, islands included.',
-      label: option.label,
+                          ? m.intro_region_south_america_description()
+                          : m.intro_region_oceania_description(),
+      label: getRegionLabel(option.value),
       meta: formatCountryCountLabel(categoryCounts[option.value]),
       selected: regionFilter === option.value,
       value: option.value,
@@ -293,13 +291,13 @@ export const IntroDialog = NiceModal.create(
               }}
             >
               <Stack spacing={0.75}>
-                <Typography variant="h2">Country Dash</Typography>
+                <Typography variant="h2">{m.app_name()}</Typography>
                 <Typography
                   color="text.secondary"
                   maxWidth={{ md: 420, xs: 'none' }}
                   variant="body2"
                 >
-                  The country guessing game
+                  {m.app_subtitle()}
                 </Typography>
                 <Box>
                   <Button
@@ -309,7 +307,7 @@ export const IntroDialog = NiceModal.create(
                       void NiceModal.show(HowToPlayDialog);
                     }}
                   >
-                    How to play
+                    {m.action_how_to_play()}
                   </Button>
                 </Box>
               </Stack>
@@ -376,7 +374,7 @@ export const IntroDialog = NiceModal.create(
                           }}
                           variant="caption"
                         >
-                          Daily
+                          {m.game_daily_complete_short_label()}
                         </Typography>
                         {/* <Typography */}
                         {/*   sx={{ */}
@@ -411,7 +409,7 @@ export const IntroDialog = NiceModal.create(
                           }}
                           variant="caption"
                         >
-                          Done today
+                          {m.game_done_today()}
                         </Typography>
                         <Typography
                           sx={{
@@ -425,11 +423,11 @@ export const IntroDialog = NiceModal.create(
                       </Stack>
                       <Stack spacing={0.15} sx={{ textAlign: 'right' }}>
                         <Typography color="text.secondary" variant="body2">
-                          Finished
+                          {m.game_finished()}
                         </Typography>
                         <Typography variant="caption">
                           {dailyResult
-                            ? formatCompletedDate(dailyResult.completedAt)
+                            ? formatCompletedDate(locale, dailyResult.completedAt)
                             : ''}
                         </Typography>
                       </Stack>
@@ -459,7 +457,7 @@ export const IntroDialog = NiceModal.create(
                           }}
                           variant="caption"
                         >
-                          countries
+                          {m.country_count_plural_label()}
                         </Typography>
                       </Stack>
                     </Stack>
@@ -467,13 +465,14 @@ export const IntroDialog = NiceModal.create(
 
                   {dailySummary ? (
                     <Typography color="text.secondary" variant="body2">
-                      You already finished today&apos;s run. Next reset in{' '}
-                      {dailyResetCountdownLabel} (UTC).
+                      {m.game_today_finished_reset({
+                        countdown: dailyResetCountdownLabel,
+                      })}
                     </Typography>
                   ) : (
                     <Stack spacing={0.6}>
                       <Typography color="text.secondary" variant="body2">
-                        Resets in {dailyResetCountdownLabel} (UTC).
+                        {m.game_resets_in({ countdown: dailyResetCountdownLabel })}
                       </Typography>
                       <Button
                         fullWidth
@@ -487,7 +486,7 @@ export const IntroDialog = NiceModal.create(
                           void modal.hide();
                         }}
                       >
-                        Start daily challenge
+                        {m.action_start_daily_challenge()}
                       </Button>
                     </Stack>
                   )}
@@ -506,9 +505,9 @@ export const IntroDialog = NiceModal.create(
               >
                 <Stack spacing={1.75}>
                   <Stack spacing={0.25}>
-                    <Typography variant="h5">New game</Typography>
+                    <Typography variant="h5">{m.game_new_game()}</Typography>
                     <Typography color="text.secondary" variant="body2">
-                      Choose a mode and which countries to guess from.
+                      {m.game_new_game_subtitle()}
                     </Typography>
                   </Stack>
 
@@ -527,7 +526,7 @@ export const IntroDialog = NiceModal.create(
 
                       return (
                         <Box
-                          aria-label={option.label}
+                          aria-label={getModeLabel(option.value)}
                           aria-pressed={mode === option.value}
                           component="button"
                           key={option.value}
@@ -556,7 +555,7 @@ export const IntroDialog = NiceModal.create(
                             >
                               <ModeIcon aria-hidden size={15} strokeWidth={2} />
                               <Typography variant="body2">
-                                {option.label}
+                                {getModeLabel(option.value)}
                               </Typography>
                             </Box>
                             <Typography
@@ -564,7 +563,13 @@ export const IntroDialog = NiceModal.create(
                               sx={{ display: 'block' }}
                               variant="caption"
                             >
-                              {option.description}
+                              {option.value === 'classic'
+                                ? m.intro_mode_classic_description()
+                                : option.value === 'threeLives'
+                                  ? m.intro_mode_three_lives_description()
+                                  : option.value === 'capitals'
+                                    ? m.intro_mode_capitals_description()
+                                    : m.intro_mode_streak_description()}
                             </Typography>
                           </Stack>
                         </Box>
@@ -573,7 +578,7 @@ export const IntroDialog = NiceModal.create(
                   </Box>
 
                   <Typography color="text.secondary" variant="overline">
-                    Country Pools
+                    {m.game_pool_country_pools()}
                   </Typography>
                   <Box
                     sx={{
@@ -590,8 +595,12 @@ export const IntroDialog = NiceModal.create(
                       const ItemIcon = item.icon;
 
                       return (
-                        <Box
-                          aria-label={`${item.label} ${item.meta} ${item.description}`}
+                          <Box
+                            aria-label={m.intro_pool_option_aria({
+                              description: item.description,
+                              label: item.label,
+                              meta: item.meta,
+                            })}
                           aria-pressed={item.selected}
                           component="button"
                           key={`size-${item.value}`}
@@ -658,7 +667,11 @@ export const IntroDialog = NiceModal.create(
                       {categoryItems.map((item) => {
                         return (
                           <Box
-                            aria-label={`${item.label} ${item.meta} Category pool ${item.description}`}
+                            aria-label={m.intro_region_option_aria({
+                              description: item.description,
+                              label: item.label,
+                              meta: item.meta,
+                            })}
                             aria-pressed={item.selected}
                             component="button"
                             key={`region-${item.value}`}
@@ -756,8 +769,9 @@ export const IntroDialog = NiceModal.create(
                       void modal.hide();
                     }}
                   >
-                    Start{' '}
-                    {getSelectedPoolLabel(countrySizeFilter, regionFilter)}
+                    {m.action_start_with_pool({
+                      pool: getSelectedPoolLabel(countrySizeFilter, regionFilter),
+                    })}
                   </Button>
                 </Stack>
               </Paper>

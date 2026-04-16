@@ -18,6 +18,8 @@ interface SourceCountryProperties {
   CONTINENT?: string;
   REGION_UN?: string;
   SUBREGION?: string;
+  NAME_EN?: string | null;
+  [key: `NAME_${string}`]: string | number | null | undefined;
 }
 
 const microstateCodes = new Set([
@@ -197,11 +199,73 @@ function toFeatureCollection(topology: WorldTopologyObject): FeatureCollectionLi
   return topojson.feature(topology, getFirstObject(topology)) as FeatureCollectionLike;
 }
 
-function buildMetadataMap() {
+const languageByWorldNameKey: Record<string, string> = {
+  AR: 'ar',
+  BN: 'bn',
+  DE: 'de',
+  EL: 'el',
+  EN: 'en',
+  ES: 'es',
+  FA: 'fa',
+  FR: 'fr',
+  HE: 'he',
+  HI: 'hi',
+  HU: 'hu',
+  ID: 'id',
+  IT: 'it',
+  JA: 'ja',
+  KO: 'ko',
+  NL: 'nl',
+  PL: 'pl',
+  PT: 'pt',
+  RU: 'ru',
+  SV: 'sv',
+  TR: 'tr',
+  UK: 'uk',
+  UR: 'ur',
+  VI: 'vi',
+  ZH: 'zh',
+  ZHT: 'zh-hant',
+};
+
+function normalizeWorldNameKeyToLanguage(nameKey: string) {
+  const key = nameKey.trim().toUpperCase();
+  return languageByWorldNameKey[key] ?? key.toLowerCase();
+}
+
+function extractLocalizedCountryNames(properties: SourceCountryProperties) {
+  const localizedNames: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (!key.startsWith('NAME_') || typeof value !== 'string') {
+      continue;
+    }
+
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      continue;
+    }
+
+    const languageTag = normalizeWorldNameKeyToLanguage(key.slice('NAME_'.length));
+    localizedNames[languageTag] = trimmedValue;
+  }
+
+  if (!localizedNames.en && properties.NAME_EN) {
+    const englishName = properties.NAME_EN.trim();
+    if (englishName) {
+      localizedNames.en = englishName;
+    }
+  }
+
+  return localizedNames;
+}
+
+function buildCountrySourceMap() {
   const sourceFeatures = (worldSource as { features: Array<{ properties: SourceCountryProperties }> })
     .features;
+  const countryNameLanguages = new Set<string>();
 
-  return new Map(
+  const detailsByCode = new Map(
     sourceFeatures.flatMap((feature) => {
       const isocode = feature.properties.ISO_A2;
       const isocode3 = feature.properties.ISO_A3;
@@ -212,9 +276,13 @@ function buildMetadataMap() {
 
       const metadata = {
         continent: feature.properties.CONTINENT ?? null,
+        localizedNames: extractLocalizedCountryNames(feature.properties),
         region: feature.properties.REGION_UN ?? null,
         subregion: feature.properties.SUBREGION ?? null,
       };
+      Object.keys(metadata.localizedNames).forEach((language) => {
+        countryNameLanguages.add(language);
+      });
 
       return [
         ...(isocode ? [[isocode, metadata] as const] : []),
@@ -222,6 +290,13 @@ function buildMetadataMap() {
       ];
     }),
   );
+
+  return {
+    countryNameLanguages: Array.from(countryNameLanguages).sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    detailsByCode,
+  };
 }
 
 function normalizeIso2Code(value: string | null | undefined) {
@@ -330,15 +405,16 @@ function getCapitalMetadata(country: { isocode: string; isocode3: string }) {
   };
 }
 
-function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectionLike {
-  const metadataByCode = buildMetadataMap();
-
+function enrichFeatureCollection(
+  world: FeatureCollectionLike,
+  detailsByCode: ReturnType<typeof buildCountrySourceMap>['detailsByCode'],
+): FeatureCollectionLike {
   return {
     ...world,
     features: world.features.map((feature) => {
       const metadata =
-        metadataByCode.get(feature.properties.isocode) ??
-        metadataByCode.get(feature.properties.isocode3);
+        detailsByCode.get(feature.properties.isocode) ??
+        detailsByCode.get(feature.properties.isocode3);
       const capitalMetadata = getCapitalMetadata(feature.properties);
       const capitalCoordinates = getCapitalCoordinates(
         feature.properties.isocode,
@@ -352,6 +428,7 @@ function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectio
         capitalLongitude: capitalCoordinates.longitude,
         capitalName: capitalMetadata.name,
         continent: metadata?.continent ?? null,
+        localizedNames: { ...(metadata?.localizedNames ?? {}) },
         region: metadata?.region ?? null,
         subregion: metadata?.subregion ?? null,
         tags,
@@ -367,8 +444,10 @@ function enrichFeatureCollection(world: FeatureCollectionLike): FeatureCollectio
 
 export async function loadWorldData(): Promise<WorldData> {
   const worldTopology = await loadJson<WorldTopologyObject>('data/world-topo.json');
+  const sourceMap = buildCountrySourceMap();
 
   return {
-    world: enrichFeatureCollection(toFeatureCollection(worldTopology)),
+    countryNameLanguages: sourceMap.countryNameLanguages,
+    world: enrichFeatureCollection(toFeatureCollection(worldTopology), sourceMap.detailsByCode),
   };
 }

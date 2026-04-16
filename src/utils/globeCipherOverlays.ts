@@ -13,6 +13,7 @@ import type {
   CipherTrafficState,
   CipherTrafficTrack,
 } from '@/hooks/useCipherTraffic';
+import { m } from '@/paraglide/messages.js';
 import type { CountryFeature } from '@/types/game';
 import { shiftColor, withOpacity } from '@/utils/globeColors';
 import {
@@ -510,12 +511,16 @@ export function drawCipherMapAnnotations(args: {
   context.fillStyle = withOpacity(palette.selectedFill, 0.92);
   context.font =
     '600 10px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
-  context.fillText('LOCK // REDACTED', labelX + 12, labelY + 15);
+  context.fillText(
+    `${m.cipher_overlay_lock_label()} // ${m.cipher_overlay_redacted_label()}`,
+    labelX + 12,
+    labelY + 15,
+  );
 
   context.fillStyle = withOpacity('#f6ff9e', 0.94);
   context.font =
     '600 12px "IBM Plex Mono", "SFMono-Regular", Consolas, monospace';
-  context.fillText('VISUAL ONLY', labelX + 12, labelY + 30);
+  context.fillText(`${m.cipher_overlay_visual_only()}`, labelX + 12, labelY + 30);
 
   context.fillStyle = withOpacity(palette.selectedFill, 0.28 + blink * 0.24);
   context.fillRect(labelX + labelWidth - 18, labelY + 11, 6, 6);
@@ -771,7 +776,10 @@ function drawCipherCriticalSites(args: {
   for (const [index, entry] of visibleSites.entries()) {
     const [x, y] = entry.point;
     const pulse = 0.45 + 0.55 * Math.sin(nowMs * 0.004 + index * 0.75);
-    const label = entry.site.kind === 'power' ? 'PWR' : 'WTR';
+    const label =
+      entry.site.kind === 'power'
+        ? `${m.cipher_overlay_power_short()}`
+        : `${m.cipher_overlay_water_short()}`;
 
     context.shadowColor = 'rgba(255, 80, 80, 0.34)';
     context.shadowBlur = 14;

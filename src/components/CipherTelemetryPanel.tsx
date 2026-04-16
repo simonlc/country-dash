@@ -1,4 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material';
+import { m } from '@/paraglide/messages.js';
 
 const cipherTelemetryFont =
   '"IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace';
@@ -68,7 +69,7 @@ export function CipherTelemetryPanel({
             textTransform: 'uppercase',
           }}
         >
-          Heavy Air Grid
+          {m.cipher_heavy_air_grid()}
         </Typography>
         <Stack spacing={0.45}>
           {systemLines.map((line) => (

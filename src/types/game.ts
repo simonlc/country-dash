@@ -31,6 +31,7 @@ export type RegionFilter =
 export interface CountryProperties {
   nameEn: string;
   name?: string;
+  localizedNames?: Record<string, string>;
   abbr?: string | null;
   formalName?: string | null;
   nameAlt?: string | null;
@@ -135,5 +136,6 @@ export interface GameState {
 }
 
 export interface WorldData {
+  countryNameLanguages?: string[];
   world: FeatureCollectionLike;
 }

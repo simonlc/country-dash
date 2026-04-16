@@ -15,6 +15,8 @@ export default [
       'test-results',
       '*.js',
       '*.d.ts',
+      'src/paraglide',
+      'src/paraglide/**',
       'eslint.config.js',
       'vite.config.ts',
       'vitest.config.ts',

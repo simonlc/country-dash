@@ -1,6 +1,8 @@
 import NiceModal from '@ebay/nice-modal-react';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useI18n } from '@/app/i18n';
 import { useAppearance } from '@/app/appearance';
+import { m } from '@/paraglide/messages.js';
 import {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
@@ -15,22 +17,27 @@ import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
 import { useWindowSize } from '@/hooks/useWindowSize';
 import type { GlobeThemeSettingsPatch } from '@/utils/globeQualityControls';
 import { loadWorldData } from '@/utils/loadWorldData';
+import { getCountryDisplayName } from '@/utils/countryNames';
 import {
   buildRegionCountryPool,
   buildSessionPlan,
-  countrySizeLabels,
   createInitialGameState,
   createRandomSeed,
   createSessionConfig,
-  dailySessionPoolLabel,
   formatDailyStorageKey,
   gameReducer,
   getInitialRotation,
   getRandomRunCountryCount,
   getTodayDateKey,
   randomRunPresetDifficulties,
-  regionLabels,
 } from '@/utils/gameLogic';
+import {
+  getModeLabel,
+  getCountrySizeLabel,
+  getRegionLabel,
+  getSessionTypeLabel,
+  regionFilters,
+} from '@/utils/labelTranslations';
 import type {
   CountrySizeFilter,
   CountryProperties,
@@ -44,13 +51,6 @@ import type {
 } from '@/types/game';
 
 const dailyDifficulty: Difficulty = 'medium';
-
-const modeLabels: Record<GameMode, string> = {
-  classic: 'Classic',
-  threeLives: '3 Lives',
-  capitals: 'Capitals',
-  streak: 'Streak',
-};
 
 function getStoredDailyResult(dateKey: string) {
   if (typeof window === 'undefined') {
@@ -71,32 +71,22 @@ function getSessionSummaryLabel(gameState: GameState) {
   }
 
   if (gameState.sessionConfig.kind === 'daily') {
-    return dailySessionPoolLabel;
+    return `${m.pool_global()}`;
   }
 
   if (gameState.regionFilter) {
-    return regionLabels[gameState.regionFilter];
+    return getRegionLabel(gameState.regionFilter);
   }
 
-  return countrySizeLabels[gameState.countrySizeFilter];
-}
-
-function getSessionTypeLabel(gameState: GameState) {
-  if (!gameState.sessionConfig) {
-    return 'Menu';
-  }
-
-  return gameState.sessionConfig.kind === 'daily'
-    ? 'Daily Challenge'
-    : 'Random Run';
+  return getCountrySizeLabel(gameState.countrySizeFilter);
 }
 
 function getSessionModeLabel(gameState: GameState) {
   if (!gameState.sessionConfig) {
-    return 'No mode selected';
+    return `${m.session_mode_none()}`;
   }
 
-  return modeLabels[gameState.sessionConfig.mode];
+  return getModeLabel(gameState.sessionConfig.mode);
 }
 
 const emptyCipherTrafficState: CipherTrafficState = {
@@ -110,18 +100,18 @@ const emptyCipherTrafficState: CipherTrafficState = {
 
 function getCipherTrafficStatusLabel(trafficState: CipherTrafficState) {
   if (trafficState.status === 'error') {
-    return 'Traffic Link Error';
+    return `${m.cipher_status_link_error()}`;
   }
   if (trafficState.status === 'loading') {
-    return 'Traffic Syncing';
+    return `${m.cipher_status_syncing()}`;
   }
   if (trafficState.source === 'cache') {
-    return 'Traffic Cached';
+    return `${m.cipher_status_cached()}`;
   }
   if (trafficState.status === 'live') {
-    return 'Traffic Live';
+    return `${m.cipher_status_live()}`;
   }
-  return 'Traffic Offline';
+  return `${m.cipher_status_offline()}`;
 }
 
 function getCipherTrafficStatusColor(trafficState: CipherTrafficState) {
@@ -149,6 +139,7 @@ interface UseGamePageStateResult {
   } | null;
   copyState: 'idle' | 'copied' | 'failed';
   countryOptions: CountryProperties[];
+  currentCountryName: string | null;
   currentCountry: WorldData['world']['features'][number] | null;
   currentMode: GameMode;
   dailyShareText: string | null;
@@ -175,6 +166,7 @@ interface UseGamePageStateResult {
   isLoading: boolean;
   isReviewComplete: boolean;
   loadingError: string | null;
+  locale: string;
   panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
   resetAdminOverride: () => void;
   resetRevision: number;
@@ -199,6 +191,7 @@ interface UseGamePageStateResult {
 
 export function useGamePageState(): UseGamePageStateResult {
   const size = useWindowSize();
+  const { locale } = useI18n();
   const { activeTheme } = useAppearance();
   const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
   const cipherThemeEnabled =
@@ -295,7 +288,7 @@ export function useGamePageState(): UseGamePageStateResult {
   );
   const categoryCounts = useMemo(
     () =>
-      (Object.keys(regionLabels) as RegionFilter[]).reduce(
+      regionFilters.reduce(
         (counts, regionFilter) => {
           counts[regionFilter] = buildRegionCountryPool(
             countryPool,
@@ -317,6 +310,10 @@ export function useGamePageState(): UseGamePageStateResult {
     [countryFeaturesById, countryPool, gameState.currentCountryId],
   );
   const isCapitalMode = gameState.sessionConfig?.mode === 'capitals';
+  const currentCountryName = useMemo(
+    () => (currentCountry ? getCountryDisplayName(currentCountry.properties, locale) : null),
+    [currentCountry, locale],
+  );
   const rotation = useMemo<[number, number]>(() => {
     if (!currentCountry) {
       return [0, 0];
@@ -347,35 +344,51 @@ export function useGamePageState(): UseGamePageStateResult {
   const { dailyShareText } = useDailyShare({
     gameState,
     isDailyRun,
+    locale,
     storedDailyResult,
     todayDateKey,
     totalRounds,
   });
 
   const cipherSystemLines = useMemo(
-    () => [
-      `STATUS // ${getCipherTrafficStatusLabel(cipherTrafficState).toUpperCase()}`,
-      `TRACKS // ${cipherTrafficState.tracks.length.toString().padStart(2, '0')}`,
-      `SYNC // ${cipherTrafficState.updatedAtMs ? 'LOCKED' : 'WAITING'}`,
-      `CACHE // ${cipherTrafficState.cacheAgeMs !== null ? `${Math.round(cipherTrafficState.cacheAgeMs / 1000)}S` : 'BYPASS'}`,
-      `SOURCE // ${cipherTrafficState.source.toUpperCase()}`,
-      `FILTER // PRIORITY AIRSPACE`,
-    ],
-    [cipherTrafficState],
+    () => {
+      void locale;
+
+      return [
+        `${m.cipher_system_status_label()} // ${getCipherTrafficStatusLabel(cipherTrafficState).toUpperCase()}`,
+        `${m.cipher_system_tracks_label()} // ${cipherTrafficState.tracks.length.toString().padStart(2, '0')}`,
+        `${m.cipher_system_sync_label()} // ${
+          cipherTrafficState.updatedAtMs
+            ? m.cipher_system_sync_locked()
+            : m.cipher_system_sync_waiting()
+        }`,
+        `${m.cipher_system_cache_label()} // ${
+          cipherTrafficState.cacheAgeMs !== null
+            ? `${Math.round(cipherTrafficState.cacheAgeMs / 1000)}S`
+            : m.cipher_system_cache_bypass()
+        }`,
+        `${m.cipher_system_source_label()} // ${cipherTrafficState.source.toUpperCase()}`,
+        `${m.cipher_system_filter_label()} // ${m.cipher_system_priority_airspace()}`,
+      ];
+    },
+    [cipherTrafficState, locale],
   );
   const sessionModeLabel = getSessionModeLabel(gameState);
   const sessionSummaryLabel = getSessionSummaryLabel(gameState);
   const cipherTickerText = useMemo(
-    () =>
-      [
-        'CIPHER CARTOGRAPHIC NODE',
-        'VISUAL GEOLOCATION PROTOCOL',
-        `ROUND ${(gameState.roundIndex + 1).toString().padStart(2, '0')}/${Math.max(totalRounds, 1).toString().padStart(2, '0')}`,
-        `MODE ${sessionModeLabel.toUpperCase()}`,
-        `AIRSPACE ${getCipherTrafficStatusLabel(cipherTrafficState).toUpperCase()}`,
-        `DATE ${todayDateKey}`,
-      ].join(' // '),
-    [cipherTrafficState, gameState.roundIndex, sessionModeLabel, todayDateKey, totalRounds],
+    () => {
+      void locale;
+
+      return [
+        m.cipher_ticker_node(),
+        m.cipher_ticker_protocol(),
+        `${m.cipher_ticker_round_prefix()} ${(gameState.roundIndex + 1).toString().padStart(2, '0')}/${Math.max(totalRounds, 1).toString().padStart(2, '0')}`,
+        `${m.cipher_ticker_mode_prefix()} ${sessionModeLabel.toUpperCase()}`,
+        `${m.cipher_ticker_airspace_prefix()} ${getCipherTrafficStatusLabel(cipherTrafficState).toUpperCase()}`,
+        `${m.cipher_ticker_date_prefix()} ${todayDateKey}`,
+      ].join(' // ');
+    },
+    [cipherTrafficState, gameState.roundIndex, locale, sessionModeLabel, todayDateKey, totalRounds],
   );
   const handleCipherTrafficStateChange = useCallback(
     (nextState: CipherTrafficState) => {
@@ -585,13 +598,20 @@ export function useGamePageState(): UseGamePageStateResult {
 
   const roundLabel =
     gameState.status === 'intro'
-      ? 'Ready'
-      : `Round ${gameState.roundIndex + 1}/${totalRounds}`;
+      ? `${m.game_round_ready()}`
+      : `${m.game_round({
+          current: gameState.roundIndex + 1,
+          total: totalRounds,
+        })}`;
 
   const sessionLabels = [
-    `Type: ${getSessionTypeLabel(gameState)}`,
-    `Mode: ${sessionModeLabel}`,
-    sessionSummaryLabel ? `Pool: ${sessionSummaryLabel}` : null,
+    `${m.session_label_type({
+      value: getSessionTypeLabel(gameState.sessionConfig?.kind ?? null),
+    })}`,
+    `${m.session_label_mode({ value: sessionModeLabel })}`,
+    sessionSummaryLabel
+      ? `${m.session_label_pool({ value: sessionSummaryLabel })}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -608,6 +628,7 @@ export function useGamePageState(): UseGamePageStateResult {
       : null,
     copyState,
     countryOptions,
+    currentCountryName,
     currentCountry,
     currentMode: gameState.sessionConfig?.mode ?? gameState.mode,
     dailyShareText,
@@ -634,6 +655,7 @@ export function useGamePageState(): UseGamePageStateResult {
     isLoading: !worldData || !currentCountry,
     isReviewComplete,
     loadingError,
+    locale,
     panelSurface,
     resetAdminOverride,
     resetRevision,

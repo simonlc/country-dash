@@ -55,6 +55,7 @@ const baseProps = {
       nameEn: 'Canada',
     },
   ],
+  currentCountryName: 'Canada',
   dailyShareText: null,
   displaySurface,
   isCapitalMode: false,

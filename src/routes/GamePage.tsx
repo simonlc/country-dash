@@ -6,6 +6,8 @@ import { CipherTelemetryPanel } from '@/components/CipherTelemetryPanel';
 import { GameBackground } from '@/components/GameBackground';
 import { GameHud } from '@/components/GameHud';
 import { GameStatusPanel } from '@/components/GameStatusPanel';
+import { m } from '@/paraglide/messages.js';
+import { getThemeLabel } from '@/utils/themeTranslations';
 import { useGamePageState } from '@/hooks/useGamePageState';
 
 export function GamePage() {
@@ -14,7 +16,9 @@ export function GamePage() {
   if (state.loadingError) {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="error">{state.loadingError}</Alert>
+        <Alert severity="error">
+          {m.error_loading_country_data({ details: state.loadingError })}
+        </Alert>
       </Container>
     );
   }
@@ -32,7 +36,7 @@ export function GamePage() {
           placeItems: 'center',
         }}
       >
-        <CircularProgress aria-label="Loading country data" />
+        <CircularProgress aria-label={m.game_loading_country_data()} />
       </Box>
     );
   }
@@ -80,7 +84,7 @@ export function GamePage() {
           }}
           settings={state.effectiveThemeSettings}
           setSettingsPatch={state.setAdminOverridePatch}
-          themeLabel={state.activeTheme.label}
+            themeLabel={getThemeLabel(state.activeTheme.id)}
           onReset={state.resetAdminOverride}
         />
       ) : null}
@@ -148,6 +152,7 @@ export function GamePage() {
           <GameStatusPanel
             copyState={state.copyState}
             countryOptions={state.countryOptions}
+            currentCountryName={state.currentCountryName}
             dailyShareText={state.dailyShareText}
             displaySurface={state.displaySurface}
             gameState={state.gameState}

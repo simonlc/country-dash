@@ -12,8 +12,14 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
+import { useI18n } from '@/app/i18n';
 import { designTokens } from '@/app/designSystem';
+import { m } from '@/paraglide/messages.js';
 import { normalizeGuess } from '@/utils/gameLogic';
+import {
+  getCountryDisplayName,
+  getCountryNameCandidates,
+} from '@/utils/countryNames';
 import type { CountryProperties } from '@/types/game';
 
 interface HighlightPart {
@@ -64,6 +70,7 @@ const filterOptions = (options: GuessChoice[], inputValue: string) => {
 };
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
+  const { locale } = useI18n();
   const [value, setValue] = useState<GuessChoice | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [hintValue, setHintValue] = useState('');
@@ -86,26 +93,19 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               label: option.capitalName,
             }))
         : options.map((option) => ({
-            aliases: [
-              option.nameEn,
-              option.name ?? '',
-              option.abbr ?? '',
-              option.nameAlt ?? '',
-              option.formalName ?? '',
-              option.isocode,
-              option.isocode3,
-            ].filter((alias): alias is string => Boolean(alias)),
+            aliases: getCountryNameCandidates(option),
             detail:
-              option.formalName && option.formalName !== option.nameEn
+              option.formalName &&
+              option.formalName !== getCountryDisplayName(option, locale)
                 ? option.formalName
                 : null,
             id:
               option.isocode3 === '-99'
-                ? `${option.nameEn}-${option.isocode}`
+                ? `${getCountryDisplayName(option, locale)}-${option.isocode}`
                 : option.isocode3,
-            label: option.nameEn,
+            label: getCountryDisplayName(option, locale),
           })),
-    [options, variant],
+    [locale, options, variant],
   );
 
   const getFilteredOptions = useCallback(
@@ -220,7 +220,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         forcePopupIcon={false}
         id="country-guess"
         inputValue={inputValue}
-        noOptionsText="No matches"
+        noOptionsText={m.game_no_matches()}
         open={open}
         openOnFocus={false}
         options={choices}
@@ -274,13 +274,13 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               autoFocus
               label={
                 variant === 'capital'
-                  ? 'Guess the capital city'
-                  : 'Guess the country'
+                  ? m.game_guess_label_capital()
+                  : m.game_guess_label_country()
               }
               placeholder={
                 variant === 'capital'
-                  ? 'Ottawa, Tokyo, Brasilia...'
-                  : 'France, Japan, Brazil...'
+                  ? m.game_guess_placeholder_capital()
+                  : m.game_guess_placeholder_country()
               }
               sx={{
                 '& .MuiInputLabel-root': {
