@@ -1043,7 +1043,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         styleOverrides: {
           paper: {
             ...getThemeSurfaceStyles(definition, 'elevated'),
-            maxWidth: 'min(960px, calc(100vw - 32px))',
+            maxWidth: `min(${designTokens.layout.panelMaxWidth.dialog}px, calc(100vw - 32px))`,
             boxShadow: [
               elevatedSurface.boxShadow,
               isGlacier
@@ -1086,7 +1086,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             borderRadius: designTokens.radius.pill,
             fontSize: designTokens.fontSize.sm,
             fontWeight: designTokens.fontWeight.semibold,
-            minHeight: 42,
+            minHeight: designTokens.touchTarget.min,
             paddingInline: 22,
             paddingBlock: 10,
             textTransform: 'none',
@@ -1136,7 +1136,7 @@ export function createAppTheme(themeId: AppThemeId): Theme {
             color: definition.palette.textSecondary,
           },
           sizeSmall: {
-            minHeight: 34,
+            minHeight: 40,
             paddingBlock: 7,
             paddingInline: 16,
           },

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Alert, Box, CircularProgress, Container } from '@mui/material';
+import { designTokens } from '@/app/designSystem';
 import { Globe } from '@/components/Globe';
 import { GlobeAdminPanel } from '@/components/GlobeAdminPanel';
 import { ThemeMenu } from '@/components/ThemeMenu';
@@ -17,6 +18,112 @@ export function GamePage() {
   const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${keyboardInset})`;
   const mobileStatusBottomPadding = state.isKeyboardOpen ? keyboardInset : '0px';
   const globeViewportHeight = state.size.visualHeight;
+  const mobileInlineStartInset = 'max(env(safe-area-inset-left), 0px)';
+  const mobileInlineEndInset = 'max(env(safe-area-inset-right), 0px)';
+  const topHudLayer = (
+    <Box
+      sx={{
+        display: 'grid',
+        insetBlockStart: 0,
+        insetInlineEnd: 0,
+        insetInlineStart: 0,
+        justifyItems: 'center',
+        paddingInlineEnd: {
+          md: designTokens.layout.edgeInset.desktop,
+          xs: mobileInlineEndInset,
+        },
+        paddingInlineStart: {
+          md: designTokens.layout.edgeInset.desktop,
+          xs: mobileInlineStartInset,
+        },
+        pointerEvents: 'none',
+        position: 'absolute',
+      }}
+    >
+      <Box sx={{ inlineSize: '100%', maxInlineSize: designTokens.layout.panelMaxWidth.hud }}>
+        <GameHud
+          correct={state.gameState.correct}
+          displayAccentSurface={state.displayAccentSurface}
+          displayElapsedMs={state.displayElapsedMs}
+          displaySurface={state.displaySurface}
+          incorrect={state.gameState.incorrect}
+          isKeyboardOpen={state.isKeyboardOpen}
+          livesRemaining={state.gameState.livesRemaining}
+          onRefocus={state.handlers.onRefocus}
+          panelSurface={state.panelSurface}
+          roundLabel={state.roundLabel}
+          runningSince={state.runningSince}
+          score={state.gameState.score}
+          sessionLabels={state.sessionLabels}
+          sessionModeLabel={state.sessionModeLabel}
+          sessionSummaryLabel={state.sessionSummaryLabel}
+          showRefocus={state.showRefocus}
+          streak={state.gameState.streak}
+          topBarMenu={(
+            <ThemeMenu
+              onAbout={state.handlers.openAbout}
+              onQuit={state.handlers.onReturnToMenu}
+              onRefocus={state.handlers.onRefocus}
+              onRestart={state.handlers.onPlayAgain}
+            />
+          )}
+        />
+      </Box>
+    </Box>
+  );
+  const bottomPanelLayer = (
+    <Box
+      sx={{
+        alignItems: 'end',
+        display: 'grid',
+        insetBlockEnd: 0,
+        insetInlineEnd: 0,
+        insetInlineStart: 0,
+        justifyItems: 'center',
+        paddingBlockEnd: {
+          md: designTokens.layout.floatingOffset.desktopBottom,
+          xs: mobileStatusBottomPadding,
+        },
+        paddingBlockStart: {
+          md: designTokens.layout.floatingOffset.desktopTop,
+          xs: 1.5,
+        },
+        paddingInlineEnd: {
+          md: designTokens.layout.edgeInset.tablet,
+          xs: mobileInlineEndInset,
+        },
+        paddingInlineStart: {
+          md: designTokens.layout.edgeInset.tablet,
+          xs: mobileInlineStartInset,
+        },
+        pointerEvents: 'none',
+        position: 'absolute',
+      }}
+    >
+      <Box sx={{ inlineSize: '100%', maxInlineSize: designTokens.layout.panelMaxWidth.status }}>
+        <GameStatusPanel
+          copyState={state.copyState}
+          countryOptions={state.countryOptions}
+          currentCountryName={state.currentCountryName}
+          dailyShareText={state.dailyShareText}
+          displaySurface={state.displaySurface}
+          gameState={state.gameState}
+          isCapitalMode={state.isCapitalMode}
+          isDailyRun={state.isDailyRun}
+          isKeyboardOpen={state.isKeyboardOpen}
+          isReviewComplete={state.isReviewComplete}
+          onCopyDailyShare={state.handlers.onCopyDailyShare}
+          onNextRound={state.handlers.onNextRound}
+          onPlayAgain={state.handlers.onPlayAgain}
+          onReturnToMenu={state.handlers.onReturnToMenu}
+          onSubmit={state.handlers.onSubmit}
+          panelSurface={state.panelSurface}
+          storedDailyResult={state.storedDailyResult}
+          totalRounds={state.totalRounds}
+        />
+      </Box>
+    </Box>
+  );
 
   useEffect(() => {
     const lockWindowScroll = () => {
@@ -68,17 +175,17 @@ export function GamePage() {
     <Box
       sx={{
         backgroundImage: state.activeTheme.background.app,
-        height: state.size.height,
-        left: 'var(--visual-viewport-offset-left, 0px)',
-        minHeight: '100svh',
+        blockSize: state.size.height,
+        insetBlockStart: 'var(--visual-viewport-offset-top, 0px)',
+        insetInlineStart: 'var(--visual-viewport-offset-left, 0px)',
+        inlineSize: state.size.width,
+        minBlockSize: '100svh',
         overflow: 'hidden',
         position: 'fixed',
-        top: 'var(--visual-viewport-offset-top, 0px)',
-        width: state.size.width,
       }}
     >
       <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
-      <Box sx={{ height: globeViewportHeight }}>
+      <Box sx={{ blockSize: globeViewportHeight }}>
         <Globe
           country={state.currentCountry}
           mode={state.currentMode}
@@ -114,96 +221,30 @@ export function GamePage() {
       ) : null}
       <Box
         sx={{
-          inset: 0,
+          insetBlockEnd: 0,
+          insetBlockStart: 0,
+          insetInlineEnd: 0,
+          insetInlineStart: 0,
           pointerEvents: 'none',
           position: 'absolute',
-          pl: {
-            md: 3,
-            xs: 'max(env(safe-area-inset-left), 0px)',
-          },
-          pr: {
-            md: 3,
-            xs: 'max(env(safe-area-inset-right), 0px)',
-          },
-          pb: {
-            md: 3,
-            xs: mobileHudBottomPadding,
-          },
-          pt: 0,
           zIndex: 1,
         }}
       >
-        <GameHud
-          correct={state.gameState.correct}
-          displayAccentSurface={state.displayAccentSurface}
-          displayElapsedMs={state.displayElapsedMs}
-          displaySurface={state.displaySurface}
-          incorrect={state.gameState.incorrect}
-          isKeyboardOpen={state.isKeyboardOpen}
-          livesRemaining={state.gameState.livesRemaining}
-          onRefocus={state.handlers.onRefocus}
-          panelSurface={state.panelSurface}
-          roundLabel={state.roundLabel}
-          runningSince={state.runningSince}
-          score={state.gameState.score}
-          sessionLabels={state.sessionLabels}
-          sessionModeLabel={state.sessionModeLabel}
-          sessionSummaryLabel={state.sessionSummaryLabel}
-          showRefocus={state.showRefocus}
-          streak={state.gameState.streak}
-          topBarMenu={(
-            <ThemeMenu
-              onAbout={state.handlers.openAbout}
-              onQuit={state.handlers.onReturnToMenu}
-              onRefocus={state.handlers.onRefocus}
-              onRestart={state.handlers.onPlayAgain}
-            />
-          )}
-        />
-
         <Box
           sx={{
-            alignItems: 'end',
-            display: 'flex',
-            inset: 0,
-            justifyContent: 'center',
-            pointerEvents: 'none',
+            insetBlockEnd: 0,
+            insetBlockStart: 0,
+            insetInlineEnd: 0,
+            insetInlineStart: 0,
+            paddingBlockEnd: {
+              md: designTokens.layout.floatingOffset.desktopBottom,
+              xs: mobileHudBottomPadding,
+            },
             position: 'absolute',
-            pl: {
-              md: 2,
-              xs: 'max(env(safe-area-inset-left), 0px)',
-            },
-            pr: {
-              md: 2,
-              xs: 'max(env(safe-area-inset-right), 0px)',
-            },
-            pb: {
-              md: 4,
-              xs: mobileStatusBottomPadding,
-            },
-            pt: { md: 4, xs: 2 },
           }}
         >
-          <GameStatusPanel
-            copyState={state.copyState}
-            countryOptions={state.countryOptions}
-            currentCountryName={state.currentCountryName}
-            dailyShareText={state.dailyShareText}
-            displaySurface={state.displaySurface}
-            gameState={state.gameState}
-            isCapitalMode={state.isCapitalMode}
-            isDailyRun={state.isDailyRun}
-            isKeyboardOpen={state.isKeyboardOpen}
-            isReviewComplete={state.isReviewComplete}
-            onCopyDailyShare={state.handlers.onCopyDailyShare}
-            onNextRound={state.handlers.onNextRound}
-            onPlayAgain={state.handlers.onPlayAgain}
-            onReturnToMenu={state.handlers.onReturnToMenu}
-            onSubmit={state.handlers.onSubmit}
-            panelSurface={state.panelSurface}
-            storedDailyResult={state.storedDailyResult}
-            totalRounds={state.totalRounds}
-          />
+          {topHudLayer}
+          {bottomPanelLayer}
         </Box>
       </Box>
     </Box>

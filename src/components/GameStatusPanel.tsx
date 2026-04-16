@@ -17,6 +17,7 @@ import type {
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { GuessInput } from '@/components/GuessInput';
+import { getFloatingPanelSx } from '@/utils/controlStyles';
 import { formatElapsed } from '@/utils/gameLogic';
 import { getLocalizedGeographyLabel } from '@/utils/geographyLabels';
 import type { CountryProperties, GameState } from '@/types/game';
@@ -122,14 +123,67 @@ export function GameStatusPanel({
   const statusColor = isCorrect ? 'primary.main' : 'error.main';
   const dividerColor = (theme: Theme) =>
     theme.vars?.palette.divider ?? theme.palette.divider;
+  const isDensePanel = isKeyboardOpen || isPlaying;
+  const panelSpacing = isResultView ? 1.1 : isDensePanel ? 1.1 : 2;
+  const panelPaddingInline = isKeyboardOpen
+    ? designTokens.componentDensity.mobile.px
+    : designTokens.componentSpacing.overlayPanel.mobile;
+  const panelPaddingBlock = isKeyboardOpen
+    ? designTokens.componentDensity.mobile.py
+    : designTokens.componentSpacing.overlayPanel.mobile;
+  const panelShellSx = {
+    ...getFloatingPanelSx({
+      compact: isDensePanel,
+      maxWidth: isPlaying ? 720 : 560,
+    }),
+    alignSelf: 'end',
+    ...(isResultView
+      ? {
+          backgroundImage: 'none',
+          boxShadow: 'none',
+        }
+      : null),
+    borderRadius: {
+      md: designTokens.radius.sm,
+      xs: isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
+    },
+    marginBlockEnd: {
+      md: designTokens.layout.floatingOffset.desktopBottom,
+      xs: isPlaying || isKeyboardOpen ? 0 : 2,
+    },
+    maxInlineSize: { md: isPlaying ? 720 : 560, xs: '100%' },
+    overflow: 'visible',
+    paddingBlock: {
+      md: designTokens.componentSpacing.overlayPanel.desktop,
+      xs: panelPaddingBlock,
+    },
+    paddingInline: {
+      md: designTokens.componentSpacing.overlayPanel.desktop,
+      xs: panelPaddingInline,
+    },
+    pointerEvents: 'auto',
+    textAlign: 'center',
+    ...(isPlaying
+      ? {
+          borderEndEndRadius: 0,
+          borderEndStartRadius: 0,
+          borderStartEndRadius: designTokens.radius.sm,
+          borderStartStartRadius: designTokens.radius.sm,
+          paddingBlockEnd: 'calc(16px + env(safe-area-inset-bottom))',
+        }
+      : null),
+  } as const;
 
   const flatActionButtonSx = {
     borderRadius: designTokens.radius.sm,
     boxShadow: 'none',
-    minWidth: { sm: 168, xs: 0 },
-    px: { sm: 2.5, xs: 2 },
+    minBlockSize: designTokens.touchTarget.min,
+    minInlineSize: { sm: 168, xs: 0 },
+    paddingInline: { sm: 2.5, xs: 2 },
     textAlign: 'center',
-    width: { xs: '100%', sm: 'auto' },
+    inlineSize: { xs: '100%', sm: 'auto' },
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
     '&:hover': {
       backgroundImage: 'none',
       boxShadow: 'none',
@@ -142,40 +196,10 @@ export function GameStatusPanel({
       elevation={0}
       sx={[
         panelSurface,
-        {
-          alignSelf: 'end',
-          ...(isResultView
-            ? {
-                backgroundImage: 'none',
-                boxShadow: 'none',
-              }
-            : null),
-          borderRadius: {
-            md: designTokens.radius.xs,
-            xs: isPlaying ? '8px 8px 0 0' : isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
-          },
-          maxWidth: { md: isPlaying ? 720 : 560, xs: '100%' },
-          mb: {
-            md: 4,
-            xs: isPlaying ? 0 : isKeyboardOpen ? 0 : 2,
-          },
-          p: {
-            md: designTokens.componentSpacing.overlayPanel.desktop,
-            xs: isKeyboardOpen ? 1.4 : designTokens.componentSpacing.overlayPanel.mobile,
-          },
-          pb: {
-            xs: isPlaying
-              ? 'calc(16px + env(safe-area-inset-bottom))'
-              : undefined,
-          },
-          pointerEvents: 'auto',
-          overflow: 'visible',
-          textAlign: 'center',
-          width: '100%',
-        },
+        panelShellSx,
       ]}
     >
-      <Stack spacing={isResultView ? 1.1 : isKeyboardOpen ? 1.1 : 2}>
+      <Stack spacing={panelSpacing}>
         {gameState.status === 'gameOver' ? (
           <>
             <Stack spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -186,9 +210,9 @@ export function GameStatusPanel({
                   borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
                   color: 'primary.contrastText',
                   display: 'grid',
-                  height: 36,
+                  blockSize: 36,
                   justifyItems: 'center',
-                  width: 36,
+                  inlineSize: 36,
                 }}
               >
                 <Award size={16} />
@@ -270,32 +294,32 @@ export function GameStatusPanel({
                   borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  width: '100%',
+                  inlineSize: '100%',
                 }}
               >
                 {[
                   {
                     icon: TrendingUp,
-                     label: m.game_stat_score(),
-                     value: gameState.score,
-                   },
-                   {
-                     icon: Clock,
-                     label: m.game_stat_time(),
-                     value: formatElapsed(gameState.totalElapsedMs),
-                   },
+                    label: m.game_stat_score(),
+                    value: gameState.score,
+                  },
+                  {
+                    icon: Clock,
+                    label: m.game_stat_time(),
+                    value: formatElapsed(gameState.totalElapsedMs),
+                  },
                 ].map((item, index) => (
                   <Box
                     key={item.label}
                     sx={{
-                      px: 1.25,
-                      py: 0.95,
+                      paddingBlock: 0.95,
+                      paddingInline: 1.25,
                       textAlign: 'center',
                       ...(index === 0
                         ? null
                         : {
-                            borderLeft: '1px solid',
-                            borderLeftColor: dividerColor,
+                            borderInlineStart: '1px solid',
+                            borderInlineStartColor: dividerColor,
                           }),
                     }}
                   >
@@ -329,7 +353,7 @@ export function GameStatusPanel({
               direction={{ sm: 'row', xs: 'column' }}
               justifyContent="center"
               spacing={0.85}
-              sx={{ width: '100%' }}
+              sx={{ inlineSize: '100%' }}
             >
               {!isDailyRun ? (
                 <Button
@@ -382,9 +406,9 @@ export function GameStatusPanel({
                     ? 'primary.contrastText'
                     : 'error.contrastText',
                   display: 'grid',
-                  height: 36,
+                  blockSize: 36,
                   justifyItems: 'center',
-                  width: 36,
+                  inlineSize: 36,
                 }}
               >
                 {isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
@@ -425,7 +449,7 @@ export function GameStatusPanel({
                   px: { sm: 4, xs: 2 },
                   py: 1,
                   textAlign: 'center',
-                  width: '100%',
+                  inlineSize: '100%',
                 }}
               >
                   <Typography color="text.secondary" variant="caption">
@@ -442,7 +466,7 @@ export function GameStatusPanel({
                 display: 'grid',
                 gap: 0,
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                width: '100%',
+                inlineSize: '100%',
               }}
             >
               {reviewStats.map((item, index) => (
@@ -450,14 +474,14 @@ export function GameStatusPanel({
                   key={item.label}
                   sx={{
                     background: 'transparent',
-                    px: 1.25,
-                    py: 0.95,
+                    paddingBlock: 0.95,
+                    paddingInline: 1.25,
                     textAlign: 'center',
                     ...(index === 0
                       ? null
                       : {
-                          borderLeft: '1px solid',
-                          borderLeftColor: dividerColor,
+                          borderInlineStart: '1px solid',
+                          borderInlineStartColor: dividerColor,
                         }),
                   }}
                 >

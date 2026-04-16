@@ -77,3 +77,50 @@ export function getSelectorCardSx(
     },
   };
 }
+
+interface FloatingPanelSxOptions {
+  compact: boolean;
+  maxWidth: number | string;
+}
+
+export function getFloatingPanelSx({
+  compact,
+  maxWidth,
+}: FloatingPanelSxOptions) {
+  return {
+    borderRadius: compact ? designTokens.radius.sm : designTokens.radius.md,
+    inlineSize: '100%',
+    maxInlineSize: maxWidth,
+    paddingBlock: compact
+      ? designTokens.componentDensity.mobile.py
+      : designTokens.componentDensity.desktop.py,
+    paddingInline: compact
+      ? designTokens.componentDensity.mobile.px
+      : designTokens.componentDensity.desktop.px,
+  };
+}
+
+interface ChipShellSxOptions {
+  compact: boolean;
+  preferPill?: boolean;
+  wrapped?: boolean;
+}
+
+export function getChipShellSx({
+  compact,
+  preferPill = true,
+  wrapped = false,
+}: ChipShellSxOptions) {
+  const usePill = preferPill && !wrapped;
+
+  return {
+    borderRadius: usePill ? designTokens.radius.pill : designTokens.chip.fallbackRadius,
+    maxBlockSize: compact
+      ? designTokens.chip.compactMaxHeight
+      : designTokens.chip.regularMaxHeight,
+    paddingBlock: compact
+      ? designTokens.componentDensity.mobile.py
+      : designTokens.componentDensity.desktop.py,
+    paddingInline: designTokens.chip.minInlinePadding,
+  };
+}

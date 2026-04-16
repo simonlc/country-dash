@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import {
   appThemes,
@@ -124,6 +125,38 @@ describe('GameStatusPanel', () => {
     expect(screen.queryByText(/^Your guess$/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Hints$/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^next$/i })).toBeVisible();
+  });
+
+  it('keeps the review action button keyboard-focusable', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GameStatusPanel
+        {...baseProps}
+        gameState={createGameState({
+          lastRound: {
+            answerResult: 'incorrect',
+            capitalName: null,
+            continent: 'North America',
+            countryId: 'CA',
+            countryName: 'Canada',
+            effectiveDifficulty: 'easy',
+            hintsUsed: 0,
+            playerGuess: 'Atlantis',
+            region: 'North America',
+            roundElapsedMs: 1500,
+            scoreDelta: -20,
+            subregion: 'Northern America',
+          },
+          status: 'reviewing',
+        })}
+      />,
+    );
+
+    const actionButton = screen.getAllByRole('button', { name: /^next$/i })[0]!;
+    await user.tab();
+    actionButton.focus();
+    expect(actionButton).toHaveFocus();
   });
 
   it('renders the game over branch', () => {

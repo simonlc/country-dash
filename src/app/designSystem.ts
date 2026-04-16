@@ -36,6 +36,47 @@ export const designTokens = {
     xl: 2.5,
     xxl: 3,
   },
+  layout: {
+    edgeInset: {
+      desktop: 2,
+      mobile: 0,
+      tablet: 1,
+    },
+    floatingOffset: {
+      desktopBottom: 3,
+      desktopTop: 2,
+    },
+    panelMaxWidth: {
+      dialog: 960,
+      hud: 1240,
+      status: 860,
+    },
+  },
+  touchTarget: {
+    comfortable: 48,
+    min: 44,
+  },
+  componentDensity: {
+    desktop: {
+      px: 1.25,
+      py: 1,
+    },
+    mobile: {
+      px: 0.875,
+      py: 0.75,
+    },
+  },
+  chip: {
+    compactMaxHeight: 38,
+    fallbackRadius: 4,
+    minInlinePadding: 0.875,
+    regularMaxHeight: 46,
+  },
+  menu: {
+    languageItemMinWidth: 224,
+    panelWidth: 320,
+    viewportOffset: 136,
+  },
   componentSpacing: {
     dialogPanel: {
       desktop: 2.25,

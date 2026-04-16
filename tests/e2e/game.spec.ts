@@ -58,7 +58,9 @@ test('shows the guess dropdown while typing', async ({ page }) => {
 
 test('completes the daily challenge once and then locks it', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /Play today's daily/i }).click();
+  await page
+    .getByRole('button', { name: /Start daily challenge|Play today's daily/i })
+    .click();
 
   for (let round = 0; round < 5; round += 1) {
     const input = page.getByRole('combobox', { name: /Guess the country/i });
@@ -78,5 +80,6 @@ test('completes the daily challenge once and then locks it', async ({ page }) =>
     .poll(async () => page.evaluate(() => window.localStorage.getItem('copied-share-text')))
     .toContain('🧭 Country Dash Daily');
   await page.getByRole('button', { name: /Main menu/i }).click();
-  await expect(page.getByText(/Completed for today\./i)).toBeVisible();
+  await expect(page.getByText(/Done today/i).first()).toBeVisible();
+  await expect(page.getByText(/You already finished today's run/i)).toBeVisible();
 });

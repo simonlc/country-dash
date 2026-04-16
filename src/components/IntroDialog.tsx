@@ -11,7 +11,7 @@ import type {
   GameMode,
   RegionFilter,
 } from '@/types/game';
-import { getSelectorCardSx } from '@/utils/controlStyles';
+import { getFloatingPanelSx, getSelectorCardSx } from '@/utils/controlStyles';
 import {
   formatDailyResetCountdown,
   randomRunPresetDifficulties,
@@ -189,6 +189,7 @@ export const IntroDialog = NiceModal.create(
       () => formatDailyResetCountdown(),
     );
     const panelSurface = getThemeSurfaceStyles(activeTheme);
+    const introPanelWidth = designTokens.layout.panelMaxWidth.dialog;
 
     useEffect(() => {
       const timerId = window.setInterval(() => {
@@ -262,23 +263,32 @@ export const IntroDialog = NiceModal.create(
         open={modal.visible}
         PaperProps={{
           sx: {
-            borderRadius: { md: 9, xs: 0 },
-            height: { md: 'auto', xs: '100dvh' },
-            maxWidth: { md: 960, xs: '100%' },
+            borderRadius: { md: designTokens.radius.lg, xs: 0 },
+            blockSize: { md: 'auto', xs: '100dvh' },
+            maxInlineSize: { md: introPanelWidth, xs: '100%' },
             m: { xs: 0 },
             overflow: 'hidden',
-            width: { md: 'min(960px, calc(100% - 64px))', xs: '100%' },
+            inlineSize: {
+              md: `min(${introPanelWidth}px, calc(100% - 64px))`,
+              xs: '100%',
+            },
           },
         }}
       >
         <DialogContent
           sx={{
-            pb: { md: 3, xs: 'max(env(safe-area-inset-bottom), 10px)' },
-            pt: { md: 3, xs: 'max(env(safe-area-inset-top), 8px)' },
-            px: { md: 3, xs: 1 },
+            paddingBlockEnd: {
+              md: designTokens.layout.floatingOffset.desktopBottom,
+              xs: 'max(env(safe-area-inset-bottom), 10px)',
+            },
+            paddingBlockStart: {
+              md: designTokens.layout.floatingOffset.desktopTop,
+              xs: 'max(env(safe-area-inset-top), 8px)',
+            },
+            paddingInline: { md: 3, xs: 1 },
           }}
         >
-          <Stack spacing={2} sx={{ width: '100%' }}>
+          <Stack spacing={2} sx={{ inlineSize: '100%' }}>
             <Box
               sx={{
                 alignItems: 'stretch',
@@ -294,7 +304,7 @@ export const IntroDialog = NiceModal.create(
                 <Typography variant="h2">{m.app_name()}</Typography>
                 <Typography
                   color="text.secondary"
-                  maxWidth={{ md: 420, xs: 'none' }}
+                  sx={{ maxInlineSize: { md: 420, xs: 'none' } }}
                   variant="body2"
                 >
                   {m.app_subtitle()}
@@ -312,11 +322,12 @@ export const IntroDialog = NiceModal.create(
                 </Box>
               </Stack>
 
-              <Paper
-                elevation={0}
-                sx={{
-                  ...panelSurface,
-                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
+                <Paper
+                  elevation={0}
+                  sx={{
+                    ...panelSurface,
+                    ...getFloatingPanelSx({ compact: isCompactLayout, maxWidth: '100%' }),
+                    borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                   border: `1px solid rgba(242, 179, 90, ${
                     activeTheme.mode === 'light' ? '0.36' : '0.3'
                   })`,
@@ -331,21 +342,21 @@ export const IntroDialog = NiceModal.create(
                     activeTheme.mode === 'light' ? '0.34' : '0.06'
                   })`,
                   overflow: 'hidden',
-                  p: { md: 2, xs: 1.75 },
-                  width: '100%',
-                  '&::before': {
-                    background: `radial-gradient(circle, rgba(242, 179, 90, ${
-                      activeTheme.mode === 'light' ? '0.16' : '0.12'
-                    }), rgba(242, 179, 90, 0) 68%)`,
-                    content: '""',
-                    height: 120,
-                    position: 'absolute',
-                    right: -48,
-                    top: -46,
-                    width: 120,
-                  },
-                }}
-              >
+                    padding: { md: 2, xs: 1.75 },
+                    inlineSize: '100%',
+                    '&::before': {
+                      background: `radial-gradient(circle, rgba(242, 179, 90, ${
+                        activeTheme.mode === 'light' ? '0.16' : '0.12'
+                      }), rgba(242, 179, 90, 0) 68%)`,
+                      content: '""',
+                      blockSize: 120,
+                      inlineSize: 120,
+                      insetBlockStart: -46,
+                      insetInlineEnd: -48,
+                      position: 'absolute',
+                    },
+                  }}
+                >
                 <Stack spacing={1.35}>
                   <Stack spacing={0.7}>
                     <Stack
@@ -376,15 +387,6 @@ export const IntroDialog = NiceModal.create(
                         >
                           {m.game_daily_complete_short_label()}
                         </Typography>
-                        {/* <Typography */}
-                        {/*   sx={{ */}
-                        {/*     letterSpacing: '-0.02em', */}
-                        {/*     lineHeight: designTokens.lineHeight.tight, */}
-                        {/*   }} */}
-                        {/*   variant="h4" */}
-                        {/* > */}
-                        {/*   Daily Challenge */}
-                        {/* </Typography> */}
                       </Stack>
                     </Stack>
                   </Stack>
@@ -421,7 +423,7 @@ export const IntroDialog = NiceModal.create(
                           {dailySummary}
                         </Typography>
                       </Stack>
-                      <Stack spacing={0.15} sx={{ textAlign: 'right' }}>
+                      <Stack spacing={0.15} sx={{ textAlign: 'end' }}>
                         <Typography color="text.secondary" variant="body2">
                           {m.game_finished()}
                         </Typography>
@@ -499,8 +501,9 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
+                  ...getFloatingPanelSx({ compact: isCompactLayout, maxWidth: '100%' }),
                   borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
-                  p: { md: 2.25, xs: 2 },
+                  padding: { md: 2.25, xs: 2 },
                 }}
               >
                 <Stack spacing={1.75}>
@@ -537,11 +540,9 @@ export const IntroDialog = NiceModal.create(
                             }),
                             borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                             minHeight: 84,
-                            minWidth: 0,
-                            px: designTokens.componentSpacing.selectorCardDense
-                              .px,
-                            py: designTokens.componentSpacing.selectorCardDense
-                              .py,
+                            minInlineSize: 0,
+                            paddingBlock: designTokens.componentSpacing.selectorCardDense.py,
+                            paddingInline: designTokens.componentSpacing.selectorCardDense.px,
                           }}
                           onClick={() => setMode(option.value)}
                         >
@@ -614,12 +615,10 @@ export const IntroDialog = NiceModal.create(
                             borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                             justifyContent: 'flex-start',
                             minHeight: 112,
-                            minWidth: 0,
-                            px: designTokens.componentSpacing.selectorCardLarge
-                              .px,
-                            py: designTokens.componentSpacing.selectorCardLarge
-                              .py,
-                            textAlign: 'left',
+                            minInlineSize: 0,
+                            paddingBlock: designTokens.componentSpacing.selectorCardLarge.py,
+                            paddingInline: designTokens.componentSpacing.selectorCardLarge.px,
+                            textAlign: 'start',
                           }}
                           onClick={() => {
                             setCountrySizeFilter(item.value);
@@ -687,11 +686,11 @@ export const IntroDialog = NiceModal.create(
                               cursor: 'pointer',
                               display: 'flex',
                               justifyContent: 'flex-start',
-                              minWidth: 0,
-                              px: 0,
-                              py: 0.55,
+                              minInlineSize: 0,
+                              paddingBlock: 0.55,
+                              paddingInline: 0,
                               position: 'relative',
-                              textAlign: 'left',
+                              textAlign: 'start',
                               transition:
                                 'color 180ms ease, opacity 180ms ease',
                               '&::before': {
@@ -700,14 +699,14 @@ export const IntroDialog = NiceModal.create(
                                   : 'divider',
                                 borderRadius: 999,
                                 content: '""',
-                                height: item.selected ? 7 : 6,
-                                left: 0,
+                                blockSize: item.selected ? 7 : 6,
+                                insetBlockStart: 12,
+                                insetInlineStart: 0,
+                                inlineSize: item.selected ? 16 : 6,
                                 opacity: item.selected ? 1 : 0.45,
                                 position: 'absolute',
-                                top: 12,
                                 transition:
-                                  'background-color 180ms ease, opacity 180ms ease, width 180ms ease, height 180ms ease',
-                                width: item.selected ? 16 : 6,
+                                  'background-color 180ms ease, opacity 180ms ease, inline-size 180ms ease, block-size 180ms ease',
                               },
                               '&:hover': {
                                 color: item.selected
@@ -722,7 +721,7 @@ export const IntroDialog = NiceModal.create(
                           >
                             <Stack
                               spacing={0.15}
-                              sx={{ pl: item.selected ? 2.35 : 1.6 }}
+                              sx={{ paddingInlineStart: item.selected ? 2.35 : 1.6 }}
                             >
                               <Typography
                                 color="inherit"

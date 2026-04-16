@@ -384,73 +384,81 @@ const mobileStatChipSx = {
 
 ### Phase A — Token foundation
 
-- [ ] A1. Audit current token usage and list hard-coded spacing/radius/typography values in major UI components.
-- [ ] A2. Add `layout` token group (`edgeInset`, `panelMaxWidth`, `floatingOffset`) to `designSystem.ts`.
-- [ ] A3. Add touch target token group (`min`, `comfortable`) to `designSystem.ts`.
-- [ ] A4. Add density token group for mobile/desktop component padding.
-- [ ] A5. Add chip shape guardrail tokens (min horizontal padding, max compact height, fallback radius).
-- [ ] A6. Add/standardize shared style helpers in `controlStyles.ts` for panel shells and chip shells.
-- [ ] A7. Update `theme.ts` defaults to consume new tokens (focus ring, panel spacing/radius, action sizing).
-- [ ] A8. Document token usage rules in this plan section and enforce “no new raw px” in major components.
+- [x] A1. Audit current token usage and list hard-coded spacing/radius/typography values in major UI components.
+- [x] A2. Add `layout` token group (`edgeInset`, `panelMaxWidth`, `floatingOffset`) to `designSystem.ts`.
+- [x] A3. Add touch target token group (`min`, `comfortable`) to `designSystem.ts`.
+- [x] A4. Add density token group for mobile/desktop component padding.
+- [x] A5. Add chip shape guardrail tokens (min horizontal padding, max compact height, fallback radius).
+- [x] A6. Add/standardize shared style helpers in `controlStyles.ts` for panel shells and chip shells.
+- [x] A7. Update `theme.ts` defaults to consume new tokens (focus ring, panel spacing/radius, action sizing).
+- [x] A8. Document token usage rules in this plan section and enforce “no new raw px” in major components.
 
 ### Phase B — Layout + RTL pass
 
-- [ ] B1. Refactor `GamePage.tsx` into explicit visual layers (`GlobeLayer`, `OverlayLayer`, `TopHudLayer`, `BottomPanelLayer`).
-- [ ] B2. Convert top-level layout spacing to logical properties (`paddingInline`, `insetInline*`, `insetBlock*`).
-- [ ] B3. Convert safe-area + keyboard inset handling to logical equivalents where feasible.
-- [ ] B4. Ensure mobile is full-bleed (no decorative edge gaps at xs).
-- [ ] B5. Implement desktop floating offsets and max-width constraints from tokens.
-- [ ] B6. Remove/replace directional shorthands (`pl/pr/ml/mr/left/right`) in `GamePage.tsx`.
-- [ ] B7. Confirm layout order follows reading order for keyboard and screen reader semantics.
-- [ ] B8. Validate no visual regressions in loading/error states after shell changes.
+- [x] B1. Refactor `GamePage.tsx` into explicit visual layers (`GlobeLayer`, `OverlayLayer`, `TopHudLayer`, `BottomPanelLayer`).
+- [x] B2. Convert top-level layout spacing to logical properties (`paddingInline`, `insetInline*`, `insetBlock*`).
+- [x] B3. Convert safe-area + keyboard inset handling to logical equivalents where feasible.
+- [x] B4. Ensure mobile is full-bleed (no decorative edge gaps at xs).
+- [x] B5. Implement desktop floating offsets and max-width constraints from tokens.
+- [x] B6. Remove/replace directional shorthands (`pl/pr/ml/mr/left/right`) in `GamePage.tsx`.
+- [x] B7. Confirm layout order follows reading order for keyboard and screen reader semantics.
+- [x] B8. Validate no visual regressions in loading/error states after shell changes.
 
 ### Phase C — Major component normalization
 
-- [ ] C1. `GameHud.tsx`: extract repeated `sx` blocks into tokenized constants.
-- [ ] C2. `GameHud.tsx`: unify chip spacing/radius/typography scales across breakpoints.
-- [ ] C3. `GameHud.tsx`: apply pill guardrails (padding, height cap, fallback radius when wrapping).
-- [ ] C4. `GameStatusPanel.tsx`: standardize spacing and radius across intro/playing/review/gameOver branches.
-- [ ] C5. `GameStatusPanel.tsx`: consolidate action button sizing and minimum touch target usage.
-- [ ] C6. `GameStatusPanel.tsx`: simplify keyboard-open spacing branches using shared constants.
-- [ ] C7. `ThemeMenu.tsx`: normalize widths/gaps/button sizing and convert to logical properties.
-- [ ] C8. `ThemeMenu.tsx`: keep compact/mobile menu scroll-safe with predictable max height.
-- [ ] C9. `IntroDialog.tsx`: normalize selector card spacing/radius and section rhythm via tokens.
-- [ ] C10. `IntroDialog.tsx`: verify dense mobile layout remains readable and touch-friendly.
-- [ ] C11. `styles/index.css`: keep global-only primitives; remove component-like drift from global CSS.
-- [ ] C12. Confirm all major components now pull from tokens for spacing/radius/text size.
+- [x] C1. `GameHud.tsx`: extract repeated `sx` blocks into tokenized constants.
+- [x] C2. `GameHud.tsx`: unify chip spacing/radius/typography scales across breakpoints.
+- [x] C3. `GameHud.tsx`: apply pill guardrails (padding, height cap, fallback radius when wrapping).
+- [x] C4. `GameStatusPanel.tsx`: standardize spacing and radius across intro/playing/review/gameOver branches.
+- [x] C5. `GameStatusPanel.tsx`: consolidate action button sizing and minimum touch target usage.
+- [x] C6. `GameStatusPanel.tsx`: simplify keyboard-open spacing branches using shared constants.
+- [x] C7. `ThemeMenu.tsx`: normalize widths/gaps/button sizing and convert to logical properties.
+- [x] C8. `ThemeMenu.tsx`: keep compact/mobile menu scroll-safe with predictable max height.
+- [x] C9. `IntroDialog.tsx`: normalize selector card spacing/radius and section rhythm via tokens.
+- [x] C10. `IntroDialog.tsx`: verify dense mobile layout remains readable and touch-friendly.
+- [x] C11. `styles/index.css`: keep global-only primitives; remove component-like drift from global CSS.
+- [x] C12. Confirm all major components now pull from tokens for spacing/radius/text size.
 
 ### Phase D — a11y + l10n hardening
 
-- [ ] D1. Verify accessible names and labels for all interactive controls in core journeys.
-- [ ] D2. Ensure intentional modal focus trap behavior in Intro dialog; prevent unintended traps elsewhere.
-- [ ] D3. Verify focus visibility on all buttons, icon buttons, inputs, and menu items.
-- [ ] D4. Confirm keyboard navigation order remains logical after layout refactor.
-- [ ] D5. Audit major components for physical-direction CSS and replace with logical properties.
-- [ ] D6. Validate long translated labels do not overflow critical action surfaces.
-- [ ] D7. Validate bidi rendering for mixed text + numbers (scores/timers/round labels).
-- [ ] D8. Defer dynamic live announcements intentionally (document non-blocking scope).
+- [x] D1. Verify accessible names and labels for all interactive controls in core journeys.
+- [x] D2. Ensure intentional modal focus trap behavior in Intro dialog; prevent unintended traps elsewhere.
+- [x] D3. Verify focus visibility on all buttons, icon buttons, inputs, and menu items.
+- [x] D4. Confirm keyboard navigation order remains logical after layout refactor.
+- [x] D5. Audit major components for physical-direction CSS and replace with logical properties.
+- [x] D6. Validate long translated labels do not overflow critical action surfaces.
+- [x] D7. Validate bidi rendering for mixed text + numbers (scores/timers/round labels).
+- [x] D8. Defer dynamic live announcements intentionally (document non-blocking scope).
 
 ### Phase E — Final polish + QA
 
-- [ ] E1. Tune mobile spacing at 320x568 and 390x844.
-- [ ] E2. Tune tablet/desktop floating balance at 768x1024, 1366x768, 1920x1080.
-- [ ] E3. Ensure desktop floating cards preserve hierarchy without crowding globe view.
-- [ ] E4. Validate chip readability and shape behavior in compact modes.
-- [ ] E5. Run existing checks: typecheck, lint, unit tests, E2E.
-- [ ] E6. Add/adjust tests for responsive layout behavior in critical components.
-- [ ] E7. Add/adjust tests for RTL/LTR behavior in major UI surfaces.
-- [ ] E8. Add/adjust keyboard interaction tests for intro/menu/status flows.
-- [ ] E9. Add optional a11y test tooling only if a strict gap remains after test design.
-- [ ] E10. Re-run full QA matrix and capture final pass/fail notes.
+- [x] E1. Tune mobile spacing at 320x568 and 390x844.
+- [x] E2. Tune tablet/desktop floating balance at 768x1024, 1366x768, 1920x1080.
+- [x] E3. Ensure desktop floating cards preserve hierarchy without crowding globe view.
+- [x] E4. Validate chip readability and shape behavior in compact modes.
+- [x] E5. Run existing checks: typecheck, lint, unit tests, E2E.
+- [x] E6. Add/adjust tests for responsive layout behavior in critical components.
+- [x] E7. Add/adjust tests for RTL/LTR behavior in major UI surfaces.
+- [x] E8. Add/adjust keyboard interaction tests for intro/menu/status flows.
+- [x] E9. Add optional a11y test tooling only if a strict gap remains after test design.
+- [x] E10. Re-run full QA matrix and capture final pass/fail notes.
 
 ### Phase F — a11y/l10n sign-off
 
-- [ ] F1. Execute keyboard-only walkthrough for all core journeys.
-- [ ] F2. Execute explicit RTL walkthrough for HUD, status panel, intro, and menu.
-- [ ] F3. Confirm no clipped or mirrored incorrectly-positioned controls in RTL.
-- [ ] F4. Confirm long-string locale resilience in key flows (intro/menu/game-over).
-- [ ] F5. Confirm focus traps are intentional only (intro modal gate) and documented.
-- [ ] F6. Produce final sign-off checklist and mark launch blockers vs deferred items.
+- [x] F1. Execute keyboard-only walkthrough for all core journeys.
+- [x] F2. Execute explicit RTL walkthrough for HUD, status panel, intro, and menu.
+- [x] F3. Confirm no clipped or mirrored incorrectly-positioned controls in RTL.
+- [x] F4. Confirm long-string locale resilience in key flows (intro/menu/game-over).
+- [x] F5. Confirm focus traps are intentional only (intro modal gate) and documented.
+- [x] F6. Produce final sign-off checklist and mark launch blockers vs deferred items.
+
+#### Final sign-off checklist
+
+- [x] Mobile-first full-bleed shell and desktop floating panel constraints are applied through tokens.
+- [x] Major UI surfaces use logical-direction properties across layout and component internals.
+- [x] Keyboard interaction paths are covered in existing flows and test coverage.
+- [x] RTL behavior is covered for menu interactions and logical positioning.
+- [x] Existing lint, typecheck, unit tests, and production build are green.
 
 ---
 

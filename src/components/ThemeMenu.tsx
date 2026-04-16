@@ -56,6 +56,9 @@ export function ThemeMenu({
   const menuPanelId = 'theme-menu-panel';
   const languageMenuId = 'language-menu-panel';
   const languageMenuOpen = Boolean(languageAnchorEl);
+  const isRtlDocument = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  const inlineStartAnchor = isRtlDocument ? 'right' : 'left';
+  const menuTransformOrigin = isRtlDocument ? 'top left' : 'top right';
 
   const closeMenu = () => {
     setOpen(false);
@@ -124,10 +127,10 @@ export function ThemeMenu({
               startIcon={<ActionIcon size={14} />}
               sx={{
                 justifyContent: 'flex-start',
-                minHeight: 52,
-                minWidth: 0,
-                px: 1.5,
-                textAlign: 'left',
+                minBlockSize: designTokens.touchTarget.comfortable,
+                minInlineSize: 0,
+                paddingInline: 1.5,
+                textAlign: 'start',
                 textTransform: 'none',
                 whiteSpace: 'normal',
               }}
@@ -196,10 +199,10 @@ export function ThemeMenu({
                 aria-expanded={open}
                 size={isCompactLayout ? 'medium' : 'small'}
                 sx={{
-                  minHeight: { xs: 40 },
-                  minWidth: 0,
-                  px: 2,
-                  py: 0.85,
+                  minBlockSize: designTokens.touchTarget.min,
+                  minInlineSize: 0,
+                  paddingBlock: 0.85,
+                  paddingInline: 2,
                 }}
                 variant="contained"
                 onClick={() => setOpen((value) => !value)}
@@ -216,8 +219,8 @@ export function ThemeMenu({
                 sx={[
                   panelSurface,
                   {
-                    minHeight: { xs: 40 },
-                    minWidth: { xs: 40 },
+                    minBlockSize: designTokens.touchTarget.min,
+                    minInlineSize: designTokens.touchTarget.min,
                   },
                 ]}
                 onClick={(event) => {
@@ -228,10 +231,10 @@ export function ThemeMenu({
               </IconButton>
               <Menu
                 anchorEl={languageAnchorEl}
-                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+                anchorOrigin={{ horizontal: inlineStartAnchor, vertical: 'bottom' }}
                 id={languageMenuId}
                 open={languageMenuOpen}
-                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                transformOrigin={{ horizontal: inlineStartAnchor, vertical: 'top' }}
                 onClose={() => setLanguageAnchorEl(null)}
               >
                 {languages.map((language) => {
@@ -241,7 +244,7 @@ export function ThemeMenu({
                     <MenuItem
                       key={language.locale}
                       selected={isActiveLocale}
-                      sx={{ minWidth: 224 }}
+                      sx={{ minInlineSize: designTokens.menu.languageItemMinWidth }}
                       onClick={() => {
                         void setLocale(language.locale);
                         setLanguageAnchorEl(null);
@@ -273,10 +276,13 @@ export function ThemeMenu({
               in={open}
               sx={{
                 position: 'absolute',
-                right: 0,
-                top: 'calc(100% + 8px)',
-                transformOrigin: 'top right',
-                width: { md: 320, xs: 'min(92vw, 360px)' },
+                insetBlockStart: 'calc(100% + 8px)',
+                insetInlineEnd: 0,
+                transformOrigin: menuTransformOrigin,
+                inlineSize: {
+                  md: designTokens.menu.panelWidth,
+                  xs: `min(92vw, ${designTokens.menu.panelWidth + 40}px)`,
+                },
                 zIndex: theme.zIndex.modal,
               }}
             >
@@ -288,13 +294,13 @@ export function ThemeMenu({
                   borderRadius: designTokens.radius.sm,
                   maxHeight: {
                     md: 'none',
-                    xs: 'min(calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - 136px), 70vh)',
+                    xs: `min(calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - ${designTokens.menu.viewportOffset}px), 70vh)`,
                   },
                   overflowY: {
                     md: 'visible',
                     xs: 'auto',
                   },
-                  p: 2,
+                  padding: 2,
                 }}
               >
                 {menuContent}

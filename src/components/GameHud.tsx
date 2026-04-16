@@ -15,6 +15,7 @@ import type {
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { GameTimer } from '@/components/GameTimer';
+import { getChipShellSx, getFloatingPanelSx } from '@/utils/controlStyles';
 
 interface GameHudProps {
   correct: number;
@@ -60,6 +61,7 @@ export function GameHud({
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const isKeyboardCompact = isCompactLayout && isKeyboardOpen;
+  const isDenseHud = isCompactLayout || isKeyboardCompact;
   const statItems = isCompactLayout
     ? [
         { label: m.game_stat_score(), value: score },
@@ -77,30 +79,58 @@ export function GameHud({
           ? [{ label: m.game_stat_lives(), value: livesRemaining }]
           : []),
       ];
+  const sessionModeVariant = isKeyboardCompact
+    ? 'caption'
+    : isCompactLayout
+      ? 'subtitle2'
+      : 'h6';
+  const hudPanelSx = {
+    ...getFloatingPanelSx({ compact: isDenseHud, maxWidth: '100%' }),
+    borderEndEndRadius: {
+      md: designTokens.radius.pill,
+      xs: designTokens.radius.sm,
+    },
+    borderEndStartRadius: {
+      md: designTokens.radius.pill,
+      xs: designTokens.radius.sm,
+    },
+    borderStartEndRadius: 0,
+    borderStartStartRadius: 0,
+    pointerEvents: 'auto',
+    paddingBlock: {
+      md: designTokens.componentDensity.desktop.py,
+      xs: isKeyboardCompact ? 0.6 : designTokens.componentDensity.mobile.py,
+    },
+    paddingBlockStart: {
+      md: designTokens.componentDensity.desktop.py,
+      xs: `max(${isKeyboardCompact ? 6 : 10}px, calc(env(safe-area-inset-top) + ${isKeyboardCompact ? 6 : 10}px))`,
+    },
+    paddingInline: {
+      md: designTokens.componentDensity.desktop.px,
+      xs: isKeyboardCompact ? 0.65 : designTokens.componentDensity.mobile.px,
+    },
+  } as const;
+  const chipShellSx = getChipShellSx({
+    compact: isDenseHud,
+    wrapped: isCompactLayout,
+  });
+  const baseChipSx = {
+    flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
+    minInlineSize: { md: 74, xs: 0 },
+    textAlign: 'center',
+  } as const;
 
   return (
     <Paper
       elevation={0}
       sx={[
         panelSurface,
-        {
-          borderRadius: 0,
-          borderBottomLeftRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
-          borderBottomRightRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
-          pointerEvents: 'auto',
-          px: { md: 2, xs: isKeyboardCompact ? 0.65 : 0.9 },
-          py: { md: 1.2, xs: isKeyboardCompact ? 0.6 : 0.85 },
-          pt: {
-            md: 1.2,
-            xs: `max(${isKeyboardCompact ? 6 : 10}px, calc(env(safe-area-inset-top) + ${isKeyboardCompact ? 6 : 10}px))`,
-          },
-          width: '100%',
-        },
+        hudPanelSx,
       ]}
     >
       <Stack spacing={isKeyboardCompact ? 0.7 : 0.95}>
         <Stack alignItems="flex-start" direction="row" gap={1} justifyContent="space-between">
-          <Stack minWidth={0} spacing={0.2}>
+          <Stack spacing={0.2} sx={{ minInlineSize: 0 }}>
             <Typography
               color="text.secondary"
               letterSpacing="0.12em"
@@ -110,7 +140,7 @@ export function GameHud({
               {roundLabel}
             </Typography>
             <Stack alignItems="baseline" direction="row" flexWrap="wrap" gap={0.6}>
-              <Typography variant={isKeyboardCompact ? 'caption' : isCompactLayout ? 'subtitle2' : 'h6'}>
+              <Typography variant={sessionModeVariant}>
                 {sessionModeLabel}
               </Typography>
               {sessionSummaryLabel && !isKeyboardCompact ? (
@@ -139,14 +169,8 @@ export function GameHud({
               key={item.label}
               sx={[
                 displaySurface,
-                {
-                  borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
-                  flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
-                  minWidth: { md: 74, xs: 0 },
-                  px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
-                  py: { md: designTokens.componentSpacing.hudChip.py, xs: isKeyboardCompact ? 0.35 : 0.5 },
-                  textAlign: 'center',
-                },
+                chipShellSx,
+                baseChipSx,
               ]}
             >
               <Typography color="text.secondary" lineHeight={1} variant="caption">
@@ -155,7 +179,10 @@ export function GameHud({
               <Typography
                 lineHeight={1.05}
                 sx={{
-                  fontSize: { md: theme.typography.subtitle1.fontSize, xs: theme.typography.body1.fontSize },
+                  fontSize: {
+                    md: theme.typography.subtitle1.fontSize,
+                    xs: theme.typography.body1.fontSize,
+                  },
                   fontVariantNumeric: 'tabular-nums',
                 }}
                 variant="subtitle2"
@@ -168,12 +195,10 @@ export function GameHud({
             elevation={0}
             sx={[
               displayAccentSurface,
+              chipShellSx,
               {
-                borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
                 flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
-                minWidth: { md: 86, xs: 0 },
-                px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
-                py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
+                minInlineSize: { md: 86, xs: 0 },
               },
             ]}
           >
@@ -185,8 +210,8 @@ export function GameHud({
               size="small"
               sx={{
                 borderColor: 'rgba(150, 201, 255, 0.22)',
-                minHeight: 38,
-                py: 0.85,
+                minBlockSize: designTokens.touchTarget.min,
+                paddingBlock: 0.85,
               }}
               variant="contained"
               onClick={onRefocus}
