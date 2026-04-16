@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  ClickAwayListener,
   Collapse,
   Dialog,
   DialogActions,
@@ -24,7 +25,6 @@ import { designTokens } from '@/app/designSystem';
 import { m } from '@/paraglide/messages.js';
 import { getThemeSurfaceStyles } from '@/app/theme';
 import { ThemePreview } from '@/components/ThemePreview';
-import { getSelectorCardSx } from '@/utils/controlStyles';
 import { getThemeLabel } from '@/utils/themeTranslations';
 
 interface ThemeMenuProps {
@@ -157,29 +157,16 @@ export function ThemeMenu({
           const isActive = themeOption.id === activeTheme.id;
 
           return (
-            <Box
-              aria-label={getThemeLabel(themeOption.id)}
-              aria-pressed={isActive}
-              component="button"
+            <ThemePreview
+              ariaLabel={getThemeLabel(themeOption.id)}
               key={themeOption.id}
-              type="button"
-              sx={{
-                alignItems: 'center',
-                ...getSelectorCardSx(activeTheme, {
-                  selected: isActive,
-                }),
-                borderRadius: designTokens.radius.xs,
-                justifyContent: 'center',
-                p: 0.65,
-                width: '100%',
-              }}
+              selected={isActive}
+              theme={themeOption}
               onClick={() => {
                 setTheme(themeOption.id);
                 closeMenu();
               }}
-            >
-              <ThemePreview theme={themeOption} />
-            </Box>
+            />
           );
         })}
       </Box>
@@ -204,102 +191,110 @@ export function ThemeMenu({
           zIndex: isCompactLayout ? theme.zIndex.drawer + 1 : 20,
         }}
       >
-        <Stack alignItems="flex-start" spacing={1.5} sx={{ pointerEvents: 'auto' }}>
-          <Stack direction="row" spacing={1}>
-            <Button
-              aria-controls={menuPanelId}
-              aria-expanded={open}
-              size={isCompactLayout ? 'medium' : 'small'}
-              sx={{
-                minHeight: { xs: 40 },
-                minWidth: 0,
-                px: 2,
-                py: 0.85,
-              }}
-              variant="contained"
-              onClick={() => setOpen((value) => !value)}
-            >
-              {open ? m.action_close() : m.action_menu()}
-            </Button>
-            <IconButton
-              aria-controls={languageMenuOpen ? languageMenuId : undefined}
-              aria-expanded={languageMenuOpen ? 'true' : undefined}
-              aria-haspopup="menu"
-              aria-label={m.menu_language_selector_aria()}
-              color="primary"
-              size={isCompactLayout ? 'medium' : 'small'}
-              sx={[
-                panelSurface,
-                {
-                  minHeight: { xs: 40 },
-                  minWidth: { xs: 40 },
-                },
-              ]}
-              onClick={(event) => {
-                setLanguageAnchorEl(event.currentTarget);
-              }}
-            >
-              <Globe size={16} />
-            </IconButton>
-            <Menu
-              anchorEl={languageAnchorEl}
-              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-              id={languageMenuId}
-              open={languageMenuOpen}
-              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-              onClose={() => setLanguageAnchorEl(null)}
-            >
-              {languages.map((language) => {
-                const isActiveLocale = language.locale === locale;
-
-                return (
-                  <MenuItem
-                    key={language.locale}
-                    selected={isActiveLocale}
-                    sx={{ minWidth: 224 }}
-                    onClick={() => {
-                      void setLocale(language.locale);
-                      setLanguageAnchorEl(null);
-                    }}
-                  >
-                    <Stack
-                      alignItems="center"
-                      direction="row"
-                      justifyContent="space-between"
-                      spacing={2}
-                      sx={{ width: '100%' }}
-                    >
-                      <Stack spacing={0}>
-                        <Typography variant="body2">{language.nativeLabel}</Typography>
-                        {language.englishLabel !== language.nativeLabel ? (
-                          <Typography color="text.secondary" variant="caption">
-                            {language.englishLabel}
-                          </Typography>
-                        ) : null}
-                      </Stack>
-                      {isActiveLocale ? <Check size={15} /> : null}
-                    </Stack>
-                  </MenuItem>
-                );
-              })}
-            </Menu>
-          </Stack>
-          {!isCompactLayout ? (
-            <Collapse in={open} sx={{ width: '100%' }}>
-              <Paper
-                id={menuPanelId}
-                elevation={0}
+        <ClickAwayListener
+          onClickAway={() => {
+            if (open && !isCompactLayout) {
+              closeMenu();
+            }
+          }}
+        >
+          <Stack alignItems="flex-start" spacing={1.5} sx={{ pointerEvents: 'auto' }}>
+            <Stack direction="row" spacing={1}>
+              <Button
+                aria-controls={menuPanelId}
+                aria-expanded={open}
+                size={isCompactLayout ? 'medium' : 'small'}
                 sx={{
-                  ...panelSurface,
-                  borderRadius: designTokens.radius.sm,
-                  p: 2,
+                  minHeight: { xs: 40 },
+                  minWidth: 0,
+                  px: 2,
+                  py: 0.85,
+                }}
+                variant="contained"
+                onClick={() => setOpen((value) => !value)}
+              >
+                {open ? m.action_close() : m.action_menu()}
+              </Button>
+              <IconButton
+                aria-controls={languageMenuOpen ? languageMenuId : undefined}
+                aria-expanded={languageMenuOpen ? 'true' : undefined}
+                aria-haspopup="menu"
+                aria-label={m.menu_language_selector_aria()}
+                color="primary"
+                size={isCompactLayout ? 'medium' : 'small'}
+                sx={[
+                  panelSurface,
+                  {
+                    minHeight: { xs: 40 },
+                    minWidth: { xs: 40 },
+                  },
+                ]}
+                onClick={(event) => {
+                  setLanguageAnchorEl(event.currentTarget);
                 }}
               >
-                {menuContent}
-              </Paper>
-            </Collapse>
-          ) : null}
-        </Stack>
+                <Globe size={16} />
+              </IconButton>
+              <Menu
+                anchorEl={languageAnchorEl}
+                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+                id={languageMenuId}
+                open={languageMenuOpen}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                onClose={() => setLanguageAnchorEl(null)}
+              >
+                {languages.map((language) => {
+                  const isActiveLocale = language.locale === locale;
+
+                  return (
+                    <MenuItem
+                      key={language.locale}
+                      selected={isActiveLocale}
+                      sx={{ minWidth: 224 }}
+                      onClick={() => {
+                        void setLocale(language.locale);
+                        setLanguageAnchorEl(null);
+                      }}
+                    >
+                      <Stack
+                        alignItems="center"
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={2}
+                        sx={{ width: '100%' }}
+                      >
+                        <Stack spacing={0}>
+                          <Typography variant="body2">{language.nativeLabel}</Typography>
+                          {language.englishLabel !== language.nativeLabel ? (
+                            <Typography color="text.secondary" variant="caption">
+                              {language.englishLabel}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                        {isActiveLocale ? <Check size={15} /> : null}
+                      </Stack>
+                    </MenuItem>
+                  );
+                })}
+              </Menu>
+            </Stack>
+            {!isCompactLayout ? (
+              <Collapse in={open} sx={{ width: '100%' }}>
+                <Paper
+                  id={menuPanelId}
+                  elevation={0}
+                  sx={{
+                    ...panelSurface,
+                    borderRadius: designTokens.radius.sm,
+                    p: 2,
+                  }}
+                >
+                  {menuContent}
+                </Paper>
+              </Collapse>
+            ) : null}
+          </Stack>
+        </ClickAwayListener>
       </Box>
       {isCompactLayout ? (
         <Drawer

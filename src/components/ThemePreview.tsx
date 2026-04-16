@@ -3,21 +3,50 @@ import type { AppThemeDefinition } from '@/app/theme';
 
 interface ThemePreviewProps {
   theme: AppThemeDefinition;
+  selected?: boolean;
+  ariaLabel?: string;
+  onClick?: () => void;
 }
 
-export function ThemePreview({ theme }: ThemePreviewProps) {
+export function ThemePreview({
+  theme,
+  selected = false,
+  ariaLabel,
+  onClick,
+}: ThemePreviewProps) {
   const atlasStyleEnabled = theme.render.atlasStyleEnabled;
+  const isInteractive = typeof onClick === 'function';
 
   return (
     <Box
+      aria-label={ariaLabel}
+      aria-pressed={isInteractive ? selected : undefined}
+      component={isInteractive ? 'button' : 'div'}
+      type={isInteractive ? 'button' : undefined}
       sx={{
+        appearance: 'none',
         background: theme.preview.sky,
         borderRadius: 3,
-        outline: `2px solid ${theme.background.panelBorder}`,
+        cursor: isInteractive ? 'pointer' : 'default',
         height: 78,
+        margin: 0,
+        outline: `2px solid ${
+          selected ? theme.palette.primary : theme.background.panelBorder
+        }`,
         overflow: 'hidden',
+        p: 0,
         position: 'relative',
+        transition: 'outline-color 160ms ease, box-shadow 160ms ease',
         width: '100%',
+        '&:focus-visible': {
+          boxShadow: `0 0 0 3px ${theme.palette.primary}`,
+          outlineColor: theme.palette.primary,
+        },
+        '&:hover': isInteractive
+          ? {
+              outlineColor: theme.palette.primary,
+            }
+          : undefined,
         '&::before': atlasStyleEnabled
           ? {
               background:
@@ -40,6 +69,7 @@ export function ThemePreview({ theme }: ThemePreviewProps) {
             }
           : undefined,
       }}
+      onClick={onClick}
     >
       <Box
         sx={{
