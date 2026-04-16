@@ -60,6 +60,7 @@ const baseProps = {
   displaySurface,
   isCapitalMode: false,
   isDailyRun: false,
+  isKeyboardOpen: false,
   isReviewComplete: false,
   onCopyDailyShare: vi.fn().mockResolvedValue(undefined),
   onNextRound: vi.fn(),

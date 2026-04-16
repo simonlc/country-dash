@@ -3,18 +3,34 @@ import { useEffect, useState } from 'react';
 interface WindowSize {
   width: number;
   height: number;
+  keyboardInset: number;
+  isKeyboardOpen: boolean;
 }
 
 function getWindowSize(): WindowSize {
   if (typeof window === 'undefined') {
-    return { width: 0, height: 0 };
+    return { width: 0, height: 0, keyboardInset: 0, isKeyboardOpen: false };
   }
 
+  const layoutWidth = Math.round(window.innerWidth);
+  const layoutHeight = Math.round(window.innerHeight);
   const viewport = window.visualViewport;
+  const viewportHeight = Math.round(viewport?.height ?? layoutHeight);
+  const viewportOffsetTop = Math.round(viewport?.offsetTop ?? 0);
+  const keyboardInset = Math.max(
+    0,
+    layoutHeight - (viewportHeight + viewportOffsetTop),
+  );
+  const keyboardOpenThreshold = Math.max(
+    120,
+    Math.round(layoutHeight * 0.18),
+  );
 
   return {
-    width: Math.round(viewport?.width ?? window.innerWidth),
-    height: Math.round(viewport?.height ?? window.innerHeight),
+    width: layoutWidth,
+    height: layoutHeight,
+    keyboardInset,
+    isKeyboardOpen: keyboardInset >= keyboardOpenThreshold,
   };
 }
 

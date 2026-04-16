@@ -163,8 +163,10 @@ interface UseGamePageStateResult {
   isCapitalMode: boolean;
   cipherThemeEnabled: boolean;
   isDailyRun: boolean;
+  isKeyboardOpen: boolean;
   isLoading: boolean;
   isReviewComplete: boolean;
+  keyboardInset: number;
   loadingError: string | null;
   locale: string;
   panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
@@ -652,8 +654,10 @@ export function useGamePageState(): UseGamePageStateResult {
     isCapitalMode,
     cipherThemeEnabled,
     isDailyRun,
+    isKeyboardOpen: size.isKeyboardOpen,
     isLoading: !worldData || !currentCountry,
     isReviewComplete,
+    keyboardInset: size.isKeyboardOpen ? size.keyboardInset : 0,
     loadingError,
     locale,
     panelSurface,

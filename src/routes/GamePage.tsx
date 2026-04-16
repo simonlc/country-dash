@@ -12,6 +12,11 @@ import { useGamePageState } from '@/hooks/useGamePageState';
 
 export function GamePage() {
   const state = useGamePageState();
+  const mobileHudTopPadding = state.isKeyboardOpen
+    ? 'max(env(safe-area-inset-top), 10px)'
+    : 'max(env(safe-area-inset-top), 56px)';
+  const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${state.keyboardInset}px)`;
+  const mobileStatusBottomPadding = `calc(max(env(safe-area-inset-bottom), 12px) + ${state.keyboardInset}px)`;
 
   if (state.loadingError) {
     return (
@@ -45,7 +50,8 @@ export function GamePage() {
     <Box
       sx={{
         backgroundImage: state.activeTheme.background.app,
-        height: '100dvh',
+        height: '100%',
+        minHeight: '100dvh',
         overflow: 'hidden',
         position: 'relative',
       }}
@@ -84,26 +90,33 @@ export function GamePage() {
           }}
           settings={state.effectiveThemeSettings}
           setSettingsPatch={state.setAdminOverridePatch}
-            themeLabel={getThemeLabel(state.activeTheme.id)}
+          themeLabel={getThemeLabel(state.activeTheme.id)}
           onReset={state.resetAdminOverride}
         />
       ) : null}
       {state.cipherTelemetry ? (
         <CipherTelemetryPanel {...state.cipherTelemetry} />
       ) : null}
-      <Container
-        maxWidth="lg"
+      <Box
         sx={{
           inset: 0,
           pointerEvents: 'none',
           position: 'absolute',
+          pl: {
+            md: 3,
+            xs: 'max(env(safe-area-inset-left), 0px)',
+          },
+          pr: {
+            md: 3,
+            xs: 'max(env(safe-area-inset-right), 0px)',
+          },
           pb: {
             md: 3,
-            xs: 'max(env(safe-area-inset-bottom), 10px)',
+            xs: mobileHudBottomPadding,
           },
           pt: {
             md: 3,
-            xs: 'max(env(safe-area-inset-top), 56px)',
+            xs: mobileHudTopPadding,
           },
           zIndex: 1,
         }}
@@ -135,16 +148,23 @@ export function GamePage() {
 
         <Box
           sx={{
-            alignItems: 'center',
-            display: 'grid',
+            alignItems: 'end',
+            display: 'flex',
             inset: 0,
-            justifyItems: 'center',
+            justifyContent: 'center',
             pointerEvents: 'none',
             position: 'absolute',
-            px: 2,
+            pl: {
+              md: 2,
+              xs: 'max(env(safe-area-inset-left), 6px)',
+            },
+            pr: {
+              md: 2,
+              xs: 'max(env(safe-area-inset-right), 6px)',
+            },
             pb: {
               md: 4,
-              xs: 'max(env(safe-area-inset-bottom), 12px)',
+              xs: mobileStatusBottomPadding,
             },
             pt: { md: 4, xs: 2 },
           }}
@@ -158,6 +178,7 @@ export function GamePage() {
             gameState={state.gameState}
             isCapitalMode={state.isCapitalMode}
             isDailyRun={state.isDailyRun}
+            isKeyboardOpen={state.isKeyboardOpen}
             isReviewComplete={state.isReviewComplete}
             onCopyDailyShare={state.handlers.onCopyDailyShare}
             onNextRound={state.handlers.onNextRound}
@@ -169,7 +190,7 @@ export function GamePage() {
             totalRounds={state.totalRounds}
           />
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }

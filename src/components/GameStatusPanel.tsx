@@ -30,6 +30,7 @@ interface GameStatusPanelProps {
   gameState: GameState;
   isCapitalMode: boolean;
   isDailyRun: boolean;
+  isKeyboardOpen: boolean;
   isReviewComplete: boolean;
   onCopyDailyShare: () => Promise<void>;
   onNextRound: () => void;
@@ -53,6 +54,7 @@ export function GameStatusPanel({
   gameState,
   isCapitalMode,
   isDailyRun,
+  isKeyboardOpen,
   isReviewComplete,
   onCopyDailyShare,
   onNextRound,
@@ -151,10 +153,8 @@ export function GameStatusPanel({
           borderRadius: designTokens.radius.xs,
           maxWidth: 560,
           mb: {
-            // md: 16,
-            // xs: 8,
             md: isPlaying ? 16 : 4,
-            xs: isPlaying ? 8 : 2,
+            xs: isKeyboardOpen ? 0 : isPlaying ? 8 : 2,
           },
           p: {
             md: designTokens.componentSpacing.overlayPanel.desktop,
