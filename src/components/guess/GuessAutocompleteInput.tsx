@@ -4,7 +4,6 @@ import type { AutocompleteRenderInputParams } from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { UiCard } from '@/components/ui/UiCard';
 
 interface GuessAutocompleteInputProps {
   hintSuffix: string;
@@ -32,7 +31,7 @@ export function GuessAutocompleteInput({
   variant,
 }: GuessAutocompleteInputProps) {
   return (
-    <UiCard sx={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }}>
       <TextField
         {...params}
         autoFocus
@@ -82,6 +81,6 @@ export function GuessAutocompleteInput({
         </Box>
         <Box component="span">{hintSuffix}</Box>
       </Typography>
-    </UiCard>
+    </div>
   );
 }
