@@ -4,6 +4,8 @@ interface WindowSize {
   width: number;
   height: number;
   visualHeight: number;
+  visualOffsetLeft: number;
+  visualOffsetTop: number;
   keyboardInset: number;
   isKeyboardOpen: boolean;
 }
@@ -47,6 +49,8 @@ function getWindowSize(
       width: 0,
       height: 0,
       visualHeight: 0,
+      visualOffsetLeft: 0,
+      visualOffsetTop: 0,
       keyboardInset: 0,
       isKeyboardOpen: false,
     };
@@ -60,6 +64,7 @@ function getWindowSize(
   );
   const viewport = window.visualViewport;
   const viewportHeight = Math.round(viewport?.height ?? layoutHeight);
+  const viewportOffsetLeft = Math.round(viewport?.offsetLeft ?? 0);
   const viewportOffsetTop = Math.round(viewport?.offsetTop ?? 0);
   const viewportBottom = viewportHeight + viewportOffsetTop;
   const orientation = getOrientation(layoutWidth, layoutHeight);
@@ -93,6 +98,8 @@ function getWindowSize(
     width: layoutWidth,
     height: baseline.stableHeight,
     visualHeight: viewportHeight,
+    visualOffsetLeft: viewportOffsetLeft,
+    visualOffsetTop: viewportOffsetTop,
     keyboardInset: isKeyboardOpen ? keyboardInset : 0,
     isKeyboardOpen,
   };
@@ -134,6 +141,8 @@ export function useWindowSize() {
             previousSize.width === nextSize.width &&
             previousSize.height === nextSize.height &&
             previousSize.visualHeight === nextSize.visualHeight &&
+            previousSize.visualOffsetLeft === nextSize.visualOffsetLeft &&
+            previousSize.visualOffsetTop === nextSize.visualOffsetTop &&
             previousSize.keyboardInset === nextSize.keyboardInset &&
             previousSize.isKeyboardOpen === nextSize.isKeyboardOpen
           ) {
@@ -172,12 +181,27 @@ export function useWindowSize() {
       '--visual-viewport-height',
       `${size.visualHeight}px`,
     );
+    document.documentElement.style.setProperty(
+      '--visual-viewport-offset-left',
+      `${size.visualOffsetLeft}px`,
+    );
+    document.documentElement.style.setProperty(
+      '--visual-viewport-offset-top',
+      `${size.visualOffsetTop}px`,
+    );
 
     return () => {
       document.documentElement.style.removeProperty('--keyboard-fallback-inset');
       document.documentElement.style.removeProperty('--visual-viewport-height');
+      document.documentElement.style.removeProperty('--visual-viewport-offset-left');
+      document.documentElement.style.removeProperty('--visual-viewport-offset-top');
     };
-  }, [size.keyboardInset, size.visualHeight]);
+  }, [
+    size.keyboardInset,
+    size.visualHeight,
+    size.visualOffsetLeft,
+    size.visualOffsetTop,
+  ]);
 
   return size;
 }

@@ -1,1166 +1,521 @@
-# React Refactor and Bug-Fix Implementation Plan
+# Country Dash UI Unification + Performance Plan
 
-## Goal
+## 1. Objective
 
-Restructure the React layer so the app is easier to change, less bug-prone, and more maintainable without changing the product unnecessarily.
+Create a **mobile-first**, high-performance UI system that:
 
-This plan is based on the current codebase, especially these hotspots:
+1. unifies visual language across major components,
+2. standardizes spacing/radius/typography via tokens,
+3. improves responsiveness and readability on mobile and desktop,
+4. uses RTL/LTR-safe logical properties consistently,
+5. improves a11y and l10n behavior without changing game rules.
 
-- `src/features/game/routes/GamePage.tsx`
-- `src/features/game/ui/WebGlGlobe.tsx`
-- `src/Globe.tsx`
-- `src/features/game/ui/GuessInput.tsx`
-- `src/features/game/ui/GlobeAdminPanel.tsx`
-- `src/app/router.tsx`
+---
 
-## Notes Incorporated
+## 2. Skills to use (a11y + l10n)
 
-This revision reflects the latest document notes:
+I searched for dedicated skills and found strong candidates:
 
-1. Remove the SVG renderer instead of preserving it.
-2. Remove fallback-to-SVG planning.
-3. Flatten the folder structure significantly.
-4. Prefer fewer folders and more files.
-5. Use broad buckets like `components`, `hooks`, `utils`, and `routes` instead of deep feature nesting where possible.
+### Accessibility skill
 
-## Progress
+- `addyosmani/web-quality-skills@accessibility`
+- Install:
 
-- [x] Phase 1: Remove dead renderer abstraction and gate router devtools
-- [x] Phase 2: Slim `GamePage` without changing behavior
-- [x] Phase 3: Flatten and reorganize the globe subsystem
-- [x] Phase 4: Simplify `GuessInput`
-- [x] Phase 5: Make `GlobeAdminPanel` metadata-driven
-- [x] Phase 6: Improve WebGL error handling without fallback
-- [x] Phase 7: Performance improvements after structural refactor
-- [x] Phase 8: Testing plan implementation
-- [x] Phase 9: Cleanup and deletion pass
-
-## Primary Outcomes
-
-1. Reduce the size and responsibility of `GamePage`.
-2. Break `WebGlGlobe` into smaller renderer-focused modules.
-3. Remove dead renderer abstraction and related dead code.
-4. Improve maintainability with a flatter source layout.
-5. Improve error handling around WebGL without introducing a second renderer path.
-6. Add tests around the high-risk refactor points.
-
-## Confirmed Issues To Address
-
-### 1. Dead renderer abstraction
-
-Current state:
-
-- `Globe` accepts `renderer`
-- `GamePage` stores a renderer value
-- `SvgGlobe` exists
-- `Globe` always renders `WebGlGlobe`
-
-Impact:
-
-- misleading API
-- dead path rot
-- unnecessary branching in the type system and app model
-
-### 2. `GamePage` is overloaded
-
-Current state:
-
-- session setup
-- async world-data loading
-- reducer orchestration
-- HUD rendering
-- bottom-panel rendering
-- modal orchestration
-- theme-specific decorative rendering
-- cipher telemetry strings
-- admin-panel mounting
-
-Impact:
-
-- harder code review
-- harder regression isolation
-- higher coupling between state and presentation
-
-### 3. `WebGlGlobe` is too large
-
-Current state:
-
-- 4000+ lines
-- owns rendering setup, shader sources, textures, asset loading, overlays, traffic visualization, and runtime scheduling
-
-Impact:
-
-- hard to reason about
-- high regression risk
-- difficult to test in pieces
-
-### 4. WebGL error handling is weak
-
-Current state:
-
-- WebGL init failure only shows a text message inside the same component
-- there is no cleaner boundary between initialization failure and the rest of the app
-
-Impact:
-
-- poor resilience
-- noisy renderer responsibility
-- future renderer work remains tightly coupled to error UI
-
-### 5. `GuessInput` duplicates submission logic
-
-Current state:
-
-- form submit handler
-- Autocomplete `onKeyDown`
-- TextField `onKeyDown`
-- duplicate input syncing paths
-
-Impact:
-
-- subtle event bugs
-- harder keyboard behavior changes
-
-### 6. `GlobeAdminPanel` is schema-fragile
-
-Current state:
-
-- each quality field is manually declared
-- each dependency is manually repeated
-- patch construction is manual
-
-Impact:
-
-- new fields are easy to forget
-- repetitive code
-
-### 7. Router devtools are always mounted
-
-Current state:
-
-- `TanStackRouterDevtools` is rendered unconditionally in `RootLayout`
-
-Impact:
-
-- unnecessary runtime surface unless intentionally desired
-
-### 8. Test coverage is light where risk is highest
-
-Current state:
-
-- good logic tests
-- lighter component coverage around refactor-heavy UI and renderer boundaries
-
-Impact:
-
-- refactors are slower and riskier than necessary
-
-## Non-Goals
-
-- rewriting the game rules
-- replacing MUI
-- changing the visual identity of existing themes
-- converting the app to a new routing or state library
-- introducing a new renderer
-- keeping `SvgGlobe` alive as a supported path
-
-## Success Criteria
-
-The refactor is successful when:
-
-1. `GamePage` becomes an orchestration shell rather than the main UI monolith.
-2. All dead SVG-renderer abstractions are removed.
-3. `WebGlGlobe` is split into focused modules with stable contracts.
-4. WebGL initialization and runtime errors are handled more cleanly.
-5. `GuessInput` has a single submission path.
-6. `GlobeAdminPanel` derives its controls from shared metadata.
-7. All existing tests pass, typecheck passes, and new targeted tests are added.
-
-## Target Source Layout
-
-Keep the structure flatter than the previous draft. Prefer broad top-level buckets and avoid building a mini-filesystem taxonomy.
-
-```text
-src/
-  app/
-    appearance.tsx
-    providers.tsx
-    router.tsx
-    theme.ts
-
-  routes/
-    GamePage.tsx
-
-  components/
-    Globe.tsx
-    WebGlGlobe.tsx
-    GuessInput.tsx
-    ThemeMenu.tsx
-    ThemePreview.tsx
-    GlobeAdminPanel.tsx
-    IntroDialog.tsx
-    AboutDialog.tsx
-    GameTimer.tsx
-    GameHud.tsx
-    GameStatusPanel.tsx
-    GameBackground.tsx
-    CipherTelemetryPanel.tsx
-
-  hooks/
-    useGamePageState.ts
-    useDailyShare.ts
-    useGlobeAssets.ts
-    useGlobeRenderLoop.ts
-    useGlobeAdminTuning.ts
-    useWindowSize.ts
-    useCipherTraffic.ts
-
-  utils/
-    gameLogic.ts
-    globeShared.ts
-    globeShaders.ts
-    globeWebGl.ts
-    globeDraw.ts
-    globeTextures.ts
-    globeAtlasTextures.ts
-    globeOverlays.ts
-    globeCipherOverlays.ts
-    globeHydroOverlays.ts
-    loadWorldData.ts
-    controlStyles.ts
-
-  test/
-    render.tsx
-    setup.ts
+```bash
+npx skills add addyosmani/web-quality-skills@accessibility -g -y
 ```
 
-### Layout rules
+### Localization / i18n skill
 
-- avoid deep nesting unless a group has several files and a clear boundary
-- prefer `globeX.ts` utility modules over `globe/webgl/x/y/z.ts`
-- keep route files very thin
-- keep reusable UI in `components`
-- keep non-React logic in `utils`
-- keep stateful orchestration in `hooks`
+- `sickn33/antigravity-awesome-skills@i18n-localization`
+- Install:
 
-## Implementation Strategy
-
-Use small, behavior-preserving phases. Do not refactor `GamePage` and `WebGlGlobe` in one sweep.
-
-Recommended sequence:
-
-1. Remove dead and misleading abstractions first.
-2. Create flatter module boundaries without changing behavior.
-3. Move logic behind those boundaries.
-4. Improve error handling around the existing WebGL renderer.
-5. Add tests and then delete the stale code.
-
-## Phase 0: Establish Safety Rails
-
-### Work
-
-1. Run and record baseline checks.
-2. Add missing smoke tests before larger file movement.
-3. Capture a minimal interaction matrix for manual verification.
-
-### Commands
-
-```sh
-pnpm typecheck
-pnpm test
-pnpm test:e2e
+```bash
+npx skills add sickn33/antigravity-awesome-skills@i18n-localization -g -y
 ```
 
-### Manual verification checklist
+### L10n-focused alternative
 
-- load app
-- start daily run
-- start random run
-- answer correctly
-- answer incorrectly
-- capitals mode
-- theme switching
-- refocus action
-- retry action
-- quit to menu
-- WebGL error state
+- `mindrally/skills@localization-l10n`
+- Install:
 
-### Deliverables
-
-- stable baseline before refactor
-- list of currently passing tests
-- note any flaky tests before starting
-
-## Phase 1: Remove Dead Renderer Abstraction
-
-This phase should happen before the larger file moves.
-
-### 1A. Gate router devtools
-
-#### Files
-
-- `src/app/router.tsx`
-
-#### Change
-
-Only render router devtools in development.
-
-#### Snippet
-
-```tsx
-function RootLayout() {
-  const showDevtools = import.meta.env.DEV;
-
-  return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <Outlet />
-      {showDevtools ? <TanStackRouterDevtools position="bottom-right" /> : null}
-    </Box>
-  );
-}
+```bash
+npx skills add mindrally/skills@localization-l10n -g -y
 ```
 
-### 1B. Remove SVG renderer support entirely
+### Installation status
 
-#### Files
+Installed successfully:
 
-- `src/Globe.tsx`
-- `src/features/game/routes/GamePage.tsx`
-- `src/features/game/types.ts`
-- `src/features/game/ui/SvgGlobe.tsx`
+1. `addyosmani/web-quality-skills@accessibility`
+2. `sickn33/antigravity-awesome-skills@i18n-localization`
+3. `mindrally/skills@localization-l10n`
 
-#### Changes
+---
 
-- delete `SvgGlobe.tsx`
-- remove `GlobeRenderer` if it no longer serves any purpose
-- remove `renderer` props from `Globe` and `GamePage`
-- remove renderer local-storage logic
+## 3. Current UI issues to fix
 
-#### Snippet
+1. **Token usage is inconsistent**: major components still use hard-coded px values and mixed spacing semantics.
+2. **Desktop/mobile visual rhythm differs too much**: cards/panels do not follow one spacing and radius system.
+3. **RTL/LTR support is partial**: many styles still use `left/right/pl/pr` instead of logical properties.
+4. **Layout complexity on mobile** can create visual noise and perceived jank.
+5. **Floating desktop look exists in parts only**, not as a single reusable layout pattern.
 
-```tsx
-interface GlobeProps {
-  country: CountryFeature;
-  mode: GameMode;
-  width: number;
-  height: number;
-  rotation: [number, number];
-  focusRequest: number;
-  world: FeatureCollectionLike;
-  palette: GlobePalette;
-  quality: GlobeQualityConfig;
-  themeId: AppThemeId;
-  onCipherTrafficStateChange?: (state: CipherTrafficState) => void;
-}
+---
 
-function GlobeComponent(props: GlobeProps) {
-  return <WebGlGlobe {...props} />;
-}
-```
+## 4. Design system expansion (token-first)
 
-#### Follow-up cleanup
+## 4.1 Extend tokens in `src/app/designSystem.ts`
 
-Delete or simplify:
-
-- `rendererStorageKey`
-- `getStoredRenderer()`
-- `GlobeRenderer` type
-- renderer writes to local storage
-- any tests that imply a dual-renderer design
-
-### 1C. Replace fallback logic with cleaner WebGL error state
-
-Because the SVG renderer is being removed, the plan changes here:
-
-- do not introduce fallback-to-SVG
-- instead isolate WebGL failure handling behind a clear boundary
-
-#### Files
-
-- `src/Globe.tsx`
-- `src/components/WebGlGlobe.tsx` after move
-
-#### Change
-
-- surface initialization errors into the wrapper or a small boundary component
-- render a localized failure state instead of mixing error rendering deep into all renderer logic
-
-#### Snippet
-
-```tsx
-function GlobeComponent(props: GlobeProps) {
-  const [renderError, setRenderError] = useState<Error | null>(null);
-
-  if (renderError) {
-    return <GlobeRenderError message={renderError.message} />;
-  }
-
-  return <WebGlGlobe {...props} onRenderError={setRenderError} />;
-}
-```
-
-## Phase 2: Slim `GamePage` Without Changing Behavior
-
-The goal is to keep `GamePage` as the route entry and orchestration boundary, not the place where all JSX lives.
-
-### Target extractions
-
-Extract these first:
-
-1. `GameBackground`
-2. `GameHud`
-3. `GameStatusPanel`
-4. `CipherTelemetryPanel`
-5. `useGamePageState`
-
-### 2A. Create `useGamePageState`
-
-#### Files
-
-- `src/hooks/useGamePageState.ts`
-- `src/routes/GamePage.tsx`
-
-#### Move into hook
-
-- world-data loading
-- reducer setup
-- daily-result persistence
-- session start handlers
-- refocus/copy/restart/quit handlers
-- memoized derived gameplay values
-
-#### Snippet
+Add explicit token groups for layout and component density:
 
 ```ts
-export function useGamePageState() {
-  const size = useWindowSize();
-  const { activeTheme } = useAppearance();
-  const [worldData, setWorldData] = useState<WorldData | null>(null);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [gameState, dispatch] = useReducer(
-    gameReducer,
-    undefined,
-    createInitialGameState,
-  );
-
-  // move current GamePage logic here
-
-  return {
-    size,
-    activeTheme,
-    worldData,
-    loadingError,
-    gameState,
-    dispatch,
-    currentCountry,
-    rotation,
-    handlers,
-    derived,
-  };
-}
+export const designTokens = {
+  // existing groups...
+  layout: {
+    edgeInset: { mobile: 0, tablet: 8, desktop: 16 },
+    panelMaxWidth: {
+      hud: 1240,
+      status: 860,
+      dialog: 960,
+    },
+    floatingOffset: {
+      desktopTop: 16,
+      desktopBottom: 24,
+    },
+  },
+  touchTarget: {
+    min: 44,
+    comfortable: 48,
+  },
+  componentDensity: {
+    mobile: { py: 0.75, px: 0.875 },
+    desktop: { py: 1.0, px: 1.25 },
+  },
+} as const;
 ```
 
-### 2B. Extract the top HUD
+## 4.2 Token rules
 
-#### Files
+1. No raw numeric radii outside token file.
+2. No ad-hoc text sizes in major components.
+3. Shared panel padding/radius through tokenized helpers.
+4. Use density tokens for mobile vs desktop differences.
 
-- `src/components/GameHud.tsx`
+---
 
-#### Props
+## 5. RTL/LTR-safe styling strategy (mandatory)
 
-- top metrics
-- session labels
-- timer state
-- refocus handler
-- theme surface styles
+Replace directional properties with logical CSS.
 
-#### Snippet
+### 5.1 Preferred logical properties
+
+- `paddingInline`, `paddingInlineStart`, `paddingInlineEnd`
+- `marginInline`, `marginInlineStart`, `marginInlineEnd`
+- `insetInline`, `insetInlineStart`, `insetInlineEnd`
+- `borderStartStartRadius`, `borderStartEndRadius`, `borderEndStartRadius`, `borderEndEndRadius`
+- text alignment defaults should avoid hard-coded left/right where possible
+
+Avoid MUI directional shorthands in this refactor (`pl`, `pr`, `ml`, `mr`, `left`, `right`) unless there is no logical alternative.
+
+### 5.2 Example conversion
 
 ```tsx
-export function GameHud({
-  status,
-  sessionModeLabel,
-  sessionSummaryLabel,
-  score,
-  streak,
-  correct,
-  incorrect,
-  livesRemaining,
-  elapsedMs,
-  runningSince,
-  onRefocus,
-  panelSurface,
-  displaySurface,
-  displayAccentSurface,
-}: GameHudProps) {
-  return (
-    <Paper elevation={0} sx={{ ...panelSurface }}>
-      {/* move existing HUD JSX here unchanged first */}
-    </Paper>
-  );
-}
-```
-
-### 2C. Extract the bottom status panel
-
-#### Files
-
-- `src/components/GameStatusPanel.tsx`
-
-#### Why
-
-This is the most branch-heavy JSX in `GamePage`:
-
-- intro
-- playing
-- reviewing
-- gameOver
-
-#### Snippet
-
-```tsx
-export function GameStatusPanel(props: GameStatusPanelProps) {
-  switch (props.gameState.status) {
-    case 'gameOver':
-      return <GameOverView {...props} />;
-    case 'reviewing':
-      return <ReviewRoundView {...props} />;
-    case 'playing':
-      return <PlayingView {...props} />;
-    default:
-      return <IntroHintView {...props} />;
-  }
-}
-```
-
-### 2D. Extract cipher telemetry UI
-
-#### Files
-
-- `src/components/CipherTelemetryPanel.tsx`
-
-#### Why
-
-This logic belongs to the overlay UI layer, not the route coordinator.
-
-### 2E. Extract background presentation
-
-#### Files
-
-- `src/components/GameBackground.tsx`
-
-#### Why
-
-The atlas background treatment is large and visual only. It should not be mixed with game flow.
-
-## Phase 3: Flatten and Reorganize the Globe Subsystem
-
-Status: Completed
-
-This is the highest-value maintainability phase.
-
-Do this by extraction, not rewrite.
-
-### 3A. Move component files to flat locations
-
-#### Moves
-
-- `src/Globe.tsx` -> `src/components/Globe.tsx`
-- `src/features/game/ui/WebGlGlobe.tsx` -> `src/components/WebGlGlobe.tsx`
-- `src/features/game/ui/GuessInput.tsx` -> `src/components/GuessInput.tsx`
-- `src/features/game/ui/ThemeMenu.tsx` -> `src/components/ThemeMenu.tsx`
-- `src/features/game/ui/GlobeAdminPanel.tsx` -> `src/components/GlobeAdminPanel.tsx`
-- `src/features/game/ui/IntroDialog.tsx` -> `src/components/IntroDialog.tsx`
-- `src/features/game/ui/AboutDialog.tsx` -> `src/components/AboutDialog.tsx`
-- `src/features/game/ui/GameTimer.tsx` -> `src/components/GameTimer.tsx`
-
-#### Why
-
-- flatter import surface
-- easier discoverability
-- fewer micro-directories
-
-### 3B. Extract shader sources
-
-#### Files
-
-- `src/utils/globeShaders.ts`
-
-#### Snippet
-
-```ts
-export const vertexShaderSource = `...`;
-export const fragmentShaderSource = `...`;
-```
-
-### 3C. Extract WebGL init and draw functions
-
-#### Files
-
-- `src/utils/globeWebGl.ts`
-- `src/utils/globeDraw.ts`
-
-#### Snippet
-
-```ts
-export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
-  // existing setup code moved here
-}
-
-export function drawGlobeFrame(args: DrawGlobeFrameArgs) {
-  // existing drawGlobe logic moved here
-}
-```
-
-### 3D. Extract texture generation
-
-#### Files
-
-- `src/utils/globeTextures.ts`
-- `src/utils/globeAtlasTextures.ts`
-
-#### Modules
-
-- generic texture canvas creation
-- atlas-specific watercolor and paper treatment
-- hydro texture drawing
-- city-lights prepared map generation
-
-### 3E. Extract overlay drawing
-
-#### Files
-
-- `src/utils/globeOverlays.ts`
-- `src/utils/globeCipherOverlays.ts`
-- `src/utils/globeHydroOverlays.ts`
-
-#### Split rule
-
-- `globeOverlays.ts`: generic selected-country and capital overlays
-- `globeCipherOverlays.ts`: traffic, annotations, critical sites
-- `globeHydroOverlays.ts`: lakes/rivers glow and motion overlays
-
-### 3F. Extract asset loading into hooks
-
-#### Files
-
-- `src/hooks/useGlobeAssets.ts`
-
-#### Why
-
-`WebGlGlobe` currently contains many repetitive loading effects. Move them behind a declarative hook.
-
-#### Snippet
-
-```ts
-export function useGlobeAssets(args: UseGlobeAssetsArgs) {
-  const reliefImage = useOptionalImage(
-    args.quality.reliefMapEnabled,
-    '/textures/world-relief.png',
-  );
-
-  const dayImageryImage = useOptionalImage(
-    args.quality.dayImageryEnabled,
-    '/textures/world-imagery.jpg',
-  );
-
-  return {
-    reliefImage,
-    dayImageryImage,
-    // ...
-  };
-}
-```
-
-### 3G. Extract render-loop scheduling
-
-#### Files
-
-- `src/hooks/useGlobeRenderLoop.ts`
-
-#### Why
-
-Animation scheduling is currently mixed into the component. It should be reusable and independently testable.
-
-## Phase 4: Simplify `GuessInput`
-
-Status: Completed
-
-This phase is small and worth doing early.
-
-### Change goals
-
-1. One submit function.
-2. One input-sync path.
-3. Keep the same UX.
-
-### Refactor shape
-
-#### Before
-
-- submit logic in three places
-- hint updates in multiple places
-
-#### After
-
-- `submitCurrentValue()`
-- `syncInputValue(nextValue)`
-- event handlers delegate into those helpers
-
-#### Snippet
-
-```tsx
-function submitCurrentValue() {
-  const submittedValue = value?.label ?? inputValue.trim();
-  if (!submittedValue) {
-    return;
-  }
-  onSubmit(submittedValue);
-}
-
-function syncInputValue(nextInputValue: string) {
-  setInputValue(nextInputValue);
-  const exactMatch =
-    choices.find((option) =>
-      option.aliases.some(
-        (alias) => normalizeGuess(alias) === normalizeGuess(nextInputValue),
-      ),
-    ) ?? undefined;
-
-  setValue(exactMatch);
-  updateHint(nextInputValue);
-  setOpen(nextInputValue.trim().length > 0);
-}
-```
-
-Then the handlers become thinner:
-
-```tsx
-onInputChange={(_event, nextInputValue) => {
-  syncInputValue(nextInputValue);
-}}
-
-onKeyDown={(event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    submitCurrentValue();
-  }
+// Before
+sx={{ pl: 2, pr: 2, left: 0, right: 0 }}
+
+// After
+sx={{
+  paddingInline: 2,
+  insetInlineStart: 0,
+  insetInlineEnd: 0,
 }}
 ```
 
-## Phase 5: Make `GlobeAdminPanel` Metadata-Driven
+```tsx
+// Radius conversion example
+// Before
+sx={{ borderTopLeftRadius: 8, borderTopRightRadius: 8 }}
 
-Status: Completed
-
-Do not keep field definitions, diff logic, and dependency lists manually synchronized forever.
-
-### Approach
-
-Define one shared schema that contains:
-
-- key
-- type
-- label/group
-- min/max/step when needed
-
-### Files
-
-- `src/utils/globeQualitySchema.ts`
-- `src/components/GlobeAdminPanel.tsx`
-
-#### Snippet
-
-```ts
-type NumericControl = {
-  key: keyof GlobeQualityConfig;
-  kind: 'number';
-  min: number;
-  max: number;
-  step: number;
-};
-
-type BooleanControl = {
-  key: keyof GlobeQualityConfig;
-  kind: 'boolean';
-};
-
-export const globeQualityControls: Array<NumericControl | BooleanControl> = [
-  { key: 'reliefMapEnabled', kind: 'boolean' },
-  { key: 'reliefHeight', kind: 'number', min: 0, max: 3, step: 0.05 },
-  { key: 'dayImageryEnabled', kind: 'boolean' },
-];
+// After
+sx={{
+  borderStartStartRadius: designTokens.radius.md,
+  borderStartEndRadius: designTokens.radius.md,
+}}
 ```
 
-Then build controls from metadata:
+### 5.3 File pass priority
 
-```ts
-const levaConfig = Object.fromEntries(
-  globeQualityControls.map((control) => {
-    if (control.kind === 'boolean') {
-      return [control.key, { value: quality[control.key] as boolean }];
-    }
+1. `GamePage.tsx`
+2. `GameHud.tsx`
+3. `GameStatusPanel.tsx`
+4. `ThemeMenu.tsx`
+5. `IntroDialog.tsx`
+6. shared style helpers (`controlStyles.ts`, theme surface helpers)
 
-    return [
-      control.key,
-      {
-        value: quality[control.key] as number,
-        min: control.min,
-        max: control.max,
-        step: control.step,
-      },
-    ];
-  }),
-);
-```
+---
 
-## Phase 6: Improve WebGL Error Handling Without Fallback
+## 6. Layout overhaul (mobile-first + floating desktop)
 
-Status: Completed
+## 6.1 Mobile layout contract
 
-Since SVG is being removed, error handling needs to focus on containment and clarity instead of alternate rendering.
+1. Full-bleed UI at screen edges.
+2. No decorative empty gutters around primary cards.
+3. Compact hierarchy: globe > top HUD > bottom action panel.
+4. Fewer nested wrappers in critical render path.
 
-### 6A. Add a localized renderer error boundary
+## 6.2 Desktop layout contract
 
-Recommended:
+1. Floating panel look with consistent elevation and edge offset.
+2. Constrained readable max-widths for HUD and status.
+3. Scales smoothly from laptop to large desktop.
 
-- keep renderer failure local to the globe surface
-- do not let the whole page collapse if WebGL fails
-
-### 6B. Add a focused error component
-
-#### Files
-
-- `src/components/GlobeRenderError.tsx`
-
-#### Snippet
+### 6.3 Shared shell snippet
 
 ```tsx
-export function GlobeRenderError({ message }: { message: string }) {
-  return (
-    <Paper elevation={0} sx={{ p: 2 }}>
-      <Typography variant="h6">Globe unavailable</Typography>
-      <Typography color="text.secondary" variant="body2">
-        {message}
-      </Typography>
-    </Paper>
-  );
-}
+<Box
+  sx={{
+    position: 'fixed',
+    inset: 0,
+    overflow: 'hidden',
+  }}
+>
+  <Box
+    sx={{
+      position: 'absolute',
+      insetInline: 0,
+      insetBlockStart: 0,
+      paddingInline: { xs: 0, md: 2 },
+      paddingBlockStart: { xs: 0, md: 2 },
+    }}
+  >
+    {/* top floating HUD */}
+  </Box>
+
+  <Box
+    sx={{
+      position: 'absolute',
+      insetInline: 0,
+      insetBlockEnd: 0,
+      paddingInline: { xs: 0, md: 2 },
+      paddingBlockEnd: { xs: 0, md: 3 },
+      display: 'grid',
+      placeItems: 'end center',
+    }}
+  >
+    {/* bottom status panel */}
+  </Box>
+</Box>
 ```
 
-### 6C. Keep the rest of the page interactive if possible
+---
 
-Desired behavior:
+## 7. Component reorganization for readability
 
-- menu still opens
-- theme switch still works
-- user can quit or restart
-- renderer failure is visible but localized
+## 7.1 `GamePage.tsx`
 
-## Phase 7: Performance Improvements After Structural Refactor
+Refactor layout into clear sections:
 
-Status: Completed
+1. `GlobeLayer`
+2. `OverlayLayer`
+3. `TopHudLayer`
+4. `BottomPanelLayer`
 
-Do not optimize blindly. Optimize after boundaries are clearer.
+This keeps reading order intuitive and lowers cognitive load in the route file.
 
-### 7A. Reduce unnecessary object recreation in `GamePage`
+## 7.2 `GameHud.tsx`
 
-Candidates:
+1. Normalize chip spacing/radius via tokens.
+2. Keep one typography scale map for xs/md.
+3. Move repeated `sx` objects to constants.
+4. Keep mobile chips 2-row max when possible.
 
-- grouped props objects passed into child sections
-- theme-derived surface style objects
+## 7.3 `GameStatusPanel.tsx`
 
-### 7B. Use component boundaries instead of premature memoization
+1. Standardize all card sections with shared panel spacing token.
+2. Reduce visual weight in review/game-over by using one stats grid style.
+3. Ensure action buttons always meet touch target (>=44px).
+4. Simplify spacing branches for keyboard-open state.
 
-Preferred:
+## 7.4 `ThemeMenu.tsx`
 
-- smaller components with stable props
+1. Tokenize panel width, gaps, button heights.
+2. Ensure logical positioning for menu anchoring and layout.
+3. Keep mobile menu compact and scroll-safe.
 
-Avoid:
+## 7.5 `IntroDialog.tsx`
 
-- adding `useMemo` and `useCallback` everywhere without measurement
+1. Normalize selector card spacing/radius.
+2. Split sections visually with tokenized rhythm.
+3. Keep dense but scannable mobile hierarchy.
 
-### 7C. Cache heavy offscreen texture generation inputs
+---
 
-When texture generation is moved into utility modules, add explicit cache keys where it matters:
+## 8. Typography and spacing standardization
 
-- theme id
-- quality hash
-- texture resolution
-- hydro-layer presence
+Adopt one size map per breakpoint for key UI elements:
 
-#### Snippet
+| Element        | Mobile            | Desktop     |
+| -------------- | ----------------- | ----------- |
+| HUD title/mode | `subtitle2`       | `h6`        |
+| Stat label     | `caption`         | `caption`   |
+| Stat value     | `subtitle2/body1` | `subtitle1` |
+| Panel heading  | `subtitle2`       | `h6`        |
+| Primary action | `body2`           | `body2`     |
 
-```ts
-const textureCacheKey = JSON.stringify({
-  themeId,
-  quality,
-  textureResolution,
-  hasLakes: Boolean(lakesData),
-  hasRivers: Boolean(riversData),
-});
-```
+Spacing rhythm:
 
-### 7D. Avoid duplicate asset fetch/setup work
+- Mobile: multiples of `0.5` and `0.75` units
+- Desktop: multiples of `0.75`, `1`, and `1.5` units
 
-Once asset loading moves into hooks, centralize:
+Radius rhythm:
 
-- image loading
-- geojson loading
-- conditional load gates
+- Mobile primary cards: `radius.sm`
+- Desktop floating cards: `radius.md`
+- Chips: `radius.pill` by default on desktop and mobile, with guardrails:
+  - enforce minimum horizontal padding so chips keep a balanced pill silhouette,
+  - cap chip height in compact modes to prevent over-rounded blobs,
+  - if a chip wraps or exceeds the height cap, fall back to `radius.sm` automatically.
 
-## Phase 8: Testing Plan
+---
 
-Status: Completed
+## 9. Performance plan (mobile rendering focus)
 
-This plan is incomplete unless tests are added alongside the refactor.
+1. Reduce frequent recreation of inline `sx` objects in top-level render paths.
+2. Hoist static style objects/constants where possible.
+3. Avoid redundant wrappers and nested stacks in hot components.
+4. Keep expensive conditional branches out of rapidly changing render paths.
+5. Preserve current imperative globe rendering strategy (already performance-oriented).
+6. Verify keyboard/viewport effects do not trigger unnecessary layout churn.
 
-### Required automated coverage
-
-#### 1. `Globe` wrapper behavior
-
-Test:
-
-- renders the WebGL path
-- renders the localized error state when the renderer reports an error
-
-#### Snippet
+Example pattern:
 
 ```tsx
-it('shows a localized error state when WebGlGlobe reports an error', async () => {
-  render(<Globe {...baseProps} />);
-  // mock WebGlGlobe failure
-  expect(screen.getByText(/globe unavailable/i)).toBeInTheDocument();
-});
+const mobileStatChipSx = {
+  borderRadius: designTokens.radius.sm,
+  py: 0.5,
+  px: 0.875,
+} as const;
 ```
 
-#### 2. `GameStatusPanel`
+---
 
-Test:
+## 10. a11y plan
 
-- intro branch
-- playing branch
-- reviewing branch
-- gameOver branch
+1. Ensure all interactive controls are keyboard reachable and clearly labeled.
+2. Maintain/expand live-region usage for status changes.
+3. Enforce minimum target size (`44x44`) for touch controls.
+4. Improve visible focus ring consistency through theme tokens.
+5. Validate contrast in all 6 themes for text + controls.
+6. Respect reduced-motion preferences for non-essential transitions.
+7. Ensure keyboard focus order follows visual reading order after layout changes.
+8. Verify form controls preserve accessible names in all locales.
 
-#### 3. `GuessInput`
+### 10.1 A11y acceptance criteria
 
-Test:
+- No unintended keyboard traps in menu/dialog/input flows.
+- Intentional modal focus traps are allowed where required by UX flow (e.g., Intro dialog startup gate).
+- Clear visible focus on all interactive elements
+- Buttons and icon buttons meet touch target minimum
+- Dynamic game-state announcements are deferred for a later phase and are not a launch blocker for this refactor.
 
-- Enter submits once
-- Tab accepts hint
-- capital mode uses capital options
+---
 
-#### 4. `useGamePageState`
+## 11. l10n + bidi plan
 
-Test:
+1. Audit all major components for physical-direction properties.
+2. Replace with logical properties throughout.
+3. Validate UI in both `dir="ltr"` and `dir="rtl"` manually.
+4. Check long translated strings for overflow/truncation in:
+   - HUD labels
+   - menu actions
+   - intro cards
+   - game-over summaries
+5. Keep locale-dependent formatting centralized (dates/numbers if surfaced).
 
-- starting session creates session plan
-- daily share state updates correctly
-- refocus increments request id
+### 11.1 Bidi acceptance criteria
 
-#### 5. Smoke tests for extracted renderer hooks
+- No clipped controls in RTL for top HUD, menu, intro, and game-over panels
+- Logical spacing mirrors correctly without special-case CSS forks
+- Mixed-direction strings (numbers + translated text) remain legible
 
-Test:
+---
+
+## 12. Implementation phases
+
+## Phase A — Token foundation
+
+- Update `designSystem.ts` with layout/density/touch tokens.
+- Add any shared UI helper constants in `controlStyles.ts`.
+
+## Phase B — Layout + RTL pass
+
+- Refactor `GamePage.tsx` layout layers.
+- Apply logical properties in all top-level containers.
+
+## Phase C — Major component normalization
 
-- `useGlobeAssets` skips disabled assets
-- `useGlobeRenderLoop` pauses on hidden document
+- `GameHud.tsx`
+- `GameStatusPanel.tsx`
+- `ThemeMenu.tsx`
+- `IntroDialog.tsx`
+
+## Phase D — a11y + l10n hardening
+
+- focus + semantics pass
+- bidi validation pass
+- translated content overflow pass
+
+## Phase E — final polish + QA
+
+- responsive tuning (small phone, large phone, tablet, laptop, wide desktop)
+- micro-adjust spacing and typography
+- run test/lint/typecheck/build and targeted manual checks
 
-### Regression commands
+## Phase F — a11y/l10n sign-off
 
-```sh
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-```
+- run a keyboard-only pass for all core journeys
+- run an RTL direction pass for all major panels and actions
+- verify translations with long labels do not break critical layouts
 
-## Phase 9: Cleanup and Deletion Pass
+---
 
-Status: Completed
+## 13. Detailed todo list (execution backlog)
 
-Only do this after all new boundaries are working.
+### Phase A — Token foundation
 
-### Remove dead or outdated code
+- [ ] A1. Audit current token usage and list hard-coded spacing/radius/typography values in major UI components.
+- [ ] A2. Add `layout` token group (`edgeInset`, `panelMaxWidth`, `floatingOffset`) to `designSystem.ts`.
+- [ ] A3. Add touch target token group (`min`, `comfortable`) to `designSystem.ts`.
+- [ ] A4. Add density token group for mobile/desktop component padding.
+- [ ] A5. Add chip shape guardrail tokens (min horizontal padding, max compact height, fallback radius).
+- [ ] A6. Add/standardize shared style helpers in `controlStyles.ts` for panel shells and chip shells.
+- [ ] A7. Update `theme.ts` defaults to consume new tokens (focus ring, panel spacing/radius, action sizing).
+- [ ] A8. Document token usage rules in this plan section and enforce “no new raw px” in major components.
 
-Candidates:
+### Phase B — Layout + RTL pass
 
-- renderer local-storage code
-- `GlobeRenderer` type if unused
-- `SvgGlobe.tsx`
-- dead props related to renderer selection
-- old import paths after file moves
-- duplicated helpers left behind in `GamePage` or `WebGlGlobe`
-
-### Verify no stale modules remain
-
-Commands:
-
-```sh
-rg "rendererStorageKey|getStoredRenderer|GlobeRenderer|SvgGlobe" src
-rg "TODO|FIXME" src
-```
-
-## Suggested Execution Order By PR
-
-To reduce merge risk, split the work into small PRs.
-
-### PR 1
-
-- gate router devtools
-- remove SVG renderer support
-- remove renderer local-storage drift
-- introduce localized WebGL error state
-
-### PR 2
-
-- extract `GameHud`
-- extract `GameStatusPanel`
-- extract `CipherTelemetryPanel`
-- extract `GameBackground`
-- keep orchestration in `GamePage`
-
-### PR 3
-
-- add `useGamePageState`
-- move orchestration logic out of `GamePage`
-
-### PR 4
-
-- move flat component files into `src/components`
-- move route file into `src/routes`
-- update imports only, no behavior changes
-
-### PR 5
-
-- extract `globeShaders.ts`
-- extract `globeWebGl.ts`
-- extract `globeDraw.ts`
-
-### PR 6
-
-- extract `globeTextures.ts`
-- extract `globeAtlasTextures.ts`
-- extract `globeOverlays.ts`
-- extract `globeCipherOverlays.ts`
-- extract `globeHydroOverlays.ts`
-- extract `useGlobeAssets`
-- extract `useGlobeRenderLoop`
-
-### PR 7
-
-- simplify `GuessInput`
-- metadata-drive `GlobeAdminPanel`
-
-### PR 8
-
-- add or expand tests
-- delete remaining stale code
-- final cleanup
-
-## Risks and Mitigations
-
-### Risk: Renderer refactor breaks visual behavior
-
-Mitigation:
-
-- extract code first, preserve function signatures where possible
-- validate with before/after screenshots when possible
-
-### Risk: `GamePage` refactor changes gameplay flow
-
-Mitigation:
-
-- keep reducer logic untouched
-- extract presentation first, orchestration second
-
-### Risk: Flat structure becomes messy
-
-Mitigation:
-
-- use strong file naming conventions
-- group by file prefix where needed, for example `globeX.ts`
-- keep logic placement rules strict: components in `components`, hooks in `hooks`, non-React logic in `utils`
-
-### Risk: Too much movement in one PR
-
-Mitigation:
-
-- sequence by boundary
-- move code without rewriting where possible
-
-## Example End-State Route Composition
-
-After refactor, `GamePage` should look closer to this:
-
-```tsx
-export function GamePage() {
-  const state = useGamePageState();
-
-  if (state.loadingError) {
-    return <GameLoadError message={state.loadingError} />;
-  }
-
-  if (!state.worldData || !state.currentCountry) {
-    return <GameLoadingScreen />;
-  }
-
-  return (
-    <Box sx={{ backgroundImage: state.activeTheme.background.app }}>
-      <GameBackground theme={state.activeTheme} />
-
-      <Globe
-        country={state.currentCountry}
-        mode={state.currentMode}
-        focusRequest={state.focusRequest}
-        height={state.size.height}
-        palette={state.activeTheme.globe}
-        quality={state.effectiveQuality}
-        rotation={state.rotation}
-        themeId={state.activeTheme.id}
-        width={state.size.width}
-        world={state.worldData.world}
-        onCipherTrafficStateChange={state.handlers.onCipherTrafficStateChange}
-      />
-
-      <ThemeMenu
-        onAbout={state.handlers.openAbout}
-        onQuit={state.handlers.quitToMenu}
-        onRefocus={state.handlers.refocus}
-        onRestart={state.handlers.playAgain}
-      />
-
-      <GameHud {...state.hudProps} />
-      <GameStatusPanel {...state.statusPanelProps} />
-      {state.showCipherTelemetry ? (
-        <CipherTelemetryPanel {...state.cipherTelemetryProps} />
-      ) : null}
-      {state.showAdminPanel ? (
-        <GlobeAdminPanel {...state.adminPanelProps} />
-      ) : null}
-    </Box>
-  );
-}
-```
-
-That is the standard to aim for:
-
-- route stays readable
-- orchestration stays centralized
-- presentation is delegated
-- renderer complexity is isolated
-
-## Final Recommendation
-
-Start with the structural cleanup, not the large file moves.
-
-Best first implementation sequence:
-
-1. gate devtools
-2. remove SVG renderer support
-3. introduce a localized WebGL error state
-4. extract `GameStatusPanel`
-5. extract `GameHud`
-6. extract `useGamePageState`
-7. split `WebGlGlobe` by subsystem
-8. flatten file placement after the boundaries are stable
-
-That order respects the latest notes and gives the biggest stability and maintainability gains early, while keeping each refactor small enough to verify.
+- [ ] B1. Refactor `GamePage.tsx` into explicit visual layers (`GlobeLayer`, `OverlayLayer`, `TopHudLayer`, `BottomPanelLayer`).
+- [ ] B2. Convert top-level layout spacing to logical properties (`paddingInline`, `insetInline*`, `insetBlock*`).
+- [ ] B3. Convert safe-area + keyboard inset handling to logical equivalents where feasible.
+- [ ] B4. Ensure mobile is full-bleed (no decorative edge gaps at xs).
+- [ ] B5. Implement desktop floating offsets and max-width constraints from tokens.
+- [ ] B6. Remove/replace directional shorthands (`pl/pr/ml/mr/left/right`) in `GamePage.tsx`.
+- [ ] B7. Confirm layout order follows reading order for keyboard and screen reader semantics.
+- [ ] B8. Validate no visual regressions in loading/error states after shell changes.
+
+### Phase C — Major component normalization
+
+- [ ] C1. `GameHud.tsx`: extract repeated `sx` blocks into tokenized constants.
+- [ ] C2. `GameHud.tsx`: unify chip spacing/radius/typography scales across breakpoints.
+- [ ] C3. `GameHud.tsx`: apply pill guardrails (padding, height cap, fallback radius when wrapping).
+- [ ] C4. `GameStatusPanel.tsx`: standardize spacing and radius across intro/playing/review/gameOver branches.
+- [ ] C5. `GameStatusPanel.tsx`: consolidate action button sizing and minimum touch target usage.
+- [ ] C6. `GameStatusPanel.tsx`: simplify keyboard-open spacing branches using shared constants.
+- [ ] C7. `ThemeMenu.tsx`: normalize widths/gaps/button sizing and convert to logical properties.
+- [ ] C8. `ThemeMenu.tsx`: keep compact/mobile menu scroll-safe with predictable max height.
+- [ ] C9. `IntroDialog.tsx`: normalize selector card spacing/radius and section rhythm via tokens.
+- [ ] C10. `IntroDialog.tsx`: verify dense mobile layout remains readable and touch-friendly.
+- [ ] C11. `styles/index.css`: keep global-only primitives; remove component-like drift from global CSS.
+- [ ] C12. Confirm all major components now pull from tokens for spacing/radius/text size.
+
+### Phase D — a11y + l10n hardening
+
+- [ ] D1. Verify accessible names and labels for all interactive controls in core journeys.
+- [ ] D2. Ensure intentional modal focus trap behavior in Intro dialog; prevent unintended traps elsewhere.
+- [ ] D3. Verify focus visibility on all buttons, icon buttons, inputs, and menu items.
+- [ ] D4. Confirm keyboard navigation order remains logical after layout refactor.
+- [ ] D5. Audit major components for physical-direction CSS and replace with logical properties.
+- [ ] D6. Validate long translated labels do not overflow critical action surfaces.
+- [ ] D7. Validate bidi rendering for mixed text + numbers (scores/timers/round labels).
+- [ ] D8. Defer dynamic live announcements intentionally (document non-blocking scope).
+
+### Phase E — Final polish + QA
+
+- [ ] E1. Tune mobile spacing at 320x568 and 390x844.
+- [ ] E2. Tune tablet/desktop floating balance at 768x1024, 1366x768, 1920x1080.
+- [ ] E3. Ensure desktop floating cards preserve hierarchy without crowding globe view.
+- [ ] E4. Validate chip readability and shape behavior in compact modes.
+- [ ] E5. Run existing checks: typecheck, lint, unit tests, E2E.
+- [ ] E6. Add/adjust tests for responsive layout behavior in critical components.
+- [ ] E7. Add/adjust tests for RTL/LTR behavior in major UI surfaces.
+- [ ] E8. Add/adjust keyboard interaction tests for intro/menu/status flows.
+- [ ] E9. Add optional a11y test tooling only if a strict gap remains after test design.
+- [ ] E10. Re-run full QA matrix and capture final pass/fail notes.
+
+### Phase F — a11y/l10n sign-off
+
+- [ ] F1. Execute keyboard-only walkthrough for all core journeys.
+- [ ] F2. Execute explicit RTL walkthrough for HUD, status panel, intro, and menu.
+- [ ] F3. Confirm no clipped or mirrored incorrectly-positioned controls in RTL.
+- [ ] F4. Confirm long-string locale resilience in key flows (intro/menu/game-over).
+- [ ] F5. Confirm focus traps are intentional only (intro modal gate) and documented.
+- [ ] F6. Produce final sign-off checklist and mark launch blockers vs deferred items.
+
+---
+
+## 14. File-level implementation map
+
+- `src/app/designSystem.ts` — token expansion
+- `src/app/theme.ts` — unified component-level spacing/radius/focus defaults
+- `src/routes/GamePage.tsx` — mobile-first shell + floating desktop layers + logical properties
+- `src/components/GameHud.tsx` — tokenized metric bar + responsive simplification
+- `src/components/GameStatusPanel.tsx` — tokenized state panels + action layouts
+- `src/components/ThemeMenu.tsx` — compact menu spacing and logical positioning
+- `src/components/IntroDialog.tsx` — standardized selector spacing + readability
+- `src/styles/index.css` — only global primitives, avoid component-specific drift
+
+---
+
+## 15. QA matrix
+
+## Viewports
+
+1. 320x568
+2. 390x844
+3. 768x1024
+4. 1366x768
+5. 1920x1080
+
+## Directions/locales
+
+1. English LTR
+2. Arabic/Hebrew-style RTL simulation (direction check)
+3. Long-string locale (e.g., German) overflow check
+
+## Core journeys
+
+1. Intro -> random run -> review -> game over
+2. Intro -> daily run -> completion -> copy result -> return to menu
+3. Menu actions (refocus/retry/quit/about/theme switch/language switch)
+4. Expand regression coverage so this UI pass does not regress.
+
+## Testing strategy and tooling
+
+1. Primary stack (already in repo):
+   - unit/component: Vitest + Testing Library
+   - end-to-end: Playwright
+2. Add missing coverage for:
+   - token-driven visual contract (spacing/radius/typography assertions where stable)
+   - RTL/LTR layout behavior in major components
+   - keyboard-only navigation for intro/menu/status interactions
+   - mobile and desktop breakpoint behavior for core panels
+3. Library additions:
+   - only add new testing libraries if a strict gap is found after test design.
+   - likely candidates (if needed): `vitest-axe` for component a11y checks and/or `@axe-core/playwright` for E2E a11y checks.
+
+## Interaction quality checks
+
+1. Keyboard-only navigation (Tab/Shift+Tab/Enter/Escape)
+2. Focus visibility and order after every panel transition
+3. RTL rendering parity for HUD, status panel, intro dialog, and menu
+
+---
+
+## 16. Deliverables
+
+1. Unified tokenized spacing/radius/typography across major UI components.
+2. Clean mobile full-bleed UI with reduced visual clutter.
+3. Floating desktop UI that scales well across widths.
+4. RTL/LTR-safe styling pass on major surfaces.
+5. Documented a11y/l10n checks and resolved issues.

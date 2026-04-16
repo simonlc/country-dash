@@ -154,9 +154,9 @@ export function GameStatusPanel({
             md: designTokens.radius.xs,
             xs: isPlaying ? '8px 8px 0 0' : isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
           },
-          maxWidth: { md: 560, xs: isPlaying ? 'none' : isKeyboardOpen ? 'none' : 560 },
+          maxWidth: { md: isPlaying ? 720 : 560, xs: '100%' },
           mb: {
-            md: isPlaying ? 16 : 4,
+            md: 4,
             xs: isPlaying ? 0 : isKeyboardOpen ? 0 : 2,
           },
           p: {

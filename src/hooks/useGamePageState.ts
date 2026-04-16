@@ -184,6 +184,7 @@ interface UseGamePageStateResult {
   size: {
     width: number;
     height: number;
+    visualHeight: number;
   };
   storedDailyResult: DailyChallengeResult | null;
   totalRounds: number;
@@ -670,7 +671,11 @@ export function useGamePageState(): UseGamePageStateResult {
     setAdminOverridePatch,
     showRefocus:
       gameState.status !== 'gameOver' && gameState.status !== 'intro',
-    size,
+    size: {
+      width: size.width,
+      height: size.height,
+      visualHeight: size.visualHeight,
+    },
     storedDailyResult,
     totalRounds,
     worldData,

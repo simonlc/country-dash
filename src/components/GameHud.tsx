@@ -7,6 +7,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import type { ReactNode } from 'react';
 import { m } from '@/paraglide/messages.js';
 import { designTokens } from '@/app/designSystem';
 import type {
@@ -33,6 +34,7 @@ interface GameHudProps {
   sessionSummaryLabel: string;
   showRefocus: boolean;
   streak: number;
+  topBarMenu: ReactNode;
 }
 
 export function GameHud({
@@ -53,11 +55,11 @@ export function GameHud({
   sessionSummaryLabel,
   showRefocus,
   streak,
+  topBarMenu,
 }: GameHudProps) {
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const isKeyboardCompact = isCompactLayout && isKeyboardOpen;
-  const mobileHudContentOffset = 'calc(env(safe-area-inset-top) + 56px)';
   const statItems = isCompactLayout
     ? [
         { label: m.game_stat_score(), value: score },
@@ -82,138 +84,118 @@ export function GameHud({
       sx={[
         panelSurface,
         {
-          borderRadius: { md: designTokens.radius.pill, xs: '0 0 4px 4px' },
-          flex: 1,
-          p: {
-            md: designTokens.componentSpacing.dialogPanel.desktop,
-            xs: isKeyboardCompact ? 0.55 : 0.85,
-          },
-          pt: {
-            md: designTokens.componentSpacing.dialogPanel.desktop,
-            xs: isKeyboardCompact
-              ? 'calc(env(safe-area-inset-top) + 52px)'
-              : mobileHudContentOffset,
-          },
+          borderRadius: 0,
+          borderBottomLeftRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
+          borderBottomRightRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
           pointerEvents: 'auto',
+          px: { md: 2, xs: isKeyboardCompact ? 0.65 : 0.9 },
+          py: { md: 1.2, xs: isKeyboardCompact ? 0.6 : 0.85 },
+          pt: {
+            md: 1.2,
+            xs: `max(${isKeyboardCompact ? 6 : 10}px, calc(env(safe-area-inset-top) + ${isKeyboardCompact ? 6 : 10}px))`,
+          },
+          width: '100%',
         },
       ]}
     >
-      <Box
-        sx={{
-          alignItems: 'center',
-          display: 'grid',
-          gap: isKeyboardCompact ? 0.65 : 1,
-          paddingLeft: { md: 3, xs: isKeyboardCompact ? 0 : 0.25 },
-          paddingRight: { md: 1, xs: 0 },
-          gridTemplateColumns: {
-            md: 'minmax(0, 1.3fr) auto auto auto auto auto auto',
-            sm: 'repeat(4, minmax(0, 1fr))',
-            xs: isKeyboardCompact ? 'repeat(4, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
-          },
-        }}
-      >
-        <Stack
-          spacing={0.15}
-          sx={{
-            gridColumn: {
-              xs: isKeyboardCompact ? '1 / span 2' : '1 / -1',
-              md: 'auto',
-            },
-          }}
-        >
-          <Typography
-            color="text.secondary"
-            letterSpacing="0.12em"
-            textTransform="uppercase"
-            variant="caption"
-          >
-            {roundLabel}
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={0.6}>
-            <Typography variant={isKeyboardCompact ? 'caption' : isCompactLayout ? 'subtitle2' : 'h6'}>
-              {sessionModeLabel}
+      <Stack spacing={isKeyboardCompact ? 0.7 : 0.95}>
+        <Stack alignItems="flex-start" direction="row" gap={1} justifyContent="space-between">
+          <Stack minWidth={0} spacing={0.2}>
+            <Typography
+              color="text.secondary"
+              letterSpacing="0.12em"
+              textTransform="uppercase"
+              variant="caption"
+            >
+              {roundLabel}
             </Typography>
-            {sessionSummaryLabel && !isCompactLayout && !isKeyboardCompact ? (
-              <Typography
-                color="text.secondary"
-                lineHeight={1.3}
-                variant="body2"
-              >
-                {sessionSummaryLabel}
+            <Stack alignItems="baseline" direction="row" flexWrap="wrap" gap={0.6}>
+              <Typography variant={isKeyboardCompact ? 'caption' : isCompactLayout ? 'subtitle2' : 'h6'}>
+                {sessionModeLabel}
               </Typography>
-            ) : null}
-          </Stack>
-          {!isCompactLayout && !isKeyboardCompact ? (
-            <Stack direction="row" flexWrap="wrap" gap={0.6}>
-              {sessionLabels.map((label) => (
-                <Typography key={label} color="text.secondary" variant="caption">
-                  {label}
+              {sessionSummaryLabel && !isKeyboardCompact ? (
+                <Typography color="text.secondary" lineHeight={1.3} variant="body2">
+                  {sessionSummaryLabel}
                 </Typography>
-              ))}
+              ) : null}
             </Stack>
-          ) : null}
+          </Stack>
+          <Box flexShrink={0}>{topBarMenu}</Box>
         </Stack>
-        {statItems.map((item) => (
-          <Box
-            key={item.label}
+
+        {!isCompactLayout && !isKeyboardCompact ? (
+          <Stack direction="row" flexWrap="wrap" gap={0.6}>
+            {sessionLabels.map((label) => (
+              <Typography key={label} color="text.secondary" variant="caption">
+                {label}
+              </Typography>
+            ))}
+          </Stack>
+        ) : null}
+
+        <Stack direction="row" flexWrap="wrap" gap={0.7}>
+          {statItems.map((item) => (
+            <Box
+              key={item.label}
+              sx={[
+                displaySurface,
+                {
+                  borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
+                  flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
+                  minWidth: { md: 74, xs: 0 },
+                  px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
+                  py: { md: designTokens.componentSpacing.hudChip.py, xs: isKeyboardCompact ? 0.35 : 0.5 },
+                  textAlign: 'center',
+                },
+              ]}
+            >
+              <Typography color="text.secondary" lineHeight={1} variant="caption">
+                {item.label}
+              </Typography>
+              <Typography
+                lineHeight={1.05}
+                sx={{
+                  fontSize: { md: theme.typography.subtitle1.fontSize, xs: theme.typography.body1.fontSize },
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+                variant="subtitle2"
+              >
+                {item.value}
+              </Typography>
+            </Box>
+          ))}
+          <Paper
+            elevation={0}
             sx={[
-              displaySurface,
+              displayAccentSurface,
               {
                 borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
-                minWidth: { md: 74, sm: 64, xs: 0 },
+                flex: { md: '0 1 auto', xs: '1 1 calc(33.333% - 6px)' },
+                minWidth: { md: 86, xs: 0 },
                 px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
-                py: { md: designTokens.componentSpacing.hudChip.py, xs: isKeyboardCompact ? 0.35 : 0.5 },
-                textAlign: 'center',
+                py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
               },
             ]}
           >
-            <Typography color="text.secondary" lineHeight={1} variant="caption">
-              {item.label}
-            </Typography>
-            <Typography
-              lineHeight={1.05}
+            <GameTimer elapsedMs={displayElapsedMs} runningSince={runningSince} />
+          </Paper>
+          {showRefocus && !isCompactLayout ? (
+            <Button
+              aria-label={m.game_refocus_country_aria()}
+              size="small"
               sx={{
-                fontSize: { md: theme.typography.subtitle1.fontSize, xs: theme.typography.body1.fontSize },
-                fontVariantNumeric: 'tabular-nums',
+                borderColor: 'rgba(150, 201, 255, 0.22)',
+                minHeight: 38,
+                py: 0.85,
               }}
-              variant="subtitle2"
+              variant="contained"
+              onClick={onRefocus}
             >
-              {item.value}
-            </Typography>
-          </Box>
-        ))}
-        <Paper
-          elevation={0}
-          sx={[
-            displayAccentSurface,
-            {
-              borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
-              gridColumn: { xs: 'span 1', md: 'auto' },
-              justifySelf: { md: 'end', xs: 'stretch' },
-              px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
-              py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
-            },
-          ]}
-        >
-          <GameTimer elapsedMs={displayElapsedMs} runningSince={runningSince} />
-        </Paper>
-        {showRefocus && !isCompactLayout ? (
-          <Button
-            aria-label={m.game_refocus_country_aria()}
-            size="small"
-            sx={{
-              borderColor: 'rgba(150, 201, 255, 0.22)',
-              gridColumn: { xs: 'span 2', md: 'auto' },
-              minHeight: 38,
-              py: 0.85,
-            }}
-            variant="contained"
-            onClick={onRefocus}
-          >
-            {m.action_refocus()}
-          </Button>
-        ) : null}
-      </Box>
+              {m.action_refocus()}
+            </Button>
+          ) : null}
+        </Stack>
+      </Stack>
     </Paper>
   );
 }

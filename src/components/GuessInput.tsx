@@ -337,16 +337,25 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
             <TextField
               {...params}
               autoFocus
+              autoComplete="off"
               label={
                 variant === 'capital'
                   ? m.game_guess_label_capital()
                   : m.game_guess_label_country()
               }
+              inputProps={{
+                ...params.inputProps,
+                autoCapitalize: 'none',
+                autoCorrect: 'off',
+                enterKeyHint: 'done',
+                inputMode: 'search',
+              }}
               placeholder={
                 variant === 'capital'
                   ? m.game_guess_placeholder_capital()
                   : m.game_guess_placeholder_country()
               }
+              spellCheck={false}
               sx={{
                 '& .MuiInputLabel-root': {
                   fontWeight: designTokens.fontWeight.semibold,

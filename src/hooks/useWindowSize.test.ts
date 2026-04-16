@@ -45,6 +45,8 @@ describe('useWindowSize', () => {
   afterEach(() => {
     document.documentElement.style.removeProperty('--keyboard-fallback-inset');
     document.documentElement.style.removeProperty('--visual-viewport-height');
+    document.documentElement.style.removeProperty('--visual-viewport-offset-left');
+    document.documentElement.style.removeProperty('--visual-viewport-offset-top');
   });
 
   it('tracks keyboard inset from visual viewport changes without shrinking scene height', async () => {

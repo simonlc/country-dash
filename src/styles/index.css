@@ -1,6 +1,8 @@
 :root {
   --keyboard-fallback-inset: 0px;
   --visual-viewport-height: 100dvh;
+  --visual-viewport-offset-left: 0px;
+  --visual-viewport-offset-top: 0px;
   color: #101828;
   font-synthesis: none;
   font-weight: 400;
@@ -17,12 +19,21 @@ body,
   height: 100%;
   margin: 0;
   min-height: 100%;
+  overflow: hidden;
+  width: 100%;
 }
 
 body {
+  inset: 0;
   min-width: 320px;
   overscroll-behavior: none;
   overflow: hidden;
+  position: fixed;
+}
+
+#root {
+  inset: 0;
+  position: fixed;
 }
 
 * {

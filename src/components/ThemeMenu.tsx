@@ -7,7 +7,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Drawer,
   IconButton,
   Menu,
   MenuItem,
@@ -177,28 +176,20 @@ export function ThemeMenu({
     <>
       <Box
         sx={{
-          left: {
-            md: 24,
-            xs: 'calc(env(safe-area-inset-left) + 12px)',
-          },
-          pointerEvents: 'none',
-          position: 'fixed',
-          top: {
-            md: 24,
-            xs: 'calc(env(safe-area-inset-top) + 12px)',
-          },
-          width: { md: 320, xs: 'auto' },
-          zIndex: isCompactLayout ? theme.zIndex.drawer + 1 : 20,
+          display: 'inline-flex',
+          pointerEvents: 'auto',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
         <ClickAwayListener
           onClickAway={() => {
-            if (open && !isCompactLayout) {
+            if (open) {
               closeMenu();
             }
           }}
         >
-          <Stack alignItems="flex-start" spacing={1.5} sx={{ pointerEvents: 'auto' }}>
+          <Stack alignItems="flex-end" spacing={1} sx={{ position: 'relative' }}>
             <Stack direction="row" spacing={1}>
               <Button
                 aria-controls={menuPanelId}
@@ -278,49 +269,40 @@ export function ThemeMenu({
                 })}
               </Menu>
             </Stack>
-            {!isCompactLayout ? (
-              <Collapse in={open} sx={{ width: '100%' }}>
-                <Paper
-                  id={menuPanelId}
-                  elevation={0}
-                  sx={{
-                    ...panelSurface,
-                    borderRadius: designTokens.radius.sm,
-                    p: 2,
-                  }}
-                >
-                  {menuContent}
-                </Paper>
-              </Collapse>
-            ) : null}
+            <Collapse
+              in={open}
+              sx={{
+                position: 'absolute',
+                right: 0,
+                top: 'calc(100% + 8px)',
+                transformOrigin: 'top right',
+                width: { md: 320, xs: 'min(92vw, 360px)' },
+                zIndex: theme.zIndex.modal,
+              }}
+            >
+              <Paper
+                id={menuPanelId}
+                elevation={0}
+                sx={{
+                  ...panelSurface,
+                  borderRadius: designTokens.radius.sm,
+                  maxHeight: {
+                    md: 'none',
+                    xs: 'min(calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - 136px), 70vh)',
+                  },
+                  overflowY: {
+                    md: 'visible',
+                    xs: 'auto',
+                  },
+                  p: 2,
+                }}
+              >
+                {menuContent}
+              </Paper>
+            </Collapse>
           </Stack>
         </ClickAwayListener>
       </Box>
-      {isCompactLayout ? (
-        <Drawer
-          anchor="top"
-          open={open}
-          PaperProps={{
-            id: menuPanelId,
-            sx: {
-              ...panelSurface,
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-              borderBottomLeftRadius: designTokens.radius.xs,
-              borderBottomRightRadius: designTokens.radius.xs,
-              maxHeight:
-                'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px)',
-              overflowY: 'auto',
-              pb: 'max(env(safe-area-inset-bottom), 12px)',
-              pt: 'calc(env(safe-area-inset-top) + 60px)',
-              px: 1.5,
-            },
-          }}
-          onClose={closeMenu}
-        >
-          {menuContent}
-        </Drawer>
-      ) : null}
       <Dialog
         fullScreen={isCompactLayout}
         fullWidth

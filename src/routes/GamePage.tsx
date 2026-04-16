@@ -1,4 +1,5 @@
-import { Alert, Box, CircularProgress, Container, Stack } from '@mui/material';
+import { useEffect } from 'react';
+import { Alert, Box, CircularProgress, Container } from '@mui/material';
 import { Globe } from '@/components/Globe';
 import { GlobeAdminPanel } from '@/components/GlobeAdminPanel';
 import { ThemeMenu } from '@/components/ThemeMenu';
@@ -15,6 +16,25 @@ export function GamePage() {
   const keyboardInset = 'max(env(keyboard-inset-height, 0px), var(--keyboard-fallback-inset, 0px))';
   const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${keyboardInset})`;
   const mobileStatusBottomPadding = state.isKeyboardOpen ? keyboardInset : '0px';
+  const globeViewportHeight = state.size.visualHeight;
+
+  useEffect(() => {
+    const lockWindowScroll = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    const viewport = window.visualViewport;
+    lockWindowScroll();
+    window.addEventListener('scroll', lockWindowScroll);
+    viewport?.addEventListener('scroll', lockWindowScroll);
+
+    return () => {
+      window.removeEventListener('scroll', lockWindowScroll);
+      viewport?.removeEventListener('scroll', lockWindowScroll);
+    };
+  }, []);
 
   if (state.loadingError) {
     return (
@@ -49,19 +69,21 @@ export function GamePage() {
       sx={{
         backgroundImage: state.activeTheme.background.app,
         height: state.size.height,
+        left: 'var(--visual-viewport-offset-left, 0px)',
         minHeight: '100svh',
         overflow: 'hidden',
-        position: 'relative',
+        position: 'fixed',
+        top: 'var(--visual-viewport-offset-top, 0px)',
         width: state.size.width,
       }}
     >
       <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
-      <Box sx={{ height: '100%' }}>
+      <Box sx={{ height: globeViewportHeight }}>
         <Globe
           country={state.currentCountry}
           mode={state.currentMode}
           focusRequest={state.focusRequest}
-          height={state.size.height}
+          height={globeViewportHeight}
           onCipherTrafficStateChange={state.handlers.onCipherTrafficStateChange}
           palette={state.effectiveThemeSettings.globe}
           quality={state.effectiveThemeSettings.quality}
@@ -73,12 +95,6 @@ export function GamePage() {
           world={state.worldData.world}
         />
       </Box>
-      <ThemeMenu
-        onAbout={state.handlers.openAbout}
-        onQuit={state.handlers.onReturnToMenu}
-        onRefocus={state.handlers.onRefocus}
-        onRestart={state.handlers.onPlayAgain}
-      />
       {state.adminEnabled ? (
         <GlobeAdminPanel
           key={`${state.activeTheme.id}:${state.resetRevision}`}
@@ -113,38 +129,37 @@ export function GamePage() {
             md: 3,
             xs: mobileHudBottomPadding,
           },
-          pt: {
-            md: 3,
-            xs: 0,
-          },
+          pt: 0,
           zIndex: 1,
         }}
       >
-        <Stack
-          direction={{ md: 'row', xs: 'column' }}
-          justifyContent="space-between"
-          spacing={1.25}
-        >
-          <GameHud
-            correct={state.gameState.correct}
-            displayAccentSurface={state.displayAccentSurface}
-            displayElapsedMs={state.displayElapsedMs}
-            displaySurface={state.displaySurface}
-            incorrect={state.gameState.incorrect}
-            isKeyboardOpen={state.isKeyboardOpen}
-            livesRemaining={state.gameState.livesRemaining}
-            onRefocus={state.handlers.onRefocus}
-            panelSurface={state.panelSurface}
-            roundLabel={state.roundLabel}
-            runningSince={state.runningSince}
-            score={state.gameState.score}
-            sessionLabels={state.sessionLabels}
-            sessionModeLabel={state.sessionModeLabel}
-            sessionSummaryLabel={state.sessionSummaryLabel}
-            showRefocus={state.showRefocus}
-            streak={state.gameState.streak}
-          />
-        </Stack>
+        <GameHud
+          correct={state.gameState.correct}
+          displayAccentSurface={state.displayAccentSurface}
+          displayElapsedMs={state.displayElapsedMs}
+          displaySurface={state.displaySurface}
+          incorrect={state.gameState.incorrect}
+          isKeyboardOpen={state.isKeyboardOpen}
+          livesRemaining={state.gameState.livesRemaining}
+          onRefocus={state.handlers.onRefocus}
+          panelSurface={state.panelSurface}
+          roundLabel={state.roundLabel}
+          runningSince={state.runningSince}
+          score={state.gameState.score}
+          sessionLabels={state.sessionLabels}
+          sessionModeLabel={state.sessionModeLabel}
+          sessionSummaryLabel={state.sessionSummaryLabel}
+          showRefocus={state.showRefocus}
+          streak={state.gameState.streak}
+          topBarMenu={(
+            <ThemeMenu
+              onAbout={state.handlers.openAbout}
+              onQuit={state.handlers.onReturnToMenu}
+              onRefocus={state.handlers.onRefocus}
+              onRestart={state.handlers.onPlayAgain}
+            />
+          )}
+        />
 
         <Box
           sx={{
