@@ -290,6 +290,7 @@ describe('GamePage', () => {
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
     expect(screen.getByText(/Type: Random Run/i)).toBeVisible();
 
+    await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('button', { name: /^quit$/i }));
     expect(await screen.findByRole('dialog')).toHaveTextContent(
       /quit current run\?/i,
@@ -302,6 +303,7 @@ describe('GamePage', () => {
     });
     expect(showModalMock).toHaveBeenCalledTimes(1);
 
+    await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('button', { name: /^quit$/i }));
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: /^quit$/i }),

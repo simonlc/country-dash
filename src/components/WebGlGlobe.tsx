@@ -198,11 +198,13 @@ export function WebGlGlobe({
         (cipherTrafficState.status === 'live' ||
           cipherTrafficState.status === 'loading' ||
           cipherTrafficState.tracks.length > 0)));
+  const initialZoomScale = width <= 900 ? 1.2 : 1;
   const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
     focusDelayKey: render.cipherFocusDelayMs > 0 ? roundIndex : null,
     focusDelayMs: roundIndex > 0 ? render.cipherFocusDelayMs : 0,
     focusRequest,
+    initialZoomScale,
     onFrame: ({ rotation: nextRotation, zoomScale: nextZoomScale }) => {
       frameStateRef.current = {
         currentRotation: nextRotation,

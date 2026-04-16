@@ -191,6 +191,7 @@ interface UseGlobeInteractionArgs {
   focusDelayMs?: number;
   focusDelayKey?: number | string | null;
   focusRequest: number;
+  initialZoomScale?: number;
   onFrame?: (frame: {
     rotation: [number, number];
     zoomScale: number;
@@ -244,13 +245,15 @@ export function useGlobeInteraction({
   focusDelayMs = 0,
   focusDelayKey = null,
   focusRequest,
+  initialZoomScale = 1,
   onFrame,
   rotation,
   pointerDirection = { x: 1, y: 1 },
   useStateUpdates = true,
 }: UseGlobeInteractionArgs) {
+  const normalizedInitialZoomScale = clampScale(initialZoomScale);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomScale, setZoomScale] = useState(normalizedInitialZoomScale);
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
   const animationFrameRef = useRef<number | null>(null);
   const animateRef = useRef<(now: number) => void>(() => undefined);
@@ -264,8 +267,8 @@ export function useGlobeInteraction({
   const pinchSampleRef = useRef<PinchSample | null>(null);
   const currentRotationRef = useRef<[number, number]>(rotation);
   const targetRotationRef = useRef<[number, number]>(rotation);
-  const currentZoomRef = useRef(1);
-  const targetZoomRef = useRef(1);
+  const currentZoomRef = useRef(normalizedInitialZoomScale);
+  const targetZoomRef = useRef(normalizedInitialZoomScale);
   const focusTargetRef = useRef<[number, number] | null>(null);
   const onFrameRef = useRef(onFrame);
   const rotationVelocityRef = useRef({ latitude: 0, longitude: 0 });

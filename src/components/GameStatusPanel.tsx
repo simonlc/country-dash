@@ -111,7 +111,7 @@ export function GameStatusPanel({
     theme.vars?.palette.divider ?? theme.palette.divider;
 
   const flatActionButtonSx = {
-    borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
+    borderRadius: designTokens.radius.sm,
     boxShadow: 'none',
     minWidth: { sm: 168, xs: 0 },
     px: { sm: 2.5, xs: 2 },

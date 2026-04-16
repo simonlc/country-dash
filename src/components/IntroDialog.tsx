@@ -185,7 +185,7 @@ export const IntroDialog = NiceModal.create(
   }: IntroDialogProps) => {
     const modal = useModal();
     const theme = useTheme();
-    const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
+    const isCompactLayout = useMediaQuery(theme.breakpoints.down('md'));
     const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
     const [countrySizeFilter, setCountrySizeFilter] =
@@ -264,16 +264,26 @@ export const IntroDialog = NiceModal.create(
         open={modal.visible}
         PaperProps={{
           sx: {
-            borderRadius: 9,
+            borderRadius: { md: 9, xs: 0 },
+            height: { md: 'auto', xs: '100dvh' },
+            maxWidth: { xs: '100%' },
+            m: { xs: 0 },
             overflow: 'hidden',
+            width: { xs: '100%' },
           },
         }}
       >
-        <DialogContent sx={{ p: { md: 3, xs: 2 } }}>
-          <Stack spacing={2}>
+        <DialogContent
+          sx={{
+            pb: { md: 3, xs: 'max(env(safe-area-inset-bottom), 10px)' },
+            pt: { md: 3, xs: 'max(env(safe-area-inset-top), 8px)' },
+            px: { md: 3, xs: 1 },
+          }}
+        >
+          <Stack spacing={2} sx={{ width: '100%' }}>
             <Box
               sx={{
-                alignItems: 'center',
+                alignItems: 'stretch',
                 display: 'grid',
                 gap: 1.5,
                 gridTemplateColumns: {
@@ -286,7 +296,7 @@ export const IntroDialog = NiceModal.create(
                 <Typography variant="h2">Country Dash</Typography>
                 <Typography
                   color="text.secondary"
-                  maxWidth={420}
+                  maxWidth={{ md: 420, xs: 'none' }}
                   variant="body2"
                 >
                   The country guessing game
@@ -308,7 +318,7 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
-                  borderRadius: designTokens.radius.md,
+                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                   border: `1px solid rgba(242, 179, 90, ${
                     activeTheme.mode === 'light' ? '0.36' : '0.3'
                   })`,
@@ -490,7 +500,7 @@ export const IntroDialog = NiceModal.create(
                 elevation={0}
                 sx={{
                   ...panelSurface,
-                  borderRadius: designTokens.radius.md,
+                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                   p: { md: 2.25, xs: 2 },
                 }}
               >
@@ -526,6 +536,7 @@ export const IntroDialog = NiceModal.create(
                             ...getSelectorCardSx(activeTheme, {
                               selected: mode === option.value,
                             }),
+                            borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                             minHeight: 84,
                             minWidth: 0,
                             px: designTokens.componentSpacing.selectorCardDense
@@ -591,6 +602,7 @@ export const IntroDialog = NiceModal.create(
                               selected: item.selected,
                               tone: 'panel',
                             }),
+                            borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.sm },
                             justifyContent: 'flex-start',
                             minHeight: 112,
                             minWidth: 0,
