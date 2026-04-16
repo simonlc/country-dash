@@ -6,12 +6,13 @@ import path from 'node:path';
 const repoName = 'country-dash';
 const isPagesBuild = process.env.GITHUB_ACTIONS === 'true';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
       strategy: ['cookie', 'preferredLanguage', 'baseLocale'],
+      outputStructure: command === 'serve' ? 'locale-modules' : 'message-modules',
     }),
     react(),
   ],
@@ -24,4 +25,4 @@ export default defineConfig({
   build: {
     sourcemap: true,
   },
-});
+}));

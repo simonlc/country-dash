@@ -1,7 +1,9 @@
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
 import { matchSorter } from 'match-sorter';
@@ -70,6 +72,8 @@ const filterOptions = (options: GuessChoice[], inputValue: string) => {
 };
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
+  const theme = useTheme();
+  const isMobileLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { locale } = useI18n();
   const [highlightedChoice, setHighlightedChoice] = useState<GuessChoice | null>(
     null,
@@ -268,7 +272,18 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
           listbox: {
             sx: {
               '& .MuiAutocomplete-option': {
-                minHeight: 44,
+                fontSize: {
+                  md: designTokens.fontSize.sm,
+                  xs: designTokens.fontSize.md,
+                },
+                minHeight: {
+                  md: 30,
+                  xs: 44,
+                },
+                py: {
+                  md: 0.25,
+                  xs: 1,
+                },
               },
               maxHeight: {
                 md: 280,
@@ -279,11 +294,11 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
           popper: {
             modifiers: [
               {
-                enabled: false,
+                enabled: isMobileLayout,
                 name: 'flip',
               },
             ],
-            placement: 'bottom-start',
+            placement: isMobileLayout ? 'top-start' : 'bottom-start',
           },
         }}
         value={null}
