@@ -46,6 +46,47 @@ describe('GuessInput', () => {
     expect(onSubmit).toHaveBeenCalledWith('Denmark');
   });
 
+  it('submits the highlighted option when navigating with arrows and pressing Enter', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={onSubmit}
+        options={options}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'dom');
+    const firstOption = screen.getAllByRole('option')[0];
+    const firstLabel = firstOption?.textContent ?? '';
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith(firstLabel);
+  });
+
+  it('does not auto-select an option while typing', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={onSubmit}
+        options={options}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'domin{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith('domin');
+  });
+
   it('accepts the first matching hint on Tab', () => {
     const onSubmit = vi.fn();
 

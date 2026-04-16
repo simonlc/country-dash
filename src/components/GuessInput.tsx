@@ -71,7 +71,9 @@ const filterOptions = (options: GuessChoice[], inputValue: string) => {
 
 export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
   const { locale } = useI18n();
-  const [value, setValue] = useState<GuessChoice | null>(null);
+  const [highlightedChoice, setHighlightedChoice] = useState<GuessChoice | null>(
+    null,
+  );
   const [inputValue, setInputValue] = useState('');
   const [hintValue, setHintValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -141,15 +143,15 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
   const syncInputState = useCallback(
     (nextValue: string) => {
       setInputValue(nextValue);
-      setValue(findExactMatch(nextValue));
+      setHighlightedChoice(null);
       updateHint(nextValue);
       setOpen(nextValue.trim().length > 0);
     },
-    [findExactMatch, updateHint],
+    [updateHint],
   );
 
   const syncSelectedChoice = useCallback((nextValue: GuessChoice | null) => {
-    setValue(nextValue);
+    setHighlightedChoice(nextValue);
 
     if (!nextValue) {
       setHintValue('');
@@ -163,29 +165,52 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
 
   const submitGuess = useCallback(
     (rawValue?: string) => {
-      const submittedValue = value?.label ?? rawValue?.trim() ?? inputValue.trim();
+      const enteredValue = rawValue?.trim() ?? inputValue.trim();
 
-      if (!submittedValue) {
+      if (!enteredValue) {
         return;
       }
 
+      const submittedValue = findExactMatch(enteredValue)?.label ?? enteredValue;
       setOpen(false);
       onSubmit(submittedValue);
     },
-    [inputValue, onSubmit, value],
+    [findExactMatch, inputValue, onSubmit],
   );
 
   const handleFormSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const field = event.currentTarget.querySelector('input');
-      submitGuess(field?.value);
+      submitGuess();
     },
     [submitGuess],
   );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (!open) {
+          return;
+        }
+
+        const filteredOptions = getFilteredOptions(inputValue);
+        if (filteredOptions.length === 0) {
+          return;
+        }
+
+        const currentIndex = highlightedChoice
+          ? filteredOptions.findIndex((option) => option.id === highlightedChoice.id)
+          : -1;
+        const nextIndex =
+          event.key === 'ArrowDown'
+            ? (currentIndex + 1 + filteredOptions.length) % filteredOptions.length
+            : (currentIndex - 1 + filteredOptions.length) % filteredOptions.length;
+
+        setHighlightedChoice(filteredOptions[nextIndex] ?? null);
+        event.preventDefault();
+        return;
+      }
+
       if (event.key === 'Tab' && hintValue) {
         const [matchingOption] = getFilteredOptions(inputValue);
 
@@ -197,10 +222,25 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
 
       if (event.key === 'Enter') {
         event.preventDefault();
+
+        if (open && highlightedChoice) {
+          syncSelectedChoice(highlightedChoice);
+          submitGuess(highlightedChoice.label);
+          return;
+        }
+
         submitGuess();
       }
     },
-    [getFilteredOptions, hintValue, inputValue, submitGuess, syncSelectedChoice],
+    [
+      getFilteredOptions,
+      highlightedChoice,
+      hintValue,
+      inputValue,
+      open,
+      submitGuess,
+      syncSelectedChoice,
+    ],
   );
 
   return (
@@ -215,10 +255,10 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
       }}
     >
       <Autocomplete<GuessChoice, false, false, false>
-        autoHighlight
         disablePortal
         forcePopupIcon={false}
         id="country-guess"
+        includeInputInList
         inputValue={inputValue}
         noOptionsText={m.game_no_matches()}
         open={open}
@@ -246,7 +286,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
             placement: 'bottom-start',
           },
         }}
-        value={value}
+        value={null}
         filterOptions={(allOptions, state) =>
           filterOptions(allOptions, state.inputValue)
         }
@@ -260,7 +300,15 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
             syncSelectedChoice(nextValue);
           }
         }}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          setHighlightedChoice(null);
+        }}
+        onHighlightChange={(_event, nextValue, reason) => {
+          if (reason === 'mouse' || reason === 'touch') {
+            setHighlightedChoice(nextValue);
+          }
+        }}
         onInputChange={(_event, nextInputValue, reason) => {
           if (reason === 'input' || reason === 'clear') {
             syncInputState(nextInputValue);
@@ -331,7 +379,21 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
               key={key}
               component="li"
               {...optionProps}
-              sx={{ alignItems: 'center' }}
+              sx={{
+                '&.MuiAutocomplete-option': {
+                  backgroundColor:
+                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                },
+                '&.MuiAutocomplete-option.Mui-focused': {
+                  backgroundColor:
+                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                },
+                '&.MuiAutocomplete-option[aria-selected="true"]': {
+                  backgroundColor:
+                    highlightedChoice?.id === option.id ? 'action.selected' : 'transparent',
+                },
+                alignItems: 'center',
+              }}
             >
               <Box sx={{ minWidth: 0 }}>
                 {parts.map((part) => (
