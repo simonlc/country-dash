@@ -16,7 +16,7 @@ import type {
   getThemeDisplaySurfaceStyles,
   getThemeSurfaceStyles,
 } from '@/app/theme';
-import { GuessInput } from '@/components/GuessInput';
+import { GuessInput } from '@/components/guess';
 import {
   getEdgeAttachedPanelRadiusSx,
   getFloatingPanelSx,
