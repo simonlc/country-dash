@@ -13,11 +13,8 @@ import { useGamePageState } from '@/hooks/useGamePageState';
 export function GamePage() {
   const state = useGamePageState();
   const keyboardInset = 'max(env(keyboard-inset-height, 0px), var(--keyboard-fallback-inset, 0px))';
-  const mobileHudTopPadding = state.isKeyboardOpen
-    ? 'max(env(safe-area-inset-top), 8px)'
-    : 'max(env(safe-area-inset-top), 56px)';
   const mobileHudBottomPadding = `calc(max(env(safe-area-inset-bottom), 10px) + ${keyboardInset})`;
-  const mobileStatusBottomPadding = `calc(max(env(safe-area-inset-bottom), 12px) + ${keyboardInset})`;
+  const mobileStatusBottomPadding = state.isKeyboardOpen ? keyboardInset : '0px';
 
   if (state.loadingError) {
     return (
@@ -118,7 +115,7 @@ export function GamePage() {
           },
           pt: {
             md: 3,
-            xs: mobileHudTopPadding,
+            xs: 0,
           },
           zIndex: 1,
         }}
@@ -159,11 +156,11 @@ export function GamePage() {
             position: 'absolute',
             pl: {
               md: 2,
-              xs: 'max(env(safe-area-inset-left), 6px)',
+              xs: 'max(env(safe-area-inset-left), 0px)',
             },
             pr: {
               md: 2,
-              xs: 'max(env(safe-area-inset-right), 6px)',
+              xs: 'max(env(safe-area-inset-right), 0px)',
             },
             pb: {
               md: 4,

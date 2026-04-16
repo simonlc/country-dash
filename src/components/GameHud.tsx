@@ -57,6 +57,7 @@ export function GameHud({
   const theme = useTheme();
   const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const isKeyboardCompact = isCompactLayout && isKeyboardOpen;
+  const mobileHudContentOffset = 'calc(env(safe-area-inset-top) + 56px)';
   const statItems = isCompactLayout
     ? [
         { label: m.game_stat_score(), value: score },
@@ -81,11 +82,17 @@ export function GameHud({
       sx={[
         panelSurface,
         {
-          borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
+          borderRadius: { md: designTokens.radius.pill, xs: '0 0 4px 4px' },
           flex: 1,
           p: {
             md: designTokens.componentSpacing.dialogPanel.desktop,
             xs: isKeyboardCompact ? 0.55 : 0.85,
+          },
+          pt: {
+            md: designTokens.componentSpacing.dialogPanel.desktop,
+            xs: isKeyboardCompact
+              ? 'calc(env(safe-area-inset-top) + 52px)'
+              : mobileHudContentOffset,
           },
           pointerEvents: 'auto',
         },

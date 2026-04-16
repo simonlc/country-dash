@@ -152,16 +152,21 @@ export function GameStatusPanel({
             : null),
           borderRadius: {
             md: designTokens.radius.xs,
-            xs: isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
+            xs: isPlaying ? '8px 8px 0 0' : isKeyboardOpen ? designTokens.radius.sm : designTokens.radius.xs,
           },
-          maxWidth: { md: 560, xs: isKeyboardOpen ? 'none' : 560 },
+          maxWidth: { md: 560, xs: isPlaying ? 'none' : isKeyboardOpen ? 'none' : 560 },
           mb: {
             md: isPlaying ? 16 : 4,
-            xs: isKeyboardOpen ? 0 : isPlaying ? 8 : 2,
+            xs: isPlaying ? 0 : isKeyboardOpen ? 0 : 2,
           },
           p: {
             md: designTokens.componentSpacing.overlayPanel.desktop,
             xs: isKeyboardOpen ? 1.4 : designTokens.componentSpacing.overlayPanel.mobile,
+          },
+          pb: {
+            xs: isPlaying
+              ? 'calc(16px + env(safe-area-inset-bottom))'
+              : undefined,
           },
           pointerEvents: 'auto',
           overflow: 'visible',
