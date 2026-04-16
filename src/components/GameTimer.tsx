@@ -33,7 +33,7 @@ export function GameTimer({
       : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
 
   return (
-    <Stack spacing={0.2} sx={{ minWidth: 88 }}>
+    <Stack spacing={0.2} sx={{ minWidth: { sm: 88, xs: 0 } }}>
       <Typography color="text.primary" variant="caption">
         Time
       </Typography>

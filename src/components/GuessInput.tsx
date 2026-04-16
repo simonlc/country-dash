@@ -225,6 +225,17 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
         openOnFocus={false}
         options={choices}
         slotProps={{
+          listbox: {
+            sx: {
+              '& .MuiAutocomplete-option': {
+                minHeight: 44,
+              },
+              maxHeight: {
+                md: 280,
+                xs: '42vh',
+              },
+            },
+          },
           popper: {
             modifiers: [
               {
@@ -276,7 +287,7 @@ export function GuessInput({ options, variant, onSubmit }: GuessInputProps) {
                   fontWeight: designTokens.fontWeight.semibold,
                 },
                 '& .MuiInputBase-input': {
-                  fontSize: designTokens.fontSize.md,
+                  fontSize: { md: designTokens.fontSize.md, xs: '1rem' },
                   fontWeight: designTokens.fontWeight.semibold,
                   py: 1.5,
                 },

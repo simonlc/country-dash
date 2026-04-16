@@ -133,6 +133,7 @@ export function WebGlGlobe({
     import.meta.env.VITE_OPENSKY_PROXY_URL?.trim() ||
     (import.meta.env.DEV ? 'http://127.0.0.1:8787/api/opensky/states' : null);
   const slowScanlineStrength = render.slowScanlineStrength;
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resourcesRef = useRef<WebGlResources | null>(null);
@@ -314,6 +315,36 @@ export function WebGlGlobe({
   useEffect(() => {
     onCipherTrafficStateChange?.(cipherTrafficState);
   }, [cipherTrafficState, onCipherTrafficStateChange]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const preventGesture: EventListener = (event) => {
+      event.preventDefault();
+    };
+    const preventPinchTouch = (event: TouchEvent) => {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    };
+
+    container.addEventListener('gesturestart', preventGesture);
+    container.addEventListener('gesturechange', preventGesture);
+    container.addEventListener('gestureend', preventGesture);
+    container.addEventListener('touchmove', preventPinchTouch, {
+      passive: false,
+    });
+
+    return () => {
+      container.removeEventListener('gesturestart', preventGesture);
+      container.removeEventListener('gesturechange', preventGesture);
+      container.removeEventListener('gestureend', preventGesture);
+      container.removeEventListener('touchmove', preventPinchTouch);
+    };
+  }, []);
 
   const drawOverlayFrame = useCallback(
     (now = performance.now()) => {
@@ -612,6 +643,7 @@ export function WebGlGlobe({
 
   return (
     <div
+      ref={containerRef}
       style={{
         background: `radial-gradient(circle at 36% 34%, ${palette.hazeInner}, ${palette.hazeOuter} 65%)`,
         height,

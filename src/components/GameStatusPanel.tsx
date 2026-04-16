@@ -111,11 +111,12 @@ export function GameStatusPanel({
     theme.vars?.palette.divider ?? theme.palette.divider;
 
   const flatActionButtonSx = {
-    borderRadius: designTokens.radius.sm,
+    borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
     boxShadow: 'none',
-    minWidth: { sm: 168, xs: 160 },
-    px: 2.5,
+    minWidth: { sm: 168, xs: 0 },
+    px: { sm: 2.5, xs: 2 },
     textAlign: 'center',
+    width: { xs: '100%', sm: 'auto' },
     '&:hover': {
       backgroundImage: 'none',
       boxShadow: 'none',
@@ -163,7 +164,7 @@ export function GameStatusPanel({
                 sx={{
                   alignItems: 'center',
                   bgcolor: 'primary.main',
-                  borderRadius: designTokens.radius.sm,
+                  borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
                   color: 'primary.contrastText',
                   display: 'grid',
                   height: 36,
@@ -207,7 +208,7 @@ export function GameStatusPanel({
                       sx={[
                         displaySurface,
                         {
-                          borderRadius: designTokens.radius.md,
+                          borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
                           backgroundImage: 'none',
                           p: 1.5,
                         },
@@ -247,7 +248,7 @@ export function GameStatusPanel({
                 sx={{
                   border: '1px solid',
                   borderColor: dividerColor,
-                  borderRadius: designTokens.radius.md,
+                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   width: '100%',
@@ -309,6 +310,7 @@ export function GameStatusPanel({
               direction={{ sm: 'row', xs: 'column' }}
               justifyContent="center"
               spacing={0.85}
+              sx={{ width: '100%' }}
             >
               {!isDailyRun ? (
                 <Button
@@ -356,7 +358,7 @@ export function GameStatusPanel({
                 sx={{
                   alignItems: 'center',
                   bgcolor: isCorrect ? 'primary.main' : 'error.main',
-                  borderRadius: designTokens.radius.sm,
+                  borderRadius: { sm: designTokens.radius.sm, xs: designTokens.radius.xs },
                   color: isCorrect
                     ? 'primary.contrastText'
                     : 'error.contrastText',
@@ -400,8 +402,8 @@ export function GameStatusPanel({
                 sx={{
                   border: '1px solid',
                   borderColor: dividerColor,
-                  borderRadius: designTokens.radius.md,
-                  px: 4,
+                  borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
+                  px: { sm: 4, xs: 2 },
                   py: 1,
                   textAlign: 'center',
                   width: '100%',
@@ -417,7 +419,7 @@ export function GameStatusPanel({
               sx={{
                 border: '1px solid',
                 borderColor: dividerColor,
-                borderRadius: designTokens.radius.md,
+                borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
                 display: 'grid',
                 gap: 0,
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',

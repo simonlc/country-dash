@@ -25,6 +25,8 @@ import {
   Paper,
   Stack,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -182,6 +184,8 @@ export const IntroDialog = NiceModal.create(
     onStartRandom,
   }: IntroDialogProps) => {
     const modal = useModal();
+    const theme = useTheme();
+    const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
     const { activeTheme } = useAppearance();
     const [mode, setMode] = useState<GameMode>('classic');
     const [countrySizeFilter, setCountrySizeFilter] =
@@ -254,6 +258,7 @@ export const IntroDialog = NiceModal.create(
 
     return (
       <Dialog
+        fullScreen={isCompactLayout}
         fullWidth
         maxWidth="md"
         open={modal.visible}

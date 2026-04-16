@@ -203,6 +203,42 @@ interface UseGlobeInteractionArgs {
   useStateUpdates?: boolean;
 }
 
+interface PointerSample {
+  timeStamp: number;
+  x: number;
+  y: number;
+}
+
+interface PinchSample {
+  centerX: number;
+  centerY: number;
+  distance: number;
+}
+
+function getPinchSample(
+  activePointers: Map<number, PointerSample>,
+): PinchSample | null {
+  if (activePointers.size < 2) {
+    return null;
+  }
+
+  const samples = Array.from(activePointers.values());
+  const firstSample = samples[0];
+  const secondSample = samples[1];
+  if (!firstSample || !secondSample) {
+    return null;
+  }
+
+  return {
+    centerX: (firstSample.x + secondSample.x) / 2,
+    centerY: (firstSample.y + secondSample.y) / 2,
+    distance: Math.hypot(
+      secondSample.x - firstSample.x,
+      secondSample.y - firstSample.y,
+    ),
+  };
+}
+
 export function useGlobeInteraction({
   baseScale,
   focusDelayMs = 0,
@@ -218,12 +254,14 @@ export function useGlobeInteraction({
   const [currentRotation, setCurrentRotation] = useState<[number, number]>(rotation);
   const animationFrameRef = useRef<number | null>(null);
   const animateRef = useRef<(now: number) => void>(() => undefined);
+  const activePointersRef = useRef(new Map<number, PointerSample>());
   const draggingRef = useRef(false);
   const focusDelayTimeoutRef = useRef<number | null>(null);
   const lastFocusDelayKeyRef = useRef<number | string | null>(focusDelayKey);
   const isAnimatingRef = useRef(false);
   const lastFrameTimeRef = useRef<number | null>(null);
   const lastDragSampleRef = useRef({ timeStamp: 0, x: 0, y: 0 });
+  const pinchSampleRef = useRef<PinchSample | null>(null);
   const currentRotationRef = useRef<[number, number]>(rotation);
   const targetRotationRef = useRef<[number, number]>(rotation);
   const currentZoomRef = useRef(1);
@@ -263,6 +301,9 @@ export function useGlobeInteraction({
       window.clearTimeout(focusDelayTimeoutRef.current);
       focusDelayTimeoutRef.current = null;
     }
+    activePointersRef.current.clear();
+    draggingRef.current = false;
+    pinchSampleRef.current = null;
     lastFrameTimeRef.current = null;
     setAnimationState(false);
   }, [setAnimationState]);
@@ -386,14 +427,31 @@ export function useGlobeInteraction({
     <T extends Element>(event: ReactPointerEvent<T>) => {
       focusTargetRef.current = null;
       rotationVelocityRef.current = { latitude: 0, longitude: 0 };
-      draggingRef.current = true;
-      targetRotationRef.current = currentRotationRef.current;
-      lastDragSampleRef.current = {
+      const pointerSample = {
         timeStamp: event.timeStamp,
         x: event.clientX,
         y: event.clientY,
       };
-      event.currentTarget.setPointerCapture(event.pointerId);
+      activePointersRef.current.set(event.pointerId, pointerSample);
+      if ('setPointerCapture' in event.currentTarget) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+
+      const pinchSample = getPinchSample(activePointersRef.current);
+      if (pinchSample) {
+        draggingRef.current = false;
+        pinchSampleRef.current = pinchSample;
+        targetRotationRef.current = currentRotationRef.current;
+        targetZoomRef.current = currentZoomRef.current;
+        zoomVelocityRef.current = 0;
+        startAnimation();
+        return;
+      }
+
+      pinchSampleRef.current = null;
+      draggingRef.current = true;
+      targetRotationRef.current = currentRotationRef.current;
+      lastDragSampleRef.current = pointerSample;
       startAnimation();
     },
     [startAnimation],
@@ -401,6 +459,56 @@ export function useGlobeInteraction({
 
   const onPointerMove = useCallback(
     (event: ReactPointerEvent<Element>) => {
+      if (!activePointersRef.current.has(event.pointerId)) {
+        return;
+      }
+
+      activePointersRef.current.set(event.pointerId, {
+        timeStamp: event.timeStamp,
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const nextPinchSample = getPinchSample(activePointersRef.current);
+      if (nextPinchSample) {
+        const previousPinchSample = pinchSampleRef.current ?? nextPinchSample;
+        const previousDistance = Math.max(previousPinchSample.distance, 1);
+        const zoomScaleRatio = nextPinchSample.distance / previousDistance;
+        const pinchPanSensitivity = 75 / (baseScale * targetZoomRef.current);
+        const deltaCenterX = nextPinchSample.centerX - previousPinchSample.centerX;
+        const deltaCenterY = nextPinchSample.centerY - previousPinchSample.centerY;
+        const longitudeDelta = deltaCenterX * pinchPanSensitivity * pointerDirection.x;
+        const latitudeDelta = -deltaCenterY * pinchPanSensitivity * pointerDirection.y;
+
+        targetRotationRef.current = [
+          normalizeLongitude(targetRotationRef.current[0] + longitudeDelta),
+          clampLatitudeRotation(targetRotationRef.current[1] + latitudeDelta),
+        ];
+        rotationVelocityRef.current = {
+          latitude: latitudeDelta,
+          longitude: longitudeDelta,
+        };
+
+        if (Number.isFinite(zoomScaleRatio) && zoomScaleRatio > 0) {
+          targetZoomRef.current = clampScale(
+            targetZoomRef.current * zoomScaleRatio,
+          );
+          zoomVelocityRef.current = Math.max(
+            -0.2,
+            Math.min(
+              0.2,
+              (nextPinchSample.distance - previousDistance) * 0.012,
+            ),
+          );
+        }
+
+        pinchSampleRef.current = nextPinchSample;
+        draggingRef.current = false;
+        startAnimation();
+        return;
+      }
+
+      pinchSampleRef.current = null;
       if (!draggingRef.current) {
         return;
       }
@@ -434,14 +542,27 @@ export function useGlobeInteraction({
 
   const onPointerUp = useCallback(
     (event: ReactPointerEvent<Element>) => {
-      if (!draggingRef.current) {
-        return;
-      }
-
-      draggingRef.current = false;
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      if (
+        'hasPointerCapture' in event.currentTarget &&
+        event.currentTarget.hasPointerCapture(event.pointerId)
+      ) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+
+      activePointersRef.current.delete(event.pointerId);
+      const remainingPointers = Array.from(activePointersRef.current.values());
+      const nextDragPointer = remainingPointers[0];
+
+      if (nextDragPointer) {
+        draggingRef.current = true;
+        pinchSampleRef.current = null;
+        targetRotationRef.current = currentRotationRef.current;
+        lastDragSampleRef.current = nextDragPointer;
+      } else {
+        draggingRef.current = false;
+        pinchSampleRef.current = null;
+      }
+
       startAnimation();
     },
     [startAnimation],
@@ -516,6 +637,7 @@ export function useGlobeInteraction({
     currentRotation,
     interactionHandlers: {
       onPointerDown,
+      onPointerCancel: onPointerUp,
       onPointerLeave: onPointerUp,
       onPointerMove,
       onPointerUp,

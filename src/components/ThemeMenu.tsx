@@ -9,6 +9,8 @@ import {
   Paper,
   Stack,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Crosshair, Info, RotateCcw, XCircle } from 'react-feather';
 import { useState } from 'react';
@@ -39,6 +41,8 @@ export function ThemeMenu({
 }: ThemeMenuProps) {
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
+  const theme = useTheme();
+  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { activeTheme, setTheme, themes } = useAppearance();
   const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const menuPanelId = 'theme-menu-panel';
@@ -60,11 +64,17 @@ export function ThemeMenu({
   return (
     <Box
       sx={{
-        left: { md: 24, xs: 16 },
+        left: {
+          md: 24,
+          xs: 'calc(env(safe-area-inset-left) + 12px)',
+        },
         pointerEvents: 'auto',
         position: 'fixed',
-        top: { md: 24, xs: 16 },
-        width: { md: 320, xs: 'calc(100% - 32px)' },
+        top: {
+          md: 24,
+          xs: 'calc(env(safe-area-inset-top) + 12px)',
+        },
+        width: { md: 320, xs: 96 },
         zIndex: 20,
       }}
     >
@@ -72,8 +82,10 @@ export function ThemeMenu({
         <Button
           aria-controls={menuPanelId}
           aria-expanded={open}
-          size="small"
+          size={isCompactLayout ? 'medium' : 'small'}
           sx={{
+            borderRadius: { md: designTokens.radius.sm, xs: designTokens.radius.xs },
+            minHeight: { xs: 40 },
             minWidth: 0,
             px: 2,
             py: 0.85,
@@ -89,7 +101,12 @@ export function ThemeMenu({
             elevation={0}
             sx={{
               ...panelSurface,
-              borderRadius: designTokens.radius.sm,
+              borderRadius: { md: designTokens.radius.sm, xs: designTokens.radius.xs },
+              maxHeight: {
+                md: 'none',
+                xs: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px)',
+              },
+              overflowY: 'auto',
               p: 2,
             }}
           >
@@ -98,7 +115,10 @@ export function ThemeMenu({
                 sx={{
                   display: 'grid',
                   gap: 1,
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gridTemplateColumns: {
+                    md: 'repeat(4, minmax(0, 1fr))',
+                    xs: 'repeat(2, minmax(0, 1fr))',
+                  },
                   paddingBlock: 2,
                 }}
               >
@@ -113,8 +133,10 @@ export function ThemeMenu({
                       key={action.label}
                       size="small"
                       sx={{
+                        borderRadius: { md: designTokens.radius.sm, xs: designTokens.radius.xs },
                         display: 'grid',
                         gap: 0.55,
+                        minHeight: 52,
                         minWidth: 0,
                       }}
                       variant="contained"
@@ -147,6 +169,7 @@ export function ThemeMenu({
                         ...getSelectorCardSx(activeTheme, {
                           selected: isActive,
                         }),
+                        borderRadius: designTokens.radius.xs,
                         justifyContent: 'flex-start',
                         p: 0.95,
                         textAlign: 'left',
@@ -158,7 +181,7 @@ export function ThemeMenu({
                         spacing={1.25}
                         sx={{ alignItems: 'center', width: '100%' }}
                       >
-                        <Box sx={{ flexShrink: 0, width: 82 }}>
+                        <Box sx={{ flexShrink: 0, width: { md: 82, xs: 72 } }}>
                           <ThemePreview theme={theme} />
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
@@ -179,13 +202,14 @@ export function ThemeMenu({
         </Collapse>
       </Stack>
       <Dialog
+        fullScreen={isCompactLayout}
         fullWidth
         maxWidth="xs"
         open={confirmQuitOpen}
         PaperProps={{
           sx: {
             ...panelSurface,
-            borderRadius: designTokens.radius.md,
+            borderRadius: { md: designTokens.radius.md, xs: designTokens.radius.xs },
             backgroundImage: 'none',
           },
         }}

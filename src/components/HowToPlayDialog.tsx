@@ -8,6 +8,8 @@ import {
   DialogTitle,
   Stack,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useAppearance } from '@/app/appearance';
 import { designTokens } from '@/app/designSystem';
@@ -15,6 +17,8 @@ import { getThemeDisplaySurfaceStyles } from '@/app/theme';
 
 export const HowToPlayDialog = NiceModal.create(() => {
   const modal = useModal();
+  const theme = useTheme();
+  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { activeTheme } = useAppearance();
   const displayAccentSurface = getThemeDisplaySurfaceStyles(
     activeTheme,
@@ -23,6 +27,7 @@ export const HowToPlayDialog = NiceModal.create(() => {
 
   return (
     <Dialog
+      fullScreen={isCompactLayout}
       fullWidth
       maxWidth="sm"
       open={modal.visible}

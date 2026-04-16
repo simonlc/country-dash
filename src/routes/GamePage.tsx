@@ -93,7 +93,14 @@ export function GamePage() {
           inset: 0,
           pointerEvents: 'none',
           position: 'absolute',
-          py: { md: 3, xs: 2 },
+          pb: {
+            md: 3,
+            xs: 'max(env(safe-area-inset-bottom), 10px)',
+          },
+          pt: {
+            md: 3,
+            xs: 'max(env(safe-area-inset-top), 56px)',
+          },
           zIndex: 1,
         }}
       >
@@ -131,7 +138,11 @@ export function GamePage() {
             pointerEvents: 'none',
             position: 'absolute',
             px: 2,
-            py: { md: 4, xs: 2 },
+            pb: {
+              md: 4,
+              xs: 'max(env(safe-area-inset-bottom), 12px)',
+            },
+            pt: { md: 4, xs: 2 },
           }}
         >
           <GameStatusPanel

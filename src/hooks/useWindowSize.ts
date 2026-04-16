@@ -10,9 +10,11 @@ function getWindowSize(): WindowSize {
     return { width: 0, height: 0 };
   }
 
+  const viewport = window.visualViewport;
+
   return {
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: Math.round(viewport?.width ?? window.innerWidth),
+    height: Math.round(viewport?.height ?? window.innerHeight),
   };
 }
 
@@ -40,10 +42,18 @@ export function useWindowSize() {
       });
     };
 
+    const viewport = window.visualViewport;
+    window.addEventListener('orientationchange', handleResize);
     window.addEventListener('resize', handleResize);
+    viewport?.addEventListener('resize', handleResize);
+    viewport?.addEventListener('scroll', handleResize);
+
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.removeEventListener('orientationchange', handleResize);
       window.removeEventListener('resize', handleResize);
+      viewport?.removeEventListener('resize', handleResize);
+      viewport?.removeEventListener('scroll', handleResize);
     };
   }, []);
 

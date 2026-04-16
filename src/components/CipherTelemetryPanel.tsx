@@ -42,7 +42,7 @@ export function CipherTelemetryPanel({
           position: 'absolute',
           px: 1.6,
           py: 1.4,
-          right: 24,
+          right: 'max(env(safe-area-inset-right), 24px)',
         }}
       >
         <Typography
@@ -102,8 +102,14 @@ export function CipherTelemetryPanel({
       </Paper>
       <Box
         sx={{
-          bottom: 12,
-          left: { md: 24, xs: 16 },
+          bottom: {
+            md: 12,
+            xs: 'max(env(safe-area-inset-bottom), 10px)',
+          },
+          left: {
+            md: 'max(env(safe-area-inset-left), 24px)',
+            xs: 'max(env(safe-area-inset-left), 16px)',
+          },
           maxWidth: { md: 'min(58vw, 760px)', xs: 'calc(100vw - 32px)' },
           position: 'absolute',
           px: 1.3,

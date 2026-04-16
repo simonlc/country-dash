@@ -1,4 +1,12 @@
-import { Box, Button, Paper, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Paper,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import { designTokens } from '@/app/designSystem';
 import type {
   getThemeDisplaySurfaceStyles,
@@ -43,17 +51,33 @@ export function GameHud({
   showRefocus,
   streak,
 }: GameHudProps) {
+  const theme = useTheme();
+  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
+  const statItems = isCompactLayout
+    ? [
+        { label: 'Score', value: score },
+        { label: 'Streak', value: streak },
+        ...(livesRemaining !== null ? [{ label: 'Lives', value: livesRemaining }] : []),
+      ]
+    : [
+        { label: 'Score', value: score },
+        { label: 'Streak', value: streak },
+        { label: 'Hit', value: correct },
+        { label: 'Miss', value: incorrect },
+        ...(livesRemaining !== null ? [{ label: 'Lives', value: livesRemaining }] : []),
+      ];
+
   return (
     <Paper
       elevation={0}
       sx={[
         panelSurface,
         {
-          borderRadius: designTokens.radius.pill,
+          borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
           flex: 1,
           p: {
             md: designTokens.componentSpacing.dialogPanel.desktop,
-            xs: 1.4,
+            xs: 0.85,
           },
           pointerEvents: 'auto',
         },
@@ -64,11 +88,12 @@ export function GameHud({
           alignItems: 'center',
           display: 'grid',
           gap: 1,
-          paddingLeft: { md: 3, xs: 0 },
+          paddingLeft: { md: 3, xs: 0.25 },
           paddingRight: { md: 1, xs: 0 },
           gridTemplateColumns: {
             md: 'minmax(0, 1.3fr) auto auto auto auto auto auto',
-            xs: 'repeat(4, minmax(0, 1fr))',
+            sm: 'repeat(4, minmax(0, 1fr))',
+            xs: 'repeat(3, minmax(0, 1fr))',
           },
         }}
       >
@@ -81,9 +106,11 @@ export function GameHud({
           >
             {roundLabel}
           </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={0.75}>
-            <Typography variant="h6">{sessionModeLabel}</Typography>
-            {sessionSummaryLabel ? (
+          <Stack direction="row" flexWrap="wrap" gap={0.6}>
+            <Typography variant={isCompactLayout ? 'subtitle2' : 'h6'}>
+              {sessionModeLabel}
+            </Typography>
+            {sessionSummaryLabel && !isCompactLayout ? (
               <Typography
                 color="text.secondary"
                 lineHeight={1.3}
@@ -93,32 +120,26 @@ export function GameHud({
               </Typography>
             ) : null}
           </Stack>
-          <Stack direction="row" flexWrap="wrap" gap={0.6}>
-            {sessionLabels.map((label) => (
-              <Typography key={label} color="text.secondary" variant="caption">
-                {label}
-              </Typography>
-            ))}
-          </Stack>
+          {!isCompactLayout ? (
+            <Stack direction="row" flexWrap="wrap" gap={0.6}>
+              {sessionLabels.map((label) => (
+                <Typography key={label} color="text.secondary" variant="caption">
+                  {label}
+                </Typography>
+              ))}
+            </Stack>
+          ) : null}
         </Stack>
-        {[
-          { label: 'Score', value: score },
-          { label: 'Streak', value: streak },
-          { label: 'Hit', value: correct },
-          { label: 'Miss', value: incorrect },
-          ...(livesRemaining !== null
-            ? [{ label: 'Lives', value: livesRemaining }]
-            : []),
-        ].map((item) => (
+        {statItems.map((item) => (
           <Box
             key={item.label}
             sx={[
               displaySurface,
               {
-                borderRadius: designTokens.radius.pill,
-                minWidth: { md: 74, xs: 0 },
-                px: designTokens.componentSpacing.hudChip.px,
-                py: designTokens.componentSpacing.hudChip.py,
+                borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
+                minWidth: { md: 74, sm: 64, xs: 0 },
+                px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
+                py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
                 textAlign: 'center',
               },
             ]}
@@ -128,8 +149,11 @@ export function GameHud({
             </Typography>
             <Typography
               lineHeight={1.05}
-              sx={{ fontVariantNumeric: 'tabular-nums' }}
-              variant="subtitle1"
+              sx={{
+                fontSize: { md: theme.typography.subtitle1.fontSize, xs: theme.typography.body1.fontSize },
+                fontVariantNumeric: 'tabular-nums',
+              }}
+              variant="subtitle2"
             >
               {item.value}
             </Typography>
@@ -140,23 +164,24 @@ export function GameHud({
           sx={[
             displayAccentSurface,
             {
-              borderRadius: designTokens.radius.pill,
-              gridColumn: { xs: 'span 2', md: 'auto' },
+              borderRadius: { md: designTokens.radius.pill, xs: designTokens.radius.sm },
+              gridColumn: { xs: 'span 1', md: 'auto' },
               justifySelf: { md: 'end', xs: 'stretch' },
-              px: designTokens.componentSpacing.hudChip.px,
-              py: designTokens.componentSpacing.hudChip.py,
+              px: { md: designTokens.componentSpacing.hudChip.px, xs: 0.85 },
+              py: { md: designTokens.componentSpacing.hudChip.py, xs: 0.5 },
             },
           ]}
         >
           <GameTimer elapsedMs={displayElapsedMs} runningSince={runningSince} />
         </Paper>
-        {showRefocus ? (
+        {showRefocus && !isCompactLayout ? (
           <Button
             aria-label="Refocus country"
             size="small"
             sx={{
               borderColor: 'rgba(150, 201, 255, 0.22)',
               gridColumn: { xs: 'span 2', md: 'auto' },
+              minHeight: 38,
               py: 0.85,
             }}
             variant="contained"
