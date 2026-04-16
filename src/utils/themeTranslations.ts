@@ -17,20 +17,3 @@ export function getThemeLabel(themeId: AppThemeId) {
       return `${m.theme_glacier_label()}`;
   }
 }
-
-export function getThemeDescription(themeId: AppThemeId) {
-  switch (themeId) {
-    case 'daybreak':
-      return `${m.theme_daybreak_description()}`;
-    case 'midnight':
-      return `${m.theme_midnight_description()}`;
-    case 'ember':
-      return `${m.theme_ember_description()}`;
-    case 'atlas':
-      return `${m.theme_atlas_description()}`;
-    case 'cipher':
-      return `${m.theme_cipher_description()}`;
-    case 'glacier':
-      return `${m.theme_glacier_description()}`;
-  }
-}

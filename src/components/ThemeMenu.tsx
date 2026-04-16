@@ -25,10 +25,7 @@ import { m } from '@/paraglide/messages.js';
 import { getThemeSurfaceStyles } from '@/app/theme';
 import { ThemePreview } from '@/components/ThemePreview';
 import { getSelectorCardSx } from '@/utils/controlStyles';
-import {
-  getThemeDescription,
-  getThemeLabel,
-} from '@/utils/themeTranslations';
+import { getThemeLabel } from '@/utils/themeTranslations';
 
 interface ThemeMenuProps {
   onAbout: () => void;
@@ -107,83 +104,85 @@ export function ThemeMenu({
           display: 'grid',
           gap: 1,
           gridTemplateColumns: {
-            md: 'repeat(4, minmax(0, 1fr))',
-            xs: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(2, minmax(0, 1fr))',
+            xs: 'repeat(1, minmax(0, 1fr))',
           },
           paddingBlock: 2,
         }}
       >
-        {actions.map((action) => (
-          <Button
-            aria-label={
-              action.label === m.action_refocus()
-                ? m.game_refocus_country_aria()
-                : action.label
-            }
-            key={action.label}
-            size="small"
-            sx={{
-              display: 'grid',
-              gap: 0.55,
-              minHeight: 52,
-              minWidth: 0,
-            }}
-            variant="contained"
-            onClick={action.onClick}
-          >
-            <Typography variant="caption">{action.label}</Typography>
-          </Button>
-        ))}
+        {actions.map((action) => {
+          const ActionIcon = action.icon;
+
+          return (
+            <Button
+              aria-label={
+                action.label === m.action_refocus()
+                  ? m.game_refocus_country_aria()
+                  : action.label
+              }
+              key={action.label}
+              size="small"
+              startIcon={<ActionIcon size={14} />}
+              sx={{
+                justifyContent: 'flex-start',
+                minHeight: 52,
+                minWidth: 0,
+                px: 1.5,
+                textAlign: 'left',
+                textTransform: 'none',
+                whiteSpace: 'normal',
+              }}
+              variant="contained"
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          );
+        })}
       </Box>
-      <Typography color="text.secondary" sx={{ px: 0.25 }} variant="caption">
+      <Typography color="text.secondary" variant="caption">
         {m.menu_themes()}
       </Typography>
-      <Stack spacing={0.9}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 0.9,
+          gridTemplateColumns: {
+            md: 'repeat(3, minmax(0, 1fr))',
+            xs: 'repeat(2, minmax(0, 1fr))',
+          },
+        }}
+      >
         {themes.map((themeOption) => {
           const isActive = themeOption.id === activeTheme.id;
 
           return (
             <Box
+              aria-label={getThemeLabel(themeOption.id)}
               aria-pressed={isActive}
               component="button"
               key={themeOption.id}
               type="button"
               sx={{
-                alignItems: 'stretch',
+                alignItems: 'center',
                 ...getSelectorCardSx(activeTheme, {
                   selected: isActive,
                 }),
                 borderRadius: designTokens.radius.xs,
-                justifyContent: 'flex-start',
-                p: 0.95,
-                textAlign: 'left',
+                justifyContent: 'center',
+                p: 0.65,
+                width: '100%',
               }}
               onClick={() => {
                 setTheme(themeOption.id);
                 closeMenu();
               }}
             >
-              <Stack
-                direction="row"
-                spacing={1.25}
-                sx={{ alignItems: 'center', width: '100%' }}
-              >
-                <Box sx={{ flexShrink: 0, width: { md: 82, xs: 72 } }}>
-                  <ThemePreview theme={themeOption} />
-                </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="subtitle2">
-                    {getThemeLabel(themeOption.id)}
-                  </Typography>
-                  <Typography color="text.secondary" variant="caption">
-                    {getThemeDescription(themeOption.id)}
-                  </Typography>
-                </Box>
-              </Stack>
+              <ThemePreview theme={themeOption} />
             </Box>
           );
         })}
-      </Stack>
+      </Box>
     </Stack>
   );
 
