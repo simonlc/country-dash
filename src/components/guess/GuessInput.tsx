@@ -32,6 +32,18 @@ import {
 import { GuessAutocompleteInput } from './GuessAutocompleteInput';
 import type { GuessInputProps, HighlightPart } from './types';
 
+type BaseUiKeyboardEvent<TElement extends HTMLElement> =
+  KeyboardEvent<TElement> & {
+    preventBaseUIHandler?: () => void;
+  };
+
+function isSpaceKeyboardEvent(event: unknown): event is KeyboardEvent {
+  return (
+    event instanceof KeyboardEvent &&
+    (event.key === ' ' || event.key === 'Spacebar')
+  );
+}
+
 function getGuessLabel(variant: 'country' | 'capital') {
   return variant === 'capital'
     ? m.game_guess_label_capital()
@@ -61,85 +73,112 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
   );
   const completionChoice = useMemo(
     () =>
-      filteredOptions.find((choice) => labelStartsWithInput(choice, inputValue)) ??
-      null,
+      filteredOptions.find((choice) =>
+        labelStartsWithInput(choice, inputValue),
+      ) ?? null,
     [filteredOptions, inputValue],
   );
 
-  const submitGuess = useCallback((rawValue?: string) => {
-    const enteredValue = rawValue?.trim() ?? inputValue.trim();
+  const submitGuess = useCallback(
+    (rawValue?: string) => {
+      const enteredValue = rawValue?.trim() ?? inputValue.trim();
 
-    if (!enteredValue) {
-      return;
-    }
-
-    const submittedValue = findExactGuessChoice(choices, enteredValue)?.label ?? enteredValue;
-    setOpen(false);
-    onSubmit(submittedValue);
-  }, [choices, inputValue, onSubmit]);
-
-  const selectOption = useCallback((label: string, submit: boolean) => {
-    setInputValue(label);
-    setOpen(false);
-    setHighlightedIndex(-1);
-
-    if (submit) {
-      submitGuess(label);
-    }
-  }, [submitGuess]);
-
-  const onKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
-    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && open) {
-      if (filteredOptions.length === 0) {
+      if (!enteredValue) {
         return;
       }
 
-      event.preventDefault();
-      const nextIndex =
-        event.key === 'ArrowDown'
-          ? (highlightedIndex + 1 + filteredOptions.length) %
-            filteredOptions.length
-          : (highlightedIndex - 1 + filteredOptions.length) %
-            filteredOptions.length;
-      setHighlightedIndex(nextIndex);
-      return;
-    }
+      const submittedValue =
+        findExactGuessChoice(choices, enteredValue)?.label ?? enteredValue;
+      setOpen(false);
+      onSubmit(submittedValue);
+    },
+    [choices, inputValue, onSubmit],
+  );
 
-    if (event.key === 'Tab' && open) {
-      if (completionChoice) {
-        selectOption(completionChoice.label, false);
-        event.preventDefault();
-      }
-      return;
-    }
-
-    if (event.key === 'Enter') {
-      event.preventDefault();
-
-      if (open && highlightedIndex >= 0) {
-        const highlightedOption = filteredOptions[highlightedIndex];
-        if (highlightedOption) {
-          submitGuess(highlightedOption.label);
-          return;
-        }
-      }
-
-      submitGuess();
-      return;
-    }
-
-    if (event.key === 'Escape') {
+  const selectOption = useCallback(
+    (label: string, submit: boolean) => {
+      setInputValue(label);
       setOpen(false);
       setHighlightedIndex(-1);
+
+      if (submit) {
+        submitGuess(label);
+      }
+    },
+    [submitGuess],
+  );
+
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === ' ' || event.key === 'Spacebar') {
+        return;
+      }
+
+      if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && open) {
+        if (filteredOptions.length === 0) {
+          return;
+        }
+
+        event.preventDefault();
+        const nextIndex =
+          event.key === 'ArrowDown'
+            ? (highlightedIndex + 1 + filteredOptions.length) %
+              filteredOptions.length
+            : (highlightedIndex - 1 + filteredOptions.length) %
+              filteredOptions.length;
+        setHighlightedIndex(nextIndex);
+        return;
+      }
+
+      if (event.key === 'Tab' && open) {
+        if (completionChoice) {
+          selectOption(completionChoice.label, false);
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+
+        if (open && highlightedIndex >= 0) {
+          const highlightedOption = filteredOptions[highlightedIndex];
+          if (highlightedOption) {
+            submitGuess(highlightedOption.label);
+            return;
+          }
+        }
+
+        submitGuess();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        setOpen(false);
+        setHighlightedIndex(-1);
+      }
+    },
+    [
+      filteredOptions,
+      highlightedIndex,
+      open,
+      completionChoice,
+      selectOption,
+      submitGuess,
+    ],
+  );
+
+  const onTriggerKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === ' ' || event.key === 'Spacebar') {
+      (event as BaseUiKeyboardEvent<HTMLElement>).preventBaseUIHandler?.();
     }
-  }, [
-    filteredOptions,
-    highlightedIndex,
-    open,
-    completionChoice,
-    selectOption,
-    submitGuess,
-  ]);
+  }, []);
+
+  const onTriggerKeyUp = useCallback((event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === ' ' || event.key === 'Spacebar') {
+      (event as BaseUiKeyboardEvent<HTMLElement>).preventBaseUIHandler?.();
+    }
+  }, []);
 
   const guessLabel = getGuessLabel(variant);
 
@@ -170,16 +209,28 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
         </label>
         <Popover
           open={open}
-          onOpenChange={(nextOpen) => {
+          onOpenChange={(nextOpen, eventDetails) => {
+            if (
+              eventDetails.reason === 'trigger-press' &&
+              isSpaceKeyboardEvent(eventDetails.event)
+            ) {
+              setOpen(inputValue.trim().length > 0);
+              return;
+            }
+
             setOpen(nextOpen && inputValue.trim().length > 0);
           }}
         >
           <PopoverTrigger
+            onKeyDown={onTriggerKeyDown}
+            onKeyUp={onTriggerKeyUp}
             nativeButton={false}
-            render={(
+            render={
               <GuessAutocompleteInput
                 aria-activedescendant={
-                  open && highlightedIndex >= 0 && filteredOptions[highlightedIndex]
+                  open &&
+                  highlightedIndex >= 0 &&
+                  filteredOptions[highlightedIndex]
                     ? `${listboxId}-${filteredOptions[highlightedIndex]?.id}`
                     : undefined
                 }
@@ -215,7 +266,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
                 }}
                 onKeyDown={onKeyDown}
               />
-            )}
+            }
           />
           <PopoverContent
             align="start"
@@ -239,7 +290,11 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
                       <CommandItem
                         id={`${listboxId}-${option.id}`}
                         aria-selected={isHighlighted}
-                        className={isHighlighted ? 'bg-[rgba(127,127,127,0.16)]' : undefined}
+                        className={
+                          isHighlighted
+                            ? 'bg-[rgba(127,127,127,0.16)]'
+                            : undefined
+                        }
                         key={option.id}
                         role="option"
                         value={option.label}
@@ -270,7 +325,6 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
           </PopoverContent>
         </Popover>
       </div>
-
     </form>
   );
 }

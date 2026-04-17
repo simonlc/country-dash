@@ -32,11 +32,7 @@ describe('GuessInput', () => {
     const onSubmit = vi.fn();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={onSubmit}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -51,11 +47,7 @@ describe('GuessInput', () => {
     const onSubmit = vi.fn();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={onSubmit}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -73,11 +65,7 @@ describe('GuessInput', () => {
     const onSubmit = vi.fn();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={onSubmit}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -91,11 +79,7 @@ describe('GuessInput', () => {
     const onSubmit = vi.fn();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={onSubmit}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -109,11 +93,7 @@ describe('GuessInput', () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={vi.fn()}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -187,6 +167,23 @@ describe('GuessInput', () => {
     expect(input).toHaveValue('cam');
   });
 
+  it('allows typing spaces without toggling the autocomplete popover', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'dom');
+
+    await user.type(input, ' ');
+
+    expect(input).toHaveValue('dom ');
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
+  });
+
   it('does not render the official country name in dropdown options', async () => {
     const user = userEvent.setup();
 
@@ -218,11 +215,7 @@ describe('GuessInput', () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <GuessInput
-        onSubmit={vi.fn()}
-        options={options}
-        variant="country"
-      />,
+      <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
     );
 
     const input = screen.getByLabelText(/guess the country/i);
@@ -243,7 +236,12 @@ describe('GuessInput', () => {
           { isocode: 'DM', isocode3: 'DMA', nameEn: 'Dominica' },
           { isocode: 'DK', isocode3: 'DNK', nameEn: 'Denmark' },
           { isocode: 'DJ', isocode3: 'DJI', nameEn: 'Djibouti' },
-          { isocode: 'DZ', isocode3: 'DZA', nameEn: 'Algeria', nameAlt: 'Dzayer' },
+          {
+            isocode: 'DZ',
+            isocode3: 'DZA',
+            nameEn: 'Algeria',
+            nameAlt: 'Dzayer',
+          },
         ]}
         variant="country"
       />,
