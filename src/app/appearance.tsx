@@ -1,77 +1,46 @@
-import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type PropsWithChildren, useCallback, useMemo } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
 import {
   appThemes,
-  createAppTheme,
-  defaultAppThemeId,
-  getAppThemeDefinition,
   type AppThemeDefinition,
   type AppThemeId,
+  type AppUiTheme,
 } from './theme';
-
-const storageKey = 'country-guesser-theme';
+import {
+  activeThemeAtom,
+  themeIdAtom,
+  uiThemeAtom,
+} from '@/appearance/state/appearance-atoms';
 
 interface AppearanceContextValue {
   activeTheme: AppThemeDefinition;
-  uiTheme: ReturnType<typeof createAppTheme>;
   setTheme: (themeId: AppThemeId) => void;
   themes: AppThemeDefinition[];
-}
-
-const AppearanceContext = createContext<AppearanceContextValue | null>(null);
-
-function getStoredThemeId(): AppThemeId {
-  if (typeof window === 'undefined') {
-    return defaultAppThemeId;
-  }
-
-  const storage = window.localStorage;
-  const storedValue =
-    storage && typeof storage.getItem === 'function'
-      ? storage.getItem(storageKey)
-      : null;
-  return appThemes.some((theme) => theme.id === storedValue)
-    ? (storedValue as AppThemeId)
-    : defaultAppThemeId;
+  uiTheme: AppUiTheme;
 }
 
 export function AppearanceProvider({ children }: PropsWithChildren) {
-  const [themeId, setThemeId] = useState<AppThemeId>(getStoredThemeId);
-
-  useEffect(() => {
-    const storage = window.localStorage;
-    if (storage && typeof storage.setItem === 'function') {
-      storage.setItem(storageKey, themeId);
-    }
-  }, [themeId]);
-
-  const value = useMemo(
-    () => ({
-      activeTheme: getAppThemeDefinition(themeId),
-      uiTheme: createAppTheme(themeId),
-      setTheme: setThemeId,
-      themes: appThemes,
-    }),
-    [themeId],
-  );
-
-  return (
-    <AppearanceContext.Provider value={value}>
-      {children}
-    </AppearanceContext.Provider>
-  );
+  return children;
 }
 
 export function useAppearance() {
-  const context = useContext(AppearanceContext);
-  if (!context) {
-    throw new Error('useAppearance must be used inside AppearanceProvider');
-  }
-  return context;
+  const activeTheme = useAtomValue(activeThemeAtom);
+  const uiTheme = useAtomValue(uiThemeAtom);
+  const setThemeValue = useSetAtom(themeIdAtom);
+  const setTheme = useCallback(
+    (themeId: AppThemeId) => {
+      setThemeValue(themeId);
+    },
+    [setThemeValue],
+  );
+
+  return useMemo<AppearanceContextValue>(
+    () => ({
+      activeTheme,
+      setTheme,
+      themes: appThemes,
+      uiTheme,
+    }),
+    [activeTheme, setTheme, uiTheme],
+  );
 }

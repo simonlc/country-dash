@@ -423,7 +423,6 @@ export function calculateRoundScore(args: {
   answerResult: AnswerResult;
   roundElapsedMs: number;
   streak: number;
-  hintsUsed: number;
 }) {
   if (args.answerResult === 'incorrect') {
     return 0;
@@ -432,10 +431,8 @@ export function calculateRoundScore(args: {
   const baseScore = 100;
   const timeBonus = Math.max(0, 90 - Math.floor(args.roundElapsedMs / 500));
   const streakBonus = Math.max(0, args.streak - 1) * 15;
-  const firstTryBonus = args.hintsUsed === 0 ? 25 : 0;
-  const hintPenalty = args.hintsUsed * 15;
 
-  return Math.max(0, baseScore + timeBonus + streakBonus + firstTryBonus - hintPenalty);
+  return Math.max(0, baseScore + timeBonus + streakBonus);
 }
 
 function buildRoundRecord(args: {
@@ -445,7 +442,6 @@ function buildRoundRecord(args: {
   roundElapsedMs: number;
   scoreDelta: number;
   effectiveDifficulty: Difficulty;
-  hintsUsed: number;
 }): RoundRecord {
   return {
     countryId: args.country.id,
@@ -459,7 +455,6 @@ function buildRoundRecord(args: {
     roundElapsedMs: args.roundElapsedMs,
     scoreDelta: args.scoreDelta,
     effectiveDifficulty: args.effectiveDifficulty,
-    hintsUsed: args.hintsUsed,
   };
 }
 
@@ -539,7 +534,6 @@ function createSessionState(
     currentRoundStartedAt: currentCountryId ? startedAt : null,
     currentRoundElapsedMs: 0,
     totalElapsedMs: 0,
-    hintsUsedThisRound: 0,
     lastRound: null,
     dailyResult: null,
     status: currentCountryId ? 'playing' : 'gameOver',
@@ -571,7 +565,6 @@ export function createInitialGameState(): GameState {
     currentRoundStartedAt: null,
     currentRoundElapsedMs: 0,
     totalElapsedMs: 0,
-    hintsUsedThisRound: 0,
     lastRound: null,
     dailyResult: null,
     status: 'intro',
@@ -598,10 +591,6 @@ export type GameAction =
   | {
       type: 'TICK_TIMER';
       now: number;
-    }
-  | {
-      type: 'USE_HINT';
-      hintType: 'refocus';
     }
   | {
       type: 'RETURN_TO_MENU';
@@ -634,7 +623,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         answerResult,
         roundElapsedMs,
         streak: nextStreak,
-        hintsUsed: state.hintsUsedThisRound,
       });
       const roundRecord = buildRoundRecord({
         country: action.country,
@@ -643,7 +631,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         roundElapsedMs,
         scoreDelta,
         effectiveDifficulty: state.effectiveDifficulty,
-        hintsUsed: state.hintsUsedThisRound,
       });
 
       return {
@@ -675,7 +662,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentRoundStartedAt: null,
         currentRoundElapsedMs: roundElapsedMs,
         totalElapsedMs: state.totalElapsedMs + roundElapsedMs,
-        hintsUsedThisRound: 0,
         lastRound: roundRecord,
       };
     }
@@ -726,7 +712,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         usedCountryIds: [...state.usedCountryIds, nextCountryId],
         currentRoundStartedAt: action.startedAt,
         currentRoundElapsedMs: 0,
-        hintsUsedThisRound: 0,
         lastRound: state.lastRound,
       };
     }
@@ -743,11 +728,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ),
       };
     }
-    case 'USE_HINT':
-      return {
-        ...state,
-        hintsUsedThisRound: state.hintsUsedThisRound + 1,
-      };
     case 'RETURN_TO_MENU':
       return createInitialGameState();
   }

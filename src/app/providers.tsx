@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { Provider as JotaiProvider } from 'jotai';
 import { CssBaseline, ThemeProvider } from '@/components/ui/theme-provider';
 import { AppearanceProvider, useAppearance } from './appearance';
 import { I18nProvider } from './i18n';
@@ -16,10 +17,12 @@ function ThemedProviders({ children }: PropsWithChildren) {
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <I18nProvider>
-      <AppearanceProvider>
-        <ThemedProviders>{children}</ThemedProviders>
-      </AppearanceProvider>
-    </I18nProvider>
+    <JotaiProvider>
+      <I18nProvider>
+        <AppearanceProvider>
+          <ThemedProviders>{children}</ThemedProviders>
+        </AppearanceProvider>
+      </I18nProvider>
+    </JotaiProvider>
   );
 }

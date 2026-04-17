@@ -1,100 +1,40 @@
 import NiceModal from '@ebay/nice-modal-react';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { useI18n } from '@/app/i18n';
-import { useAppearance } from '@/app/appearance';
+import { useEffect, useMemo } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { m } from '@/paraglide/messages.js';
-import {
-  type AppThemeDefinition,
-  type GlobeThemeSettings,
-} from '@/app/theme';
-import { AboutDialog } from '@/components/AboutDialog';
 import { IntroDialog } from '@/components/IntroDialog';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
 import { useDailyShare } from '@/hooks/useDailyShare';
-import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
-import { useWindowSize } from '@/hooks/useWindowSize';
-import type { GlobeThemeSettingsPatch } from '@/utils/globeQualityControls';
-import { loadWorldData } from '@/utils/loadWorldData';
-import { getCountryDisplayName } from '@/utils/countryNames';
+import { useGameGlobeState } from '@/game/hooks/useGameGlobeState';
+import { useGameHudState } from '@/game/hooks/useGameHudState';
+import { useGameSessionActions } from '@/game/hooks/useGameSessionActions';
+import { useGameStatusState } from '@/game/hooks/useGameStatusState';
 import {
-  buildRegionCountryPool,
-  buildSessionPlan,
-  createInitialGameState,
-  createRandomSeed,
-  createSessionConfig,
-  formatDailyStorageKey,
-  gameReducer,
-  getInitialRotation,
-  getRandomRunCountryCount,
-  getTodayDateKey,
-  randomRunPresetDifficulties,
-} from '@/utils/gameLogic';
+  loadWorldDataAtom,
+  startDailyGameAtom,
+  startRandomGameAtom,
+  syncStoredDailyResultAtom,
+} from '@/game/state/game-actions';
 import {
-  getModeLabel,
-  getCountrySizeLabel,
-  getRegionLabel,
-  getSessionTypeLabel,
-  regionFilters,
-} from '@/utils/labelTranslations';
+  categoryCountsAtom,
+  sizeCountsAtom,
+  totalRoundsAtom,
+} from '@/game/state/game-derived-atoms';
+import {
+  cipherTrafficStateAtom,
+  copyStateAtom,
+  todayDateKeyAtom,
+} from '@/game/state/game-atoms';
 import type {
   CountrySizeFilter,
   CountryProperties,
   DailyChallengeResult,
-  Difficulty,
   GameMode,
   GameState,
   RegionFilter,
-  SessionConfig,
   WorldData,
 } from '@/types/game';
-
-const dailyDifficulty: Difficulty = 'medium';
-
-function getStoredDailyResult(dateKey: string) {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(formatDailyStorageKey(dateKey));
-  if (!rawValue) {
-    return null;
-  }
-
-  return JSON.parse(rawValue) as DailyChallengeResult;
-}
-
-function getSessionSummaryLabel(gameState: GameState) {
-  if (!gameState.sessionConfig) {
-    return '';
-  }
-
-  if (gameState.sessionConfig.kind === 'daily') {
-    return `${m.pool_global()}`;
-  }
-
-  if (gameState.regionFilter) {
-    return getRegionLabel(gameState.regionFilter);
-  }
-
-  return getCountrySizeLabel(gameState.countrySizeFilter);
-}
-
-function getSessionModeLabel(gameState: GameState) {
-  if (!gameState.sessionConfig) {
-    return `${m.session_mode_none()}`;
-  }
-
-  return getModeLabel(gameState.sessionConfig.mode);
-}
-
-const emptyCipherTrafficState: CipherTrafficState = {
-  cacheAgeMs: null,
-  errorMessage: null,
-  source: 'disabled',
-  status: 'disabled',
-  tracks: [],
-  updatedAtMs: null,
-};
+import type { GlobeThemeSettingsPatch } from '@/utils/globeQualityControls';
 
 function getCipherTrafficStatusLabel(trafficState: CipherTrafficState) {
   if (trafficState.status === 'error') {
@@ -126,8 +66,9 @@ function getCipherTrafficStatusColor(trafficState: CipherTrafficState) {
 }
 
 interface UseGamePageStateResult {
-  activeTheme: AppThemeDefinition;
+  activeTheme: ReturnType<typeof useGameGlobeState>['activeTheme'];
   adminEnabled: boolean;
+  atlasStyleEnabled: boolean;
   cipherTelemetry: {
     errorMessage: string | null;
     statusColor: string;
@@ -135,6 +76,7 @@ interface UseGamePageStateResult {
     systemLines: string[];
     tickerText: string;
   } | null;
+  cipherThemeEnabled: boolean;
   copyState: 'idle' | 'copied' | 'failed';
   countryOptions: CountryProperties[];
   currentCountryName: string | null;
@@ -142,7 +84,9 @@ interface UseGamePageStateResult {
   currentMode: GameMode;
   dailyShareText: string | null;
   displayElapsedMs: number;
-  effectiveThemeSettings: GlobeThemeSettings;
+  effectiveThemeSettings: ReturnType<
+    typeof useGameGlobeState
+  >['effectiveThemeSettings'];
   focusRequest: number;
   gameState: GameState;
   handlers: {
@@ -155,9 +99,7 @@ interface UseGamePageStateResult {
     onSubmit: (term: string) => void;
     openAbout: () => void;
   };
-  atlasStyleEnabled: boolean;
   isCapitalMode: boolean;
-  cipherThemeEnabled: boolean;
   isDailyRun: boolean;
   isKeyboardOpen: boolean;
   isLoading: boolean;
@@ -172,13 +114,12 @@ interface UseGamePageStateResult {
   sessionLabels: string[];
   sessionModeLabel: string;
   sessionSummaryLabel: string;
-  setAdminOverridePatch: (
-    patch: GlobeThemeSettingsPatch,
-  ) => void;
+  setAdminOverridePatch: (patch: GlobeThemeSettingsPatch) => void;
   size: {
     width: number;
     height: number;
     visualHeight: number;
+    isKeyboardOpen: boolean;
   };
   storedDailyResult: DailyChallengeResult | null;
   totalRounds: number;
@@ -186,153 +127,117 @@ interface UseGamePageStateResult {
 }
 
 export function useGamePageState(): UseGamePageStateResult {
-  const size = useWindowSize();
-  const { locale } = useI18n();
-  const { activeTheme } = useAppearance();
-  const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
-  const cipherThemeEnabled =
-    activeTheme.render.cipherCountryTransitionOpacity > 0 ||
-    activeTheme.render.cipherHydroOverlayOpacity > 0 ||
-    activeTheme.render.cipherMapAnnotationsOpacity > 0 ||
-    activeTheme.render.cipherSelectedCountryOverlayOpacity > 0 ||
-    activeTheme.render.cipherTrafficOverlayOpacity > 0 ||
-    activeTheme.render.cipherScreenTransitionOverlayOpacity > 0;
-  const defaultThemeSettings = useMemo(
-    () => ({
-      globe: activeTheme.globe,
-      quality: activeTheme.qualityDefaults,
-      render: activeTheme.render,
-    }),
-    [activeTheme],
-  );
-  const todayDateKey = useMemo(() => getTodayDateKey(), []);
-  const [worldData, setWorldData] = useState<WorldData | null>(null);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [gameState, dispatch] = useReducer(
-    gameReducer,
-    undefined,
-    createInitialGameState,
-  );
-  const [storedDailyResult, setStoredDailyResult] =
-    useState<DailyChallengeResult | null>(() =>
-      getStoredDailyResult(todayDateKey),
-    );
-  const [focusRequest, setFocusRequest] = useState(0);
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
-    'idle',
-  );
-  const [cipherTrafficState, setCipherTrafficState] =
-    useState<CipherTrafficState>(emptyCipherTrafficState);
   const {
+    activeTheme,
     adminEnabled,
-    effectiveSettings,
+    atlasStyleEnabled,
+    cipherThemeEnabled,
+    countryOptions,
+    currentCountry,
+    currentCountryName,
+    effectiveThemeSettings,
+    focusRequest,
+    gameState,
+    isCapitalMode,
+    loadingError,
+    locale,
     resetAdminOverride,
     resetRevision,
+    rotation,
     setAdminOverridePatch,
-  } = useGlobeAdminTuning({
-    defaults: defaultThemeSettings,
-    themeId: activeTheme.id,
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    loadWorldData()
-      .then((data) => {
-        if (!cancelled) {
-          setWorldData(data);
-        }
-      })
-      .catch((error: Error) => {
-        if (!cancelled) {
-          setLoadingError(error.message);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const countryPool = useMemo(
-    () => (worldData ? worldData.world.features : []),
-    [worldData],
-  );
-  const countryFeaturesById = useMemo(
-    () => new Map(countryPool.map((country) => [country.id, country] as const)),
-    [countryPool],
-  );
-  const sizeCounts = useMemo(
-    () => ({
-      large: getRandomRunCountryCount(countryPool.length, 'large'),
-      mixed: getRandomRunCountryCount(countryPool.length, 'mixed'),
-      small: getRandomRunCountryCount(countryPool.length, 'small'),
-    }),
-    [countryPool.length],
-  );
-  const categoryCounts = useMemo(
-    () =>
-      regionFilters.reduce(
-        (counts, regionFilter) => {
-          counts[regionFilter] = buildRegionCountryPool(
-            countryPool,
-            regionFilter,
-          ).length;
-          return counts;
-        },
-        {} as Record<RegionFilter, number>,
-      ),
-    [countryPool],
-  );
-  const currentCountry = useMemo(
-    () =>
-      (gameState.currentCountryId
-        ? countryFeaturesById.get(gameState.currentCountryId)
-        : null) ??
-      countryPool[0] ??
-      null,
-    [countryFeaturesById, countryPool, gameState.currentCountryId],
-  );
-  const isCapitalMode = gameState.sessionConfig?.mode === 'capitals';
-  const currentCountryName = useMemo(
-    () => (currentCountry ? getCountryDisplayName(currentCountry.properties, locale) : null),
-    [currentCountry, locale],
-  );
-  const rotation = useMemo<[number, number]>(() => {
-    if (!currentCountry) {
-      return [0, 0];
-    }
-    if (
-      isCapitalMode &&
-      typeof currentCountry.properties.capitalLongitude === 'number' &&
-      typeof currentCountry.properties.capitalLatitude === 'number'
-    ) {
-      return [
-        -currentCountry.properties.capitalLongitude,
-        -currentCountry.properties.capitalLatitude,
-      ];
-    }
-    return getInitialRotation(currentCountry);
-  }, [currentCountry, isCapitalMode]);
-  const countryOptions = useMemo(
-    () =>
-      worldData?.world.features.map((feature) => feature.properties) ??
-      ([] as CountryProperties[]),
-    [worldData],
-  );
-  const totalRounds = gameState.sessionPlan?.totalRounds ?? 0;
-  const displayElapsedMs = gameState.totalElapsedMs;
-  const runningSince =
-    gameState.status === 'playing' ? gameState.currentRoundStartedAt : null;
-  const isDailyRun = gameState.sessionConfig?.kind === 'daily';
+    size,
+    worldData,
+  } = useGameGlobeState();
+  const {
+    gameState: statusGameState,
+    isDailyRun,
+    isReviewComplete,
+    storedDailyResult,
+  } = useGameStatusState();
+  const {
+    displayElapsedMs,
+    roundLabel,
+    runningSince,
+    sessionLabels,
+    sessionModeLabel,
+    sessionSummaryLabel,
+  } = useGameHudState();
+  const copyState = useAtomValue(copyStateAtom);
+  const setCopyState = useSetAtom(copyStateAtom);
+  const cipherTrafficState = useAtomValue(cipherTrafficStateAtom);
+  const todayDateKey = useAtomValue(todayDateKeyAtom);
+  const sizeCounts = useAtomValue(sizeCountsAtom);
+  const categoryCounts = useAtomValue(categoryCountsAtom);
+  const totalRounds = useAtomValue(totalRoundsAtom);
+  const syncStoredDailyResult = useSetAtom(syncStoredDailyResultAtom);
+  const startDailyGame = useSetAtom(startDailyGameAtom);
+  const startRandomGame = useSetAtom(startRandomGameAtom);
+  const loadWorldData = useSetAtom(loadWorldDataAtom);
   const { dailyShareText } = useDailyShare({
-    gameState,
+    gameState: statusGameState,
     isDailyRun,
     locale,
     storedDailyResult,
     todayDateKey,
     totalRounds,
   });
+  const handlers = useGameSessionActions({ dailyShareText });
+
+  useEffect(() => {
+    void loadWorldData();
+  }, [loadWorldData]);
+
+  useEffect(() => {
+    if (!gameState.dailyResult) {
+      return;
+    }
+
+    syncStoredDailyResult();
+  }, [gameState.dailyResult, syncStoredDailyResult]);
+
+  useEffect(() => {
+    if (!worldData || gameState.status !== 'intro') {
+      return;
+    }
+
+    void NiceModal.show(IntroDialog, {
+      categoryCounts,
+      counts: sizeCounts,
+      dailyResult: storedDailyResult,
+      onStartDaily: () => {
+        startDailyGame();
+      },
+      onStartRandom: (options: {
+        mode: GameMode;
+        regionFilter: RegionFilter | null;
+        countrySizeFilter: CountrySizeFilter;
+      }) => {
+        startRandomGame(options);
+      },
+    });
+  }, [
+    categoryCounts,
+    gameState.status,
+    sizeCounts,
+    startDailyGame,
+    startRandomGame,
+    storedDailyResult,
+    worldData,
+  ]);
+
+  useEffect(() => {
+    if (copyState === 'idle') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyState('idle');
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [copyState, setCopyState]);
 
   const cipherSystemLines = useMemo(
     () => {
@@ -357,8 +262,6 @@ export function useGamePageState(): UseGamePageStateResult {
     },
     [cipherTrafficState, locale],
   );
-  const sessionModeLabel = getSessionModeLabel(gameState);
-  const sessionSummaryLabel = getSessionSummaryLabel(gameState);
   const cipherTickerText = useMemo(
     () => {
       void locale;
@@ -372,235 +275,20 @@ export function useGamePageState(): UseGamePageStateResult {
         `${m.cipher_ticker_date_prefix()} ${todayDateKey}`,
       ].join(' // ');
     },
-    [cipherTrafficState, gameState.roundIndex, locale, sessionModeLabel, todayDateKey, totalRounds],
+    [
+      cipherTrafficState,
+      gameState.roundIndex,
+      locale,
+      sessionModeLabel,
+      todayDateKey,
+      totalRounds,
+    ],
   );
-  const handleCipherTrafficStateChange = useCallback(
-    (nextState: CipherTrafficState) => {
-      setCipherTrafficState(nextState);
-    },
-    [],
-  );
-  const isReviewComplete =
-    gameState.status === 'reviewing' &&
-    ((gameState.sessionConfig?.mode === 'streak' &&
-      gameState.lastRound?.answerResult === 'incorrect') ||
-      (gameState.sessionConfig?.mode === 'threeLives' &&
-        (gameState.livesRemaining ?? 1) <= 0) ||
-      gameState.roundIndex + 1 >= totalRounds);
-
-  useEffect(() => {
-    if (!gameState.dailyResult) {
-      return;
-    }
-
-    let cancelled = false;
-    window.localStorage.setItem(
-      formatDailyStorageKey(gameState.dailyResult.date),
-      JSON.stringify(gameState.dailyResult),
-    );
-    const timeoutId = window.setTimeout(() => {
-      if (!cancelled) {
-        setStoredDailyResult(gameState.dailyResult);
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [gameState.dailyResult]);
-
-  const beginSession = useCallback(
-    (config: SessionConfig) => {
-      if (!worldData) {
-        return;
-      }
-
-      const plan = buildSessionPlan(worldData.world, config);
-      dispatch({
-        type: 'START_SESSION',
-        config,
-        plan,
-        startedAt: performance.now(),
-      });
-      setFocusRequest((value) => value + 1);
-    },
-    [worldData],
-  );
-
-  const startRandomGame = useCallback(
-    (options: {
-      mode: GameMode;
-      regionFilter: RegionFilter | null;
-      countrySizeFilter: CountrySizeFilter;
-    }) => {
-      const config = createSessionConfig({
-        difficulty: options.regionFilter
-          ? 'medium'
-          : randomRunPresetDifficulties[options.countrySizeFilter],
-        kind: 'random',
-        mode: options.mode,
-        regionFilter: options.regionFilter,
-        countrySizeFilter: options.countrySizeFilter,
-        seed: createRandomSeed(),
-      });
-
-      beginSession(config);
-    },
-    [beginSession],
-  );
-
-  const startDailyGame = useCallback(() => {
-    if (storedDailyResult) {
-      return;
-    }
-
-    const config = createSessionConfig({
-      dateKey: todayDateKey,
-      difficulty: dailyDifficulty,
-      kind: 'daily',
-      mode: 'classic',
-      seed: todayDateKey,
-    });
-
-    beginSession(config);
-  }, [beginSession, storedDailyResult, todayDateKey]);
-
-  useEffect(() => {
-    if (!worldData || gameState.status !== 'intro') {
-      return;
-    }
-
-    void NiceModal.show(IntroDialog, {
-      categoryCounts,
-      counts: sizeCounts,
-      dailyResult: storedDailyResult,
-      onStartDaily: startDailyGame,
-      onStartRandom: startRandomGame,
-    });
-  }, [
-    categoryCounts,
-    gameState.status,
-    sizeCounts,
-    startDailyGame,
-    startRandomGame,
-    storedDailyResult,
-    worldData,
-  ]);
-
-  const handleSubmit = useCallback(
-    (term: string) => {
-      if (!currentCountry || gameState.status !== 'playing') {
-        return;
-      }
-
-      dispatch({
-        type: 'SUBMIT_GUESS',
-        country: currentCountry,
-        guess: term,
-        submittedAt: performance.now(),
-      });
-    },
-    [currentCountry, gameState.status],
-  );
-
-  const handleNextRound = useCallback(() => {
-    dispatch({
-      type: 'ADVANCE_ROUND',
-      startedAt: performance.now(),
-    });
-  }, []);
-
-  const handleRefocus = useCallback(() => {
-    if (gameState.status === 'playing') {
-      dispatch({
-        type: 'USE_HINT',
-        hintType: 'refocus',
-      });
-    }
-    setFocusRequest((value) => value + 1);
-  }, [gameState.status]);
-
-  const handlePlayAgain = useCallback(() => {
-    const config = gameState.sessionConfig;
-
-    if (!config) {
-      return;
-    }
-
-    beginSession(
-      createSessionConfig({
-        difficulty: config.selectedDifficulty,
-        kind: 'random',
-        mode: config.mode,
-        regionFilter: config.regionFilter,
-        countrySizeFilter: config.countrySizeFilter,
-        seed: createRandomSeed(),
-      }),
-    );
-  }, [beginSession, gameState.sessionConfig]);
-
-  const handleReturnToMenu = useCallback(() => {
-    dispatch({ type: 'RETURN_TO_MENU' });
-  }, []);
-
-  const handleCopyDailyShare = useCallback(async () => {
-    if (
-      !dailyShareText ||
-      typeof navigator === 'undefined' ||
-      !navigator.clipboard
-    ) {
-      setCopyState('failed');
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(dailyShareText);
-      setCopyState('copied');
-    } catch {
-      setCopyState('failed');
-    }
-  }, [dailyShareText]);
-
-  useEffect(() => {
-    if (copyState === 'idle') {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setCopyState('idle');
-    }, 2000);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [copyState]);
-
-  const openAbout = useCallback(() => {
-    void NiceModal.show(AboutDialog);
-  }, []);
-
-  const roundLabel =
-    gameState.status === 'intro'
-      ? `${m.game_round_ready()}`
-      : `${m.game_round({
-          current: gameState.roundIndex + 1,
-          total: totalRounds,
-        })}`;
-
-  const sessionLabels = [
-    `${m.session_label_type({
-      value: getSessionTypeLabel(gameState.sessionConfig?.kind ?? null),
-    })}`,
-    `${m.session_label_mode({ value: sessionModeLabel })}`,
-    sessionSummaryLabel
-      ? `${m.session_label_pool({ value: sessionSummaryLabel })}`
-      : null,
-  ].filter((value): value is string => Boolean(value));
 
   return {
     activeTheme,
     adminEnabled,
+    atlasStyleEnabled,
     cipherTelemetry: cipherThemeEnabled
       ? {
           errorMessage: cipherTrafficState.errorMessage,
@@ -610,6 +298,7 @@ export function useGamePageState(): UseGamePageStateResult {
           tickerText: cipherTickerText,
         }
       : null,
+    cipherThemeEnabled,
     copyState,
     countryOptions,
     currentCountryName,
@@ -617,22 +306,11 @@ export function useGamePageState(): UseGamePageStateResult {
     currentMode: gameState.sessionConfig?.mode ?? gameState.mode,
     dailyShareText,
     displayElapsedMs,
-    effectiveThemeSettings: effectiveSettings,
+    effectiveThemeSettings,
     focusRequest,
     gameState,
-    handlers: {
-      onCipherTrafficStateChange: handleCipherTrafficStateChange,
-      onCopyDailyShare: handleCopyDailyShare,
-      onNextRound: handleNextRound,
-      onPlayAgain: handlePlayAgain,
-      onRefocus: handleRefocus,
-      onReturnToMenu: handleReturnToMenu,
-      onSubmit: handleSubmit,
-      openAbout,
-    },
-    atlasStyleEnabled,
+    handlers,
     isCapitalMode,
-    cipherThemeEnabled,
     isDailyRun,
     isKeyboardOpen: size.isKeyboardOpen,
     isLoading: !worldData || !currentCountry,
@@ -648,11 +326,7 @@ export function useGamePageState(): UseGamePageStateResult {
     sessionModeLabel,
     sessionSummaryLabel,
     setAdminOverridePatch,
-    size: {
-      width: size.width,
-      height: size.height,
-      visualHeight: size.visualHeight,
-    },
+    size,
     storedDailyResult,
     totalRounds,
     worldData,

@@ -1,20 +1,15 @@
 import {
-  createContext,
   type PropsWithChildren,
-  useCallback,
-  useContext,
   useEffect,
   useMemo,
-  useState,
 } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
 import {
-  baseLocale,
-  getLocale,
   getTextDirection,
   locales,
-  setLocale as setParaglideLocale,
   type Locale,
 } from '@/paraglide/runtime.js';
+import { localeAtom, setLocaleAtom } from '@/i18n/state/i18n-atoms';
 
 interface LanguageOption {
   englishLabel: string;
@@ -28,8 +23,6 @@ interface I18nContextValue {
   setLocale: (nextLocale: Locale) => Promise<void>;
 }
 
-const I18nContext = createContext<I18nContextValue | null>(null);
-
 const localeFallbackLabels: Record<string, { english: string; native: string }> = {
   en: {
     english: 'English',
@@ -40,11 +33,6 @@ const localeFallbackLabels: Record<string, { english: string; native: string }> 
     native: 'Français',
   },
 };
-
-function resolveInitialLocale(): Locale {
-  const resolved = getLocale();
-  return locales.includes(resolved) ? resolved : baseLocale;
-}
 
 function getLanguageOption(locale: Locale): LanguageOption {
   const fallback = localeFallbackLabels[locale] ?? {
@@ -63,23 +51,21 @@ function getLanguageOption(locale: Locale): LanguageOption {
 }
 
 export function I18nProvider({ children }: PropsWithChildren) {
-  const [locale, setLocaleState] = useState<Locale>(resolveInitialLocale);
-
-  const setLocale = useCallback(async (nextLocale: Locale) => {
-    if (nextLocale === locale) {
-      return;
-    }
-
-    await Promise.resolve(setParaglideLocale(nextLocale, { reload: false }));
-    setLocaleState(nextLocale);
-  }, [locale]);
+  const locale = useAtomValue(localeAtom);
 
   useEffect(() => {
     document.documentElement.lang = locale;
     document.documentElement.dir = getTextDirection(locale);
   }, [locale]);
 
-  const value = useMemo(
+  return children;
+}
+
+export function useI18n() {
+  const locale = useAtomValue(localeAtom);
+  const setLocale = useSetAtom(setLocaleAtom);
+
+  return useMemo<I18nContextValue>(
     () => ({
       languages: locales.map((languageLocale) => getLanguageOption(languageLocale)),
       locale,
@@ -87,15 +73,4 @@ export function I18nProvider({ children }: PropsWithChildren) {
     }),
     [locale, setLocale],
   );
-
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
-}
-
-export function useI18n() {
-  const context = useContext(I18nContext);
-  if (!context) {
-    throw new Error('useI18n must be used inside I18nProvider');
-  }
-
-  return context;
 }

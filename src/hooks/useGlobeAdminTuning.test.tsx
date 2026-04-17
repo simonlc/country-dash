@@ -1,4 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
+import { Provider } from 'jotai';
+import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AppThemeId, GlobeThemeSettings } from '@/app/theme';
 import { appThemes } from '@/app/theme';
@@ -27,7 +29,11 @@ function createStorage() {
 }
 
 function getStorageKey(themeId: AppThemeId) {
-  return `country-guesser-admin-theme:${themeId}`;
+  return `country-dash:globe-admin:v1:${themeId}`;
+}
+
+function TestProvider({ children }: PropsWithChildren) {
+  return <Provider>{children}</Provider>;
 }
 
 describe('useGlobeAdminTuning', () => {
@@ -45,6 +51,9 @@ describe('useGlobeAdminTuning', () => {
         defaults,
         themeId: 'daybreak',
       }),
+      {
+        wrapper: TestProvider,
+      },
     );
 
     expect(result.current.adminEnabled).toBe(true);
@@ -74,6 +83,9 @@ describe('useGlobeAdminTuning', () => {
         defaults,
         themeId: 'atlas',
       }),
+      {
+        wrapper: TestProvider,
+      },
     );
 
     expect(result.current.effectiveSettings.globe.atmosphereOpacity).toBe(0.4);
@@ -92,6 +104,9 @@ describe('useGlobeAdminTuning', () => {
         defaults,
         themeId: 'cipher',
       }),
+      {
+        wrapper: TestProvider,
+      },
     );
 
     act(() => {
@@ -126,6 +141,9 @@ describe('useGlobeAdminTuning', () => {
         defaults,
         themeId: 'midnight',
       }),
+      {
+        wrapper: TestProvider,
+      },
     );
 
     act(() => {
@@ -155,6 +173,9 @@ describe('useGlobeAdminTuning', () => {
         defaults,
         themeId: 'glacier',
       }),
+      {
+        wrapper: TestProvider,
+      },
     );
 
     act(() => {
@@ -197,6 +218,7 @@ describe('useGlobeAdminTuning', () => {
         }),
       {
         initialProps: { themeId: 'daybreak' as AppThemeId },
+        wrapper: TestProvider,
       },
     );
 

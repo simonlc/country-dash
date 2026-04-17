@@ -11,7 +11,7 @@ export function GameTimer({
   elapsedMs,
   runningSince = null,
 }: GameTimerProps) {
-  const [tickNow, setTickNow] = useState(() => performance.now());
+  const [tickNow, setTickNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (runningSince === null) {
@@ -19,7 +19,7 @@ export function GameTimer({
     }
 
     const intervalId = window.setInterval(() => {
-      setTickNow(performance.now());
+      setTickNow(Date.now());
     }, 250);
 
     return () => {

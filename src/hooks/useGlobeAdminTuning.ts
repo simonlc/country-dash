@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useAtom, useAtomValue } from 'jotai';
+import { RESET } from 'jotai/utils';
 import type { AppThemeId, GlobeThemeSettings } from '@/app/theme';
+import {
+  adminEnabledAtom,
+  adminOverrideAtomFamily,
+  adminResetRevisionAtomFamily,
+} from '@/globe-admin/state/globe-admin-atoms';
 import {
   hasThemeSettingsPatch,
   mergeThemeSettings,
@@ -12,7 +19,7 @@ interface UseGlobeAdminTuningArgs {
   themeId: AppThemeId;
 }
 
-interface UseGlobeAdminTuningResult {
+export interface UseGlobeAdminTuningResult {
   adminEnabled: boolean;
   effectiveSettings: GlobeThemeSettings;
   resetAdminOverride: () => void;
@@ -20,64 +27,17 @@ interface UseGlobeAdminTuningResult {
   setAdminOverridePatch: (patch: GlobeThemeSettingsPatch) => void;
 }
 
-function isBrowser() {
-  return typeof window !== 'undefined';
-}
-
-function getStorageKey(themeId: AppThemeId) {
-  return `country-guesser-admin-theme:${themeId}`;
-}
-
-function parseStoredOverride(storageKey: string): GlobeThemeSettingsPatch {
-  if (!isBrowser()) {
-    return {};
-  }
-
-  const raw = window.localStorage.getItem(storageKey);
-  if (!raw) {
-    return {};
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
-      return {};
-    }
-
-    return sanitizeGlobeThemeSettingsPatch(parsed as GlobeThemeSettingsPatch);
-  } catch {
-    return {};
-  }
-}
-
 export function useGlobeAdminTuning({
   defaults,
   themeId,
 }: UseGlobeAdminTuningArgs): UseGlobeAdminTuningResult {
-  const adminEnabled = true;
-
-  const storageKey = useMemo(() => getStorageKey(themeId), [themeId]);
-  const [resetRevision, setResetRevision] = useState(0);
-  const [adminOverride, setAdminOverride] = useState<GlobeThemeSettingsPatch>(
-    () => parseStoredOverride(storageKey),
+  const adminEnabled = useAtomValue(adminEnabledAtom);
+  const [adminOverride, setAdminOverride] = useAtom(
+    adminOverrideAtomFamily(themeId),
   );
-
-  useEffect(() => {
-    setAdminOverride(parseStoredOverride(storageKey));
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!isBrowser() || !adminEnabled) {
-      return;
-    }
-
-    if (!hasThemeSettingsPatch(adminOverride)) {
-      window.localStorage.removeItem(storageKey);
-      return;
-    }
-
-    window.localStorage.setItem(storageKey, JSON.stringify(adminOverride));
-  }, [adminEnabled, adminOverride, storageKey]);
+  const [resetRevision, setResetRevision] = useAtom(
+    adminResetRevisionAtomFamily(themeId),
+  );
 
   const setAdminOverridePatch = useCallback(
     (patch: GlobeThemeSettingsPatch) => {
@@ -101,16 +61,13 @@ export function useGlobeAdminTuning({
         },
       }));
     },
-    [],
+    [setAdminOverride],
   );
 
   const resetAdminOverride = useCallback(() => {
-    setAdminOverride({});
+    setAdminOverride(RESET);
     setResetRevision((value) => value + 1);
-    if (isBrowser()) {
-      window.localStorage.removeItem(storageKey);
-    }
-  }, [storageKey]);
+  }, [setAdminOverride, setResetRevision]);
 
   const effectiveSettings = useMemo(
     () =>

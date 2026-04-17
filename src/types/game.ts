@@ -10,7 +10,6 @@ export type GameMode = 'classic' | 'threeLives' | 'capitals' | 'streak';
 export type SessionKind = 'random' | 'daily';
 export type GameStatus = 'intro' | 'playing' | 'reviewing' | 'gameOver';
 export type AnswerResult = 'correct' | 'incorrect';
-export type HintType = 'refocus';
 export type CountryTag =
   | 'microstate'
   | 'islandNation'
@@ -93,7 +92,6 @@ export interface RoundRecord {
   roundElapsedMs: number;
   scoreDelta: number;
   effectiveDifficulty: Difficulty;
-  hintsUsed: number;
 }
 
 export interface DailyChallengeResult {
@@ -130,7 +128,6 @@ export interface GameState {
   currentRoundStartedAt: number | null;
   currentRoundElapsedMs: number;
   totalElapsedMs: number;
-  hintsUsedThisRound: number;
   lastRound: RoundRecord | null;
   dailyResult: DailyChallengeResult | null;
 }
