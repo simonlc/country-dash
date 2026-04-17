@@ -1,23 +1,18 @@
-import { Alert, Box } from '@mui/material';
-
 interface GlobeRenderErrorProps {
   message: string;
 }
 
 export function GlobeRenderError({ message }: GlobeRenderErrorProps) {
   return (
-    <Box
-      sx={{
-        alignItems: 'center',
-        display: 'grid',
-        height: '100%',
-        p: 2,
-        placeItems: 'center',
-      }}
+    <div
+      className="grid h-full place-items-center p-4"
     >
-      <Alert severity="error" sx={{ maxWidth: 480 }}>
+      <div
+        role="alert"
+        className="w-full max-w-[480px] rounded-sm border border-[rgba(213,75,65,0.45)] bg-[rgba(213,75,65,0.14)] px-4 py-3 text-sm text-[var(--color-foreground)]"
+      >
         {message}
-      </Alert>
-    </Box>
+      </div>
+    </div>
   );
 }

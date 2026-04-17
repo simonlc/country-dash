@@ -1,4 +1,3 @@
-import { createTheme, type Theme } from '@mui/material/styles';
 import { designTokens } from '@/app/designSystem';
 
 export type AppThemeId =
@@ -149,10 +148,8 @@ export interface AppThemeDefinition {
 export type ThemeSurfaceTone = 'panel' | 'muted' | 'elevated';
 
 const headingFont = '"Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
-const bodyFont = '"Nunito Sans", system-ui, sans-serif';
 const atlasHeadingFont =
   '"Cinzel", "Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
-const atlasBodyFont = '"Alegreya", "Nunito Sans", system-ui, sans-serif';
 
 const defaultGlobeRenderConfig: GlobeRenderConfig = {
   atlasBiomeWatercolorOpacity: 0,
@@ -928,25 +925,142 @@ function pickBestTextColor(background: string, candidates: string[]) {
   );
 }
 
-export function createAppTheme(themeId: AppThemeId): Theme {
+export interface AppUiTheme {
+  breakpoints: {
+    down: (key: 'lg' | 'md' | 'sm' | 'xl' | 'xs') => string;
+    up: (key: 'lg' | 'md' | 'sm' | 'xl' | 'xs') => string;
+    values: {
+      lg: number;
+      md: number;
+      sm: number;
+      xl: number;
+      xs: number;
+    };
+  };
+  mode: 'dark' | 'light';
+  palette: {
+    action: {
+      disabled: string;
+      disabledBackground: string;
+    };
+    background: {
+      default: string;
+      paper: string;
+    };
+    divider: string;
+    error: {
+      contrastText: string;
+      main: string;
+    };
+    primary: {
+      contrastText: string;
+      main: string;
+    };
+    secondary: {
+      main: string;
+    };
+    text: {
+      disabled: string;
+      primary: string;
+      secondary: string;
+    };
+  };
+  typography: {
+    body1: {
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+    body2: {
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+    button: {
+      fontFamily: string | undefined;
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+    };
+    caption: {
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      lineHeight: number;
+    };
+    h1: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      lineHeight: number;
+    };
+    h2: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      lineHeight: number;
+    };
+    h3: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      lineHeight: number;
+    };
+    h4: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      lineHeight: number;
+    };
+    h5: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+    h6: {
+      fontFamily: string;
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+    overline: {
+      fontSize: string;
+      fontWeight: number;
+      letterSpacing: string;
+      textTransform: 'uppercase';
+    };
+    subtitle1: {
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+    subtitle2: {
+      fontSize: string;
+      fontWeight: number;
+      lineHeight: number;
+    };
+  };
+  vars: {
+    palette: {
+      divider: string;
+    };
+  };
+  zIndex: {
+    modal: number;
+  };
+}
+
+export function createAppTheme(themeId: AppThemeId): AppUiTheme {
   const definition = getAppThemeDefinition(themeId);
-  const isGlacier = definition.id === 'glacier';
   const atlasStyleEnabled = definition.render.atlasStyleEnabled;
-  const paperSurface = getThemeSurfaceStyles(definition);
-  const elevatedSurface = getThemeSurfaceStyles(definition, 'elevated');
-  const accentSurface = getThemeAccentSurfaceStyles(definition);
-  const darkOutline = hexToRgba(definition.palette.textPrimary, 0.12);
-  const lightInset = hexToRgba(
-    '#ffffff',
-    definition.mode === 'light' ? 0.62 : 0.08,
-  );
   const divider = hexToRgba(
     definition.palette.textPrimary,
     definition.mode === 'light' ? 0.18 : 0.26,
-  );
-  const focusRing = hexToRgba(
-    definition.palette.primary,
-    definition.mode === 'light' ? 0.24 : 0.4,
   );
   const disabledText = hexToRgba(
     definition.palette.textPrimary,
@@ -968,321 +1082,59 @@ export function createAppTheme(themeId: AppThemeId): Theme {
     definition.palette.textPrimary,
   ]);
 
-  return createTheme({
-    cssVariables: true,
-    colorSchemes: {
-      [definition.mode]: {
-        palette: {
-          mode: definition.mode,
-          primary: {
-            main: definition.palette.primary,
-            contrastText: primaryContrastText,
-          },
-          secondary: {
-            main: definition.palette.secondary,
-          },
-          error: {
-            contrastText: errorContrastText,
-            main: errorMain,
-          },
-          background: {
-            default: definition.palette.backgroundDefault,
-            paper: definition.palette.backgroundPaper,
-          },
-          divider,
-          text: {
-            disabled: disabledText,
-            primary: definition.palette.textPrimary,
-            secondary: definition.palette.textSecondary,
-          },
-          action: {
-            disabled: disabledText,
-            disabledBackground,
-          },
-        },
+  return {
+    breakpoints: {
+      values: {
+        xs: 0,
+        sm: 600,
+        md: 900,
+        lg: 1200,
+        xl: 1536,
       },
+      down: (key) => `@media (max-width: ${{
+        xs: 0,
+        sm: 599.95,
+        md: 899.95,
+        lg: 1199.95,
+        xl: 1535.95,
+      }[key]}px)`,
+      up: (key) => `@media (min-width: ${{
+        xs: 0,
+        sm: 600,
+        md: 900,
+        lg: 1200,
+        xl: 1536,
+      }[key]}px)`,
     },
-    components: {
-      MuiCssBaseline: {
-        styleOverrides: {
-          body: {
-            backgroundAttachment: 'fixed',
-            backgroundImage: definition.background.app,
-            color: definition.palette.textPrimary,
-          },
-        },
-      },
-      MuiButtonBase: {
-        styleOverrides: {
-          root: {
-            '&.Mui-focusVisible': {
-              boxShadow: `0 0 0 3px ${focusRing}`,
-              outline: 'none',
-            },
-          },
-        },
-      },
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            ...paperSurface,
-            boxShadow: [
-              paperSurface.boxShadow,
-              isGlacier
-                ? 'inset 0 1px 0 rgba(255,255,255,0.88), inset 0 -20px 36px rgba(126, 194, 232, 0.08)'
-                : atlasStyleEnabled
-                  ? 'inset 0 1px 0 rgba(255,249,231,0.72), inset 0 -18px 28px rgba(116, 74, 31, 0.08)'
-                  : `inset 0 1px 0 ${lightInset}`,
-            ]
-              .filter(Boolean)
-              .join(', '),
-          },
-        },
-      },
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            ...getThemeSurfaceStyles(definition, 'elevated'),
-            maxWidth: `min(${designTokens.layout.panelMaxWidth.dialog}px, calc(100vw - 32px))`,
-            boxShadow: [
-              elevatedSurface.boxShadow,
-              isGlacier
-                ? 'inset 0 1px 0 rgba(255,255,255,0.92), inset 0 -22px 40px rgba(144, 201, 237, 0.1)'
-                : atlasStyleEnabled
-                  ? 'inset 0 1px 0 rgba(255,248,228,0.86), inset 0 -24px 42px rgba(116, 74, 31, 0.08)'
-                  : `inset 0 1px 0 ${lightInset}`,
-            ]
-              .filter(Boolean)
-              .join(', '),
-          },
-        },
-      },
-      MuiDialogTitle: {
-        styleOverrides: {
-          root: {
-            paddingBottom: 8,
-            paddingTop: 24,
-          },
-        },
-      },
-      MuiDialogContent: {
-        styleOverrides: {
-          root: {
-            paddingBottom: 24,
-            paddingTop: 8,
-          },
-        },
-      },
-      MuiDialogActions: {
-        styleOverrides: {
-          root: {
-            padding: '0 24px 24px',
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: designTokens.radius.pill,
-            fontSize: designTokens.fontSize.sm,
-            fontWeight: designTokens.fontWeight.semibold,
-            minHeight: designTokens.touchTarget.min,
-            paddingInline: 22,
-            paddingBlock: 10,
-            textTransform: 'none',
-            transition: `transform ${designTokens.motion.fast} ease, box-shadow ${designTokens.motion.fast} ease, border-color ${designTokens.motion.fast} ease, background-color ${designTokens.motion.fast} ease`,
-            '&:hover': {
-              boxShadow: 'none',
-              transform: 'none',
-            },
-          },
-          contained: {
-            backgroundColor: definition.palette.primary,
-            backgroundImage: `linear-gradient(180deg, ${hexToRgba(
-              '#ffffff',
-              definition.mode === 'light' ? 0.12 : 0.08,
-            )}, rgba(255,255,255,0))`,
-            borderColor: 'transparent',
-            color: primaryContrastText,
-            boxShadow: `0 16px 32px ${hexToRgba(
-              definition.palette.primary,
-              definition.mode === 'light' ? 0.2 : 0.28,
-            )}`,
-            '&:hover': {
-              backgroundColor: definition.palette.primary,
-              boxShadow: `0 18px 34px ${hexToRgba(
-                definition.palette.primary,
-                definition.mode === 'light' ? 0.24 : 0.32,
-              )}`,
-              transform: 'translateY(-1px)',
-            },
-            '&.Mui-disabled': {
-              backgroundColor: disabledBackground,
-              backgroundImage: 'none',
-              color: disabledText,
-            },
-          },
-          outlined: {
-            backgroundColor: 'transparent',
-            borderColor: hexToRgba(definition.palette.primary, 0.4),
-            boxShadow: 'none',
-            color: definition.palette.textPrimary,
-            '&:hover': {
-              backgroundColor: hexToRgba(definition.palette.primary, 0.1),
-              borderColor: definition.palette.primary,
-            },
-          },
-          text: {
-            color: definition.palette.textSecondary,
-          },
-          sizeSmall: {
-            minHeight: 40,
-            paddingBlock: 7,
-            paddingInline: 16,
-          },
-        },
-      },
-      MuiOutlinedInput: {
-        styleOverrides: {
-          root: {
-            borderRadius: designTokens.radius.md,
-            background: hexToRgba(
-              definition.palette.backgroundPaper,
-              definition.mode === 'light' ? 0.74 : 0.12,
-            ),
-            boxShadow: `inset 0 1px 0 ${lightInset}`,
-            transition: `background-color ${designTokens.motion.fast} ease, box-shadow ${designTokens.motion.fast} ease`,
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: definition.background.panelBorder,
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: hexToRgba(definition.palette.primary, 0.36),
-            },
-            '&:hover': {
-              backgroundColor: hexToRgba(
-                definition.palette.backgroundPaper,
-                definition.mode === 'light' ? 0.86 : 0.16,
-              ),
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: definition.palette.primary,
-              borderWidth: 2,
-            },
-            '&.Mui-focused': {
-              backgroundColor: hexToRgba(
-                definition.palette.primary,
-                definition.mode === 'light' ? 0.06 : 0.12,
-              ),
-              boxShadow: `inset 0 0 0 1px ${hexToRgba(
-                definition.palette.primary,
-                definition.mode === 'light' ? 0.12 : 0.24,
-              )}`,
-            },
-          },
-          input: {
-            fontSize: designTokens.fontSize.md,
-            fontWeight: designTokens.fontWeight.medium,
-            lineHeight: designTokens.lineHeight.base,
-            paddingBlock: 14,
-            '&::placeholder': {
-              color: definition.palette.textSecondary,
-              opacity: 1,
-            },
-          },
-        },
-      },
-      MuiInputLabel: {
-        styleOverrides: {
-          root: {
-            color: definition.palette.textSecondary,
-            '&.Mui-focused': {
-              color: definition.palette.textPrimary,
-            },
-          },
-        },
-      },
-      MuiAutocomplete: {
-        styleOverrides: {
-          paper: {
-            ...getThemeSurfaceStyles(definition, 'elevated'),
-            marginTop: 8,
-          },
-          listbox: {
-            padding: 8,
-          },
-          option: {
-            borderRadius: designTokens.radius.sm,
-            fontSize: designTokens.fontSize.sm,
-            fontWeight: designTokens.fontWeight.medium,
-            marginBottom: 4,
-            minHeight: 0,
-            '&[aria-selected="true"]': {
-              ...accentSurface,
-              color: definition.palette.textPrimary,
-            },
-            '&.Mui-focused': {
-              backgroundColor: hexToRgba(definition.palette.primary, 0.12),
-              color: definition.palette.textPrimary,
-            },
-          },
-        },
-      },
-      MuiAlert: {
-        styleOverrides: {
-          root: {
-            borderRadius: designTokens.radius.md,
-            border: `1px solid ${darkOutline}`,
-          },
-          standardSuccess: {
-            background: `linear-gradient(180deg, ${hexToRgba(
-              definition.palette.secondary,
-              0.18,
-            )}, ${hexToRgba(definition.palette.secondary, 0.08)})`,
-          },
-          standardError: {
-            background: `linear-gradient(180deg, ${hexToRgba(
-              '#d85c5c',
-              0.18,
-            )}, ${hexToRgba('#d85c5c', 0.08)})`,
-          },
-        },
-      },
-    },
+    mode: definition.mode,
     palette: {
-      mode: definition.mode,
-      primary: {
-        main: definition.palette.primary,
-        contrastText: primaryContrastText,
-      },
-      secondary: {
-        main: definition.palette.secondary,
-      },
-      error: {
-        contrastText: errorContrastText,
-        main: errorMain,
+      action: {
+        disabled: disabledText,
+        disabledBackground,
       },
       background: {
         default: definition.palette.backgroundDefault,
         paper: definition.palette.backgroundPaper,
       },
       divider,
+      error: {
+        contrastText: errorContrastText,
+        main: errorMain,
+      },
+      primary: {
+        contrastText: primaryContrastText,
+        main: definition.palette.primary,
+      },
+      secondary: {
+        main: definition.palette.secondary,
+      },
       text: {
         disabled: disabledText,
         primary: definition.palette.textPrimary,
         secondary: definition.palette.textSecondary,
       },
-      action: {
-        disabled: disabledText,
-        disabledBackground,
-      },
-    },
-    shape: {
-      borderRadius: atlasStyleEnabled
-        ? designTokens.radius.sm
-        : designTokens.radius.md,
     },
     typography: {
-      fontFamily: atlasStyleEnabled ? atlasBodyFont : bodyFont,
       body1: {
         fontSize: designTokens.fontSize.md,
         fontWeight: designTokens.fontWeight.regular,
@@ -1292,6 +1144,12 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         fontSize: designTokens.fontSize.sm,
         fontWeight: designTokens.fontWeight.regular,
         lineHeight: designTokens.lineHeight.base,
+      },
+      button: {
+        fontFamily: atlasStyleEnabled ? atlasHeadingFont : undefined,
+        fontSize: designTokens.fontSize.sm,
+        fontWeight: designTokens.fontWeight.semibold,
+        letterSpacing: atlasStyleEnabled ? '0.08em' : '0.03em',
       },
       caption: {
         fontSize: designTokens.fontSize.xs,
@@ -1303,29 +1161,29 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxxl,
         fontWeight: designTokens.fontWeight.bold,
-        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: atlasStyleEnabled ? '0.06em' : '0.02em',
+        lineHeight: designTokens.lineHeight.tight,
       },
       h2: {
         fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxl,
         fontWeight: designTokens.fontWeight.bold,
-        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
+        lineHeight: designTokens.lineHeight.tight,
       },
       h3: {
         fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xl,
         fontWeight: designTokens.fontWeight.bold,
-        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: atlasStyleEnabled ? '0.07em' : '0.03em',
+        lineHeight: designTokens.lineHeight.tight,
       },
       h4: {
         fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.lg,
         fontWeight: designTokens.fontWeight.semibold,
-        lineHeight: designTokens.lineHeight.tight,
         letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
+        lineHeight: designTokens.lineHeight.tight,
       },
       h5: {
         fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
@@ -1355,12 +1213,14 @@ export function createAppTheme(themeId: AppThemeId): Theme {
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,
       },
-      button: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : undefined,
-        fontSize: designTokens.fontSize.sm,
-        fontWeight: designTokens.fontWeight.semibold,
-        letterSpacing: atlasStyleEnabled ? '0.08em' : '0.03em',
+    },
+    vars: {
+      palette: {
+        divider,
       },
     },
-  });
+    zIndex: {
+      modal: 1300,
+    },
+  };
 }

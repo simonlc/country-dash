@@ -189,15 +189,21 @@ export function useWindowSize() {
       '--visual-viewport-offset-top',
       `${size.visualOffsetTop}px`,
     );
+    document.documentElement.style.setProperty('--layout-width', `${size.width}px`);
+    document.documentElement.style.setProperty('--layout-height', `${size.height}px`);
 
     return () => {
       document.documentElement.style.removeProperty('--keyboard-fallback-inset');
       document.documentElement.style.removeProperty('--visual-viewport-height');
       document.documentElement.style.removeProperty('--visual-viewport-offset-left');
       document.documentElement.style.removeProperty('--visual-viewport-offset-top');
+      document.documentElement.style.removeProperty('--layout-width');
+      document.documentElement.style.removeProperty('--layout-height');
     };
   }, [
+    size.height,
     size.keyboardInset,
+    size.width,
     size.visualHeight,
     size.visualOffsetLeft,
     size.visualOffsetTop,

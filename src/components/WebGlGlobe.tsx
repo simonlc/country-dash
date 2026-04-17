@@ -646,49 +646,22 @@ export function WebGlGlobe({
 
   return (
     <div
+      className="globe-shell relative h-full w-full overflow-hidden touch-none"
+      data-theme-id={themeId}
       ref={containerRef}
-      style={{
-        background: `radial-gradient(circle at 36% 34%, ${palette.hazeInner}, ${palette.hazeOuter} 65%)`,
-        height,
-        overflow: 'hidden',
-        position: 'relative',
-        touchAction: 'none',
-        width,
-      }}
       {...interactionHandlers}
     >
       <div
-        style={{
-          background: `radial-gradient(circle at 50% 42%, ${palette.atmosphereTint}22, transparent 64%)`,
-          inset: 0,
-          mixBlendMode: 'screen',
-          opacity: Math.min(
-            0.2,
-            palette.atmosphereOpacity * 0.65 + palette.auroraStrength * 0.35,
-          ),
-          pointerEvents: 'none',
-          position: 'absolute',
-        }}
+        className="globe-atmosphere pointer-events-none absolute inset-0 mix-blend-screen"
+        data-theme-id={themeId}
       />
       <canvas
+        className="relative block h-full w-full"
         ref={canvasRef}
-        style={{
-          display: 'block',
-          height: '100%',
-          position: 'relative',
-          width: '100%',
-        }}
       />
       <canvas
+        className="pointer-events-none absolute inset-0 block h-full w-full"
         ref={overlayCanvasRef}
-        style={{
-          display: 'block',
-          height: '100%',
-          inset: 0,
-          pointerEvents: 'none',
-          position: 'absolute',
-          width: '100%',
-        }}
       />
       {render.cipherScreenTransitionOverlayOpacity > 0 ? (
         <CipherTransitionOverlay

@@ -1,6 +1,4 @@
 import { useEffect } from 'react';
-import { Alert, Box, CircularProgress, Container } from '@mui/material';
-import { designTokens } from '@/app/designSystem';
 import { Globe } from '@/components/Globe';
 import { GlobeAdminPanel } from '@/components/GlobeAdminPanel';
 import { ThemeMenu } from '@/components/ThemeMenu';
@@ -16,34 +14,19 @@ import { useGamePageState } from '@/hooks/useGamePageState';
 
 export function GamePage() {
   const state = useGamePageState();
-  const keyboardInset = 'max(env(keyboard-inset-height, 0px), var(--keyboard-fallback-inset, 0px))';
-  const mobileStatusBottomPadding = state.isKeyboardOpen ? keyboardInset : '0px';
-  const globeViewportHeight = state.size.visualHeight;
-  const mobileInlineStartInset = 'max(env(safe-area-inset-left), 0px)';
-  const mobileInlineEndInset = 'max(env(safe-area-inset-right), 0px)';
   const isPlaying = state.gameState.status === 'playing';
   const topHudLayer = (
     <FloatingOverlayLayer
-      alignItems="start"
-      desktopBlockEndPadding={0}
-      desktopBlockStartPadding={designTokens.layout.floatingOffset.desktopTop}
-      desktopInlinePadding={designTokens.layout.edgeInset.desktop}
-      maxInlineSize={designTokens.layout.panelMaxWidth.hud}
-      mobileBlockEndPadding={0}
-      mobileBlockStartPadding={0}
-      mobileInlineEndInset={mobileInlineEndInset}
-      mobileInlineStartInset={mobileInlineStartInset}
+      align="start"
+      maxWidth="hud"
     >
       <GameHud
         correct={state.gameState.correct}
-        displayAccentSurface={state.displayAccentSurface}
         displayElapsedMs={state.displayElapsedMs}
-        displaySurface={state.displaySurface}
         incorrect={state.gameState.incorrect}
         isKeyboardOpen={state.isKeyboardOpen}
         livesRemaining={state.gameState.livesRemaining}
         onRefocus={state.handlers.onRefocus}
-        panelSurface={state.panelSurface}
         roundLabel={state.roundLabel}
         runningSince={state.runningSince}
         score={state.gameState.score}
@@ -65,15 +48,9 @@ export function GamePage() {
   );
   const bottomPanelLayer = (
     <FloatingOverlayLayer
-      alignItems="end"
-      desktopBlockEndPadding={designTokens.layout.floatingOffset.desktopBottom}
-      desktopBlockStartPadding={0}
-      desktopInlinePadding={designTokens.layout.edgeInset.tablet}
-      maxInlineSize={designTokens.layout.panelMaxWidth.status}
-      mobileBlockEndPadding={mobileStatusBottomPadding}
-      mobileBlockStartPadding={0}
-      mobileInlineEndInset={mobileInlineEndInset}
-      mobileInlineStartInset={mobileInlineStartInset}
+      align="end"
+      keyboardInset={state.isKeyboardOpen}
+      maxWidth="status"
     >
       {isPlaying ? (
         <GuessPanel
@@ -81,14 +58,12 @@ export function GamePage() {
           isCapitalMode={state.isCapitalMode}
           isKeyboardOpen={state.isKeyboardOpen}
           onSubmit={state.handlers.onSubmit}
-          panelSurface={state.panelSurface}
         />
       ) : (
         <GameStatusPanel
           copyState={state.copyState}
           currentCountryName={state.currentCountryName}
           dailyShareText={state.dailyShareText}
-          displaySurface={state.displaySurface}
           gameState={state.gameState}
           isCapitalMode={state.isCapitalMode}
           isDailyRun={state.isDailyRun}
@@ -98,7 +73,6 @@ export function GamePage() {
           onNextRound={state.handlers.onNextRound}
           onPlayAgain={state.handlers.onPlayAgain}
           onReturnToMenu={state.handlers.onReturnToMenu}
-          panelSurface={state.panelSurface}
           storedDailyResult={state.storedDailyResult}
           totalRounds={state.totalRounds}
         />
@@ -126,52 +100,49 @@ export function GamePage() {
 
   if (state.loadingError) {
     return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="error">
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <div
+          role="alert"
+          className="rounded-sm border border-[rgba(213,75,65,0.45)] bg-[rgba(213,75,65,0.14)] px-4 py-3"
+        >
           {m.error_loading_country_data({ details: state.loadingError })}
-        </Alert>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   if (state.isLoading || !state.worldData || !state.currentCountry) {
     return (
-      <Box
+      <div
         aria-busy="true"
         aria-live="polite"
         role="status"
-        sx={{
-          alignItems: 'center',
-          display: 'grid',
-          minHeight: '100vh',
-          placeItems: 'center',
-        }}
+        className="grid min-h-screen place-items-center"
       >
-        <CircularProgress aria-label={m.game_loading_country_data()} />
-      </Box>
+        <svg
+          aria-label={m.game_loading_country_data()}
+          className="h-8 w-8 animate-spin text-[var(--color-primary)]"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.2" strokeWidth="3" />
+          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
+        </svg>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        backgroundImage: state.activeTheme.background.app,
-        blockSize: state.size.height,
-        insetBlockStart: 'var(--visual-viewport-offset-top, 0px)',
-        insetInlineStart: 'var(--visual-viewport-offset-left, 0px)',
-        inlineSize: state.size.width,
-        minBlockSize: '100svh',
-        overflow: 'hidden',
-        position: 'fixed',
-      }}
+    <div
+      className="fixed left-[var(--visual-viewport-offset-left,0px)] top-[var(--visual-viewport-offset-top,0px)] h-[var(--layout-height,100svh)] min-h-[100svh] w-[var(--layout-width,100vw)] overflow-hidden bg-[image:var(--app-background)]"
     >
       <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
-      <Box sx={{ blockSize: globeViewportHeight }}>
+      <div className="h-full">
         <Globe
           country={state.currentCountry}
           mode={state.currentMode}
           focusRequest={state.focusRequest}
-          height={globeViewportHeight}
+          height={state.size.visualHeight}
           onCipherTrafficStateChange={state.handlers.onCipherTrafficStateChange}
           palette={state.effectiveThemeSettings.globe}
           quality={state.effectiveThemeSettings.quality}
@@ -182,7 +153,7 @@ export function GamePage() {
           width={state.size.width}
           world={state.worldData.world}
         />
-      </Box>
+      </div>
       {state.adminEnabled ? (
         <GlobeAdminPanel
           key={`${state.activeTheme.id}:${state.resetRevision}`}
@@ -200,20 +171,10 @@ export function GamePage() {
       {state.cipherTelemetry ? (
         <CipherTelemetryPanel {...state.cipherTelemetry} />
       ) : null}
-      <Box
-        sx={{
-          insetBlockEnd: 0,
-          insetBlockStart: 0,
-          insetInlineEnd: 0,
-          insetInlineStart: 0,
-          pointerEvents: 'none',
-          position: 'absolute',
-          zIndex: 1,
-        }}
-      >
+      <div className="pointer-events-none absolute inset-0 z-[1]">
         {topHudLayer}
         {bottomPanelLayer}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

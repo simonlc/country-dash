@@ -4,8 +4,6 @@ import { useI18n } from '@/app/i18n';
 import { useAppearance } from '@/app/appearance';
 import { m } from '@/paraglide/messages.js';
 import {
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
   type AppThemeDefinition,
   type GlobeThemeSettings,
 } from '@/app/theme';
@@ -143,9 +141,7 @@ interface UseGamePageStateResult {
   currentCountry: WorldData['world']['features'][number] | null;
   currentMode: GameMode;
   dailyShareText: string | null;
-  displayAccentSurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   displayElapsedMs: number;
-  displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   effectiveThemeSettings: GlobeThemeSettings;
   focusRequest: number;
   gameState: GameState;
@@ -168,7 +164,6 @@ interface UseGamePageStateResult {
   isReviewComplete: boolean;
   loadingError: string | null;
   locale: string;
-  panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
   resetAdminOverride: () => void;
   resetRevision: number;
   rotation: [number, number];
@@ -203,18 +198,6 @@ export function useGamePageState(): UseGamePageStateResult {
     activeTheme.render.cipherSelectedCountryOverlayOpacity > 0 ||
     activeTheme.render.cipherTrafficOverlayOpacity > 0 ||
     activeTheme.render.cipherScreenTransitionOverlayOpacity > 0;
-  const panelSurface = useMemo(
-    () => getThemeSurfaceStyles(activeTheme, 'elevated'),
-    [activeTheme],
-  );
-  const displaySurface = useMemo(
-    () => getThemeDisplaySurfaceStyles(activeTheme),
-    [activeTheme],
-  );
-  const displayAccentSurface = useMemo(
-    () => getThemeDisplaySurfaceStyles(activeTheme, 'accent'),
-    [activeTheme],
-  );
   const defaultThemeSettings = useMemo(
     () => ({
       globe: activeTheme.globe,
@@ -634,9 +617,7 @@ export function useGamePageState(): UseGamePageStateResult {
     currentCountry,
     currentMode: gameState.sessionConfig?.mode ?? gameState.mode,
     dailyShareText,
-    displayAccentSurface,
     displayElapsedMs,
-    displaySurface,
     effectiveThemeSettings: effectiveSettings,
     focusRequest,
     gameState,
@@ -659,7 +640,6 @@ export function useGamePageState(): UseGamePageStateResult {
     isReviewComplete,
     loadingError,
     locale,
-    panelSurface,
     resetAdminOverride,
     resetRevision,
     rotation,

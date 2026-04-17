@@ -1,4 +1,3 @@
-import { Typography } from '@mui/material';
 import { m } from '@/paraglide/messages.js';
 
 interface GameStatusIntroContentProps {
@@ -14,23 +13,23 @@ export function GameStatusIntroContent({
   if (storedDailyResult) {
     return (
       <>
-        <Typography variant="body1">{m.game_choose_run()}</Typography>
-        <Typography color="text.secondary" variant="body2">
+        <p className="text-base">{m.game_choose_run()}</p>
+        <p className="text-sm text-[var(--color-muted)]">
           {m.game_daily_complete_short({
             correct: storedDailyResult.correctCount,
             total: storedDailyResult.totalCount,
           })}
-        </Typography>
+        </p>
       </>
     );
   }
 
   return (
     <>
-      <Typography variant="body1">{m.game_choose_run()}</Typography>
-      <Typography color="text.secondary" variant="body2">
+      <p className="text-base">{m.game_choose_run()}</p>
+      <p className="text-sm text-[var(--color-muted)]">
         {m.game_open_menu_daily()}
-      </Typography>
+      </p>
     </>
   );
 }

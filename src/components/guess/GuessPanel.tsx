@@ -1,5 +1,3 @@
-import Typography from '@mui/material/Typography';
-import type { getThemeSurfaceStyles } from '@/app/theme';
 import { m } from '@/paraglide/messages.js';
 import type { CountryProperties } from '@/types/game';
 import { Panel } from '@/components/ui/Panel';
@@ -10,7 +8,6 @@ interface GuessPanelProps {
   isCapitalMode: boolean;
   isKeyboardOpen: boolean;
   onSubmit: (term: string) => void;
-  panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
 }
 
 export function GuessPanel({
@@ -18,21 +15,20 @@ export function GuessPanel({
   isCapitalMode,
   isKeyboardOpen,
   onSubmit,
-  panelSurface,
 }: GuessPanelProps) {
   return (
     <Panel
       compact
       edgeAttachment="bottom"
       maxWidth={720}
-      panelSurface={panelSurface}
-      spacing={1.1}
+      spacing="compact"
+      surface="elevated"
     >
-      <Typography variant={isKeyboardOpen ? 'subtitle2' : 'h6'}>
+      <p className={isKeyboardOpen ? 'text-sm font-semibold' : 'text-base font-semibold'}>
         {isCapitalMode
           ? m.game_guess_capital_prompt()
           : m.game_guess_country_prompt()}
-      </Typography>
+      </p>
       <GuessInput
         options={countryOptions}
         variant={isCapitalMode ? 'capital' : 'country'}

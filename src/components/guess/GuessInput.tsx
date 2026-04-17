@@ -1,283 +1,247 @@
-import { designTokens } from '@/app/designSystem';
+import match from 'autosuggest-highlight/match';
+import parse from 'autosuggest-highlight/parse';
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
 import { useI18n } from '@/app/i18n';
 import { m } from '@/paraglide/messages.js';
-import Autocomplete from '@mui/material/Autocomplete';
-import Box from '@mui/material/Box';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from 'react';
-import { GuessAutocompleteInput } from './GuessAutocompleteInput';
-import { GuessAutocompleteOption } from './GuessAutocompleteOption';
 import {
   buildGuessChoices,
   filterGuessChoices,
   findExactGuessChoice,
   labelStartsWithInput,
 } from './guessChoices';
-import type { GuessChoice, GuessInputProps } from './types';
+import type { GuessInputProps, HighlightPart } from './types';
+
+function getGuessLabel(variant: 'country' | 'capital') {
+  return variant === 'capital'
+    ? m.game_guess_label_capital()
+    : m.game_guess_label_country();
+}
+
+function getGuessPlaceholder(variant: 'country' | 'capital') {
+  return variant === 'capital'
+    ? m.game_guess_placeholder_capital()
+    : m.game_guess_placeholder_country();
+}
 
 export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
-  const theme = useTheme();
-  const isMobileLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { locale } = useI18n();
-  const [highlightedChoice, setHighlightedChoice] =
-    useState<GuessChoice | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [hintValue, setHintValue] = useState('');
   const [open, setOpen] = useState(false);
-  const hintSuffix =
-    inputValue && hintValue.startsWith(inputValue)
-      ? hintValue.slice(inputValue.length)
-      : '';
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const choices = useMemo(
     () => buildGuessChoices(options, variant, locale),
     [locale, options, variant],
   );
-
-  const getFilteredOptions = useCallback(
-    (nextValue: string) => filterGuessChoices(choices, nextValue),
-    [choices],
+  const filteredOptions = useMemo(
+    () => filterGuessChoices(choices, inputValue),
+    [choices, inputValue],
   );
+  const hintSuffix =
+    inputValue && hintValue.startsWith(inputValue)
+      ? hintValue.slice(inputValue.length)
+      : '';
 
-  const updateHint = useCallback(
-    (nextValue: string) => {
-      const matchingOption = getFilteredOptions(nextValue).find((option) =>
-        labelStartsWithInput(option, nextValue),
-      );
+  const updateHint = useCallback((nextValue: string) => {
+    const matchingOption = filterGuessChoices(choices, nextValue).find((option) =>
+      labelStartsWithInput(option, nextValue),
+    );
 
-      setHintValue(
-        nextValue && matchingOption
-          ? nextValue + matchingOption.label.slice(nextValue.length)
-          : '',
-      );
-    },
-    [getFilteredOptions],
-  );
+    setHintValue(
+      nextValue && matchingOption
+        ? nextValue + matchingOption.label.slice(nextValue.length)
+        : '',
+    );
+  }, [choices]);
 
-  const findExactMatch = useCallback(
-    (nextValue: string) => findExactGuessChoice(choices, nextValue),
-    [choices],
-  );
+  const submitGuess = useCallback((rawValue?: string) => {
+    const enteredValue = rawValue?.trim() ?? inputValue.trim();
 
-  const syncInputState = useCallback(
-    (nextValue: string) => {
-      setInputValue(nextValue);
-      setHighlightedChoice(null);
-      updateHint(nextValue);
-      setOpen(nextValue.trim().length > 0);
-    },
-    [updateHint],
-  );
-
-  const syncSelectedChoice = useCallback((nextValue: GuessChoice | null) => {
-    setHighlightedChoice(nextValue);
-
-    if (!nextValue) {
-      setHintValue('');
+    if (!enteredValue) {
       return;
     }
 
-    setInputValue(nextValue.label);
-    setHintValue(nextValue.label);
+    const submittedValue = findExactGuessChoice(choices, enteredValue)?.label ?? enteredValue;
     setOpen(false);
-  }, []);
+    onSubmit(submittedValue);
+  }, [choices, inputValue, onSubmit]);
 
-  const submitGuess = useCallback(
-    (rawValue?: string) => {
-      const enteredValue = rawValue?.trim() ?? inputValue.trim();
+  const selectOption = useCallback((label: string, submit: boolean) => {
+    setInputValue(label);
+    setHintValue(label);
+    setOpen(false);
+    setHighlightedIndex(-1);
 
-      if (!enteredValue) {
+    if (submit) {
+      submitGuess(label);
+    }
+  }, [submitGuess]);
+
+  const onKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
+    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && open) {
+      if (filteredOptions.length === 0) {
         return;
       }
 
-      const submittedValue = findExactMatch(enteredValue)?.label ?? enteredValue;
-      setOpen(false);
-      onSubmit(submittedValue);
-    },
-    [findExactMatch, inputValue, onSubmit],
-  );
-
-  const handleFormSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      const nextIndex =
+        event.key === 'ArrowDown'
+          ? (highlightedIndex + 1 + filteredOptions.length) %
+            filteredOptions.length
+          : (highlightedIndex - 1 + filteredOptions.length) %
+            filteredOptions.length;
+      setHighlightedIndex(nextIndex);
+      return;
+    }
+
+    if (event.key === 'Tab' && hintValue) {
+      const firstMatchingOption = filterGuessChoices(choices, inputValue)[0];
+      if (firstMatchingOption) {
+        selectOption(firstMatchingOption.label, false);
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+
+      if (open && highlightedIndex >= 0) {
+        const highlightedOption = filteredOptions[highlightedIndex];
+        if (highlightedOption) {
+          submitGuess(highlightedOption.label);
+          return;
+        }
+      }
+
       submitGuess();
-    },
-    [submitGuess],
-  );
+      return;
+    }
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        if (!open) {
-          return;
-        }
+    if (event.key === 'Escape') {
+      setOpen(false);
+      setHighlightedIndex(-1);
+    }
+  }, [
+    choices,
+    filteredOptions,
+    highlightedIndex,
+    hintValue,
+    inputValue,
+    open,
+    selectOption,
+    submitGuess,
+  ]);
 
-        const filteredOptions = getFilteredOptions(inputValue);
-        if (filteredOptions.length === 0) {
-          return;
-        }
-
-        const currentIndex = highlightedChoice
-          ? filteredOptions.findIndex(
-              (option) => option.id === highlightedChoice.id,
-            )
-          : -1;
-        const nextIndex =
-          event.key === 'ArrowDown'
-            ? (currentIndex + 1 + filteredOptions.length) %
-              filteredOptions.length
-            : (currentIndex - 1 + filteredOptions.length) %
-              filteredOptions.length;
-
-        setHighlightedChoice(filteredOptions[nextIndex] ?? null);
-        event.preventDefault();
-        return;
-      }
-
-      if (event.key === 'Tab' && hintValue) {
-        const [matchingOption] = getFilteredOptions(inputValue);
-
-        if (matchingOption) {
-          syncSelectedChoice(matchingOption);
-          event.preventDefault();
-        }
-      }
-
-      if (event.key === 'Enter') {
-        event.preventDefault();
-
-        if (open && highlightedChoice) {
-          syncSelectedChoice(highlightedChoice);
-          submitGuess(highlightedChoice.label);
-          return;
-        }
-
-        submitGuess();
-      }
-    },
-    [
-      getFilteredOptions,
-      highlightedChoice,
-      hintValue,
-      inputValue,
-      open,
-      submitGuess,
-      syncSelectedChoice,
-    ],
-  );
+  const guessLabel = getGuessLabel(variant);
 
   return (
-    <Box
-      component="form"
-      onSubmit={handleFormSubmit}
-      sx={{
-        display: 'grid',
-        gap: 1,
-        inlineSize: '100%',
+    <form
+      className="grid w-full gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submitGuess();
       }}
     >
-      <Autocomplete<GuessChoice, false, false, false>
-        disablePortal
-        forcePopupIcon={false}
-        id="country-guess"
-        includeInputInList
-        inputValue={inputValue}
-        noOptionsText={m.game_no_matches()}
-        open={open}
-        openOnFocus={false}
-        options={choices}
-        slotProps={{
-          listbox: {
-            sx: {
-              '& .MuiAutocomplete-option': {
-                fontSize: {
-                  md: designTokens.fontSize.sm,
-                  xs: designTokens.fontSize.md,
-                },
-                minHeight: {
-                  md: 30,
-                  xs: 44,
-                },
-                py: {
-                  md: 0.25,
-                  xs: 1,
-                },
-              },
-              maxHeight: {
-                md: 280,
-                xs: 'min(calc(var(--visual-viewport-height, 100dvh) * 0.36), 240px)',
-              },
-              overflowY: 'auto',
-              overscrollBehavior: 'contain',
-            },
-          },
-          popper: {
-            modifiers: [
-              {
-                enabled: isMobileLayout,
-                name: 'flip',
-              },
-            ],
-            placement: isMobileLayout ? 'top-start' : 'bottom-start',
-          },
-        }}
-        value={null}
-        filterOptions={(allOptions, state) =>
-          filterGuessChoices(allOptions, state.inputValue)
-        }
-        getOptionKey={(choice) => choice.id}
-        getOptionLabel={(choice) => choice.label}
-        onBlur={() => {
-          setHintValue('');
-        }}
-        onChange={(_event, nextValue) => {
-          if (nextValue) {
-            syncSelectedChoice(nextValue);
-          }
-        }}
-        onClose={() => {
-          setOpen(false);
-          setHighlightedChoice(null);
-        }}
-        onHighlightChange={(_event, nextValue, reason) => {
-          if (reason === 'mouse' || reason === 'touch') {
-            setHighlightedChoice(nextValue);
-          }
-        }}
-        onInputChange={(_event, nextInputValue, reason) => {
-          if (reason === 'input' || reason === 'clear') {
-            syncInputState(nextInputValue);
-          }
-        }}
-        onKeyDown={handleKeyDown}
-        renderInput={(params) => (
-          <GuessAutocompleteInput
-            hintSuffix={hintSuffix}
-            inputValue={inputValue}
-            params={params}
-            variant={variant}
-          />
-        )}
-        renderOption={(props, option, state) => {
-          const { key, ...optionProps } = props;
+      <div className="relative">
+        <label
+          className="mb-1 block text-sm font-semibold"
+          htmlFor="country-guess"
+        >
+          {guessLabel}
+        </label>
+        <input
+          aria-autocomplete="list"
+          autoCapitalize="none"
+          autoComplete="off"
+          autoCorrect="off"
+          className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-3 text-base font-semibold"
+          enterKeyHint="done"
+          id="country-guess"
+          inputMode="search"
+          placeholder={getGuessPlaceholder(variant)}
+          spellCheck={false}
+          value={inputValue}
+          onBlur={() => {
+            setHintValue('');
+            window.setTimeout(() => {
+              setOpen(false);
+              setHighlightedIndex(-1);
+            }, 80);
+          }}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setInputValue(nextValue);
+            setHighlightedIndex(-1);
+            setOpen(nextValue.trim().length > 0);
+            updateHint(nextValue);
+          }}
+          onFocus={() => {
+            setOpen(inputValue.trim().length > 0);
+          }}
+          onKeyDown={onKeyDown}
+        />
+        {hintSuffix ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 top-[26px] flex items-center overflow-hidden px-3 py-3 text-base font-semibold text-[var(--color-muted)]"
+          >
+            <span className="invisible">{inputValue}</span>
+            <span>{hintSuffix}</span>
+          </div>
+        ) : null}
+      </div>
 
-          return (
-            <GuessAutocompleteOption
-              highlightedChoiceId={highlightedChoice?.id ?? null}
-              inputValue={state.inputValue}
-              key={key}
-              option={option}
-              optionProps={optionProps}
-            />
-          );
-        }}
-      />
-    </Box>
+      {open ? (
+        <div className="max-h-64 overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-card)] p-2">
+          {filteredOptions.length === 0 ? (
+            <div className="px-2 py-1 text-sm text-[var(--color-muted)]">
+              {m.game_no_matches()}
+            </div>
+          ) : (
+            <ul role="listbox">
+              {filteredOptions.map((option, index) => {
+                const parts = parse(
+                  option.label,
+                  match(option.label, inputValue, { insideWords: true }),
+                ) as HighlightPart[];
+                const isHighlighted = index === highlightedIndex;
+
+                return (
+                  <li
+                    aria-selected={isHighlighted}
+                    className="mb-1 last:mb-0"
+                    key={option.id}
+                    role="option"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      selectOption(option.label, true);
+                    }}
+                    onMouseEnter={() => {
+                      setHighlightedIndex(index);
+                    }}
+                  >
+                    <div
+                      className={`w-full rounded-sm px-2 py-1 ${
+                        isHighlighted ? 'bg-[rgba(127,127,127,0.16)]' : 'bg-transparent'
+                      }`}
+                    >
+                      {parts.map((part) => (
+                        <span
+                          className={part.highlight ? 'font-bold' : 'font-medium'}
+                          key={`${part.text}-${part.highlight}`}
+                        >
+                          {part.text}
+                        </span>
+                      ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </form>
   );
 }

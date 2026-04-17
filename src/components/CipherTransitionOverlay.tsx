@@ -33,6 +33,35 @@ function getCipherTransitionOpacity(progress: number) {
   return 1;
 }
 
+function getCipherOpacityClass(opacity: number) {
+  if (opacity <= 0.05) return 'opacity-0';
+  if (opacity <= 0.1) return 'opacity-10';
+  if (opacity <= 0.2) return 'opacity-20';
+  if (opacity <= 0.3) return 'opacity-30';
+  if (opacity <= 0.4) return 'opacity-40';
+  if (opacity <= 0.5) return 'opacity-50';
+  if (opacity <= 0.6) return 'opacity-60';
+  if (opacity <= 0.7) return 'opacity-70';
+  if (opacity <= 0.8) return 'opacity-80';
+  if (opacity <= 0.9) return 'opacity-90';
+  return 'opacity-100';
+}
+
+function getCipherProgressWidthClass(progress: number) {
+  const width = Math.max(progress * 100, 8);
+  if (width < 10) return 'w-[8%]';
+  if (width < 20) return 'w-[18%]';
+  if (width < 30) return 'w-[28%]';
+  if (width < 40) return 'w-[38%]';
+  if (width < 50) return 'w-[48%]';
+  if (width < 60) return 'w-[58%]';
+  if (width < 70) return 'w-[68%]';
+  if (width < 80) return 'w-[78%]';
+  if (width < 90) return 'w-[88%]';
+  if (width < 100) return 'w-[98%]';
+  return 'w-full';
+}
+
 export function CipherTransitionOverlay({
   opacity = 1,
   transition,
@@ -75,6 +104,8 @@ export function CipherTransitionOverlay({
     .toString()
     .padStart(3, '0')}%`;
   const transitionOpacity = getCipherTransitionOpacity(progress) * opacity;
+  const transitionOpacityClass = getCipherOpacityClass(transitionOpacity);
+  const progressWidthClass = getCipherProgressWidthClass(progress);
   const statusLines = [
     `${m.cipher_transition_handoff_label()} // ${stage}`,
     `${m.cipher_transition_rotation_label()} // ${m.cipher_transition_rotation_active()}`,
@@ -84,65 +115,29 @@ export function CipherTransitionOverlay({
   return (
     <div
       aria-hidden="true"
-      style={{
-        alignItems: 'flex-end',
-        display: 'flex',
-        inset: 0,
-        justifyContent: 'center',
-        opacity: transitionOpacity,
-        pointerEvents: 'none',
-        position: 'absolute',
-        zIndex: 1,
-      }}
+      className={`pointer-events-none absolute inset-0 z-[1] flex items-end justify-center ${transitionOpacityClass}`}
     >
       <div
         className="cipher-transition-panel"
         key={transition.key}
-        style={{
-          marginBottom: 'max(12px, env(safe-area-inset-bottom))',
-          width: 'min(460px, calc(100vw - 28px))',
-        }}
       >
-        <div
-          style={{
-            alignItems: 'center',
-            color: 'rgba(248, 255, 182, 0.96)',
-            display: 'flex',
-            fontFamily:
-              '"IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
-            fontSize: 'clamp(0.6rem, 1.25vw, 0.72rem)',
-            justifyContent: 'space-between',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span>{m.cipher_transition_signal_relay()}</span>
-          <span>{percentLabel}</span>
-        </div>
-        <div className="cipher-transition-progress-track">
-          <div
-            className="cipher-transition-progress-bar"
-            style={{ width: `${Math.max(progress * 100, 8)}%` }}
-          />
-        </div>
-        <div
-          style={{
-            color: 'rgba(149, 255, 239, 0.9)',
-            display: 'grid',
-            fontFamily:
-              '"IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
-            fontSize: 'clamp(0.58rem, 1.15vw, 0.68rem)',
-            gap: '0.38rem',
-            letterSpacing: '0.14em',
-            marginTop: '0.6rem',
-            textTransform: 'uppercase',
-          }}
-        >
-          {statusLines.map((line) => (
-            <div className="cipher-transition-line" key={line}>
-              {line}
-            </div>
-          ))}
+        <div className="mb-[max(12px,env(safe-area-inset-bottom))] w-[min(460px,calc(100vw-28px))]">
+          <div className="flex items-center justify-between font-mono text-[clamp(0.6rem,1.25vw,0.72rem)] uppercase tracking-[0.16em] text-[rgba(248,255,182,0.96)]">
+            <span>{m.cipher_transition_signal_relay()}</span>
+            <span>{percentLabel}</span>
+          </div>
+          <div className="cipher-transition-progress-track">
+            <div
+              className={`cipher-transition-progress-bar ${progressWidthClass}`}
+            />
+          </div>
+          <div className="mt-[0.6rem] grid gap-[0.38rem] font-mono text-[clamp(0.58rem,1.15vw,0.68rem)] uppercase tracking-[0.14em] text-[rgba(149,255,239,0.9)]">
+            {statusLines.map((line) => (
+              <div className="cipher-transition-line" key={line}>
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

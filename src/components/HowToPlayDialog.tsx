@@ -1,83 +1,51 @@
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import { useAppearance } from '@/app/appearance';
-import { designTokens } from '@/app/designSystem';
 import { m } from '@/paraglide/messages.js';
-import { getThemeDisplaySurfaceStyles } from '@/app/theme';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 
 export const HowToPlayDialog = NiceModal.create(() => {
   const modal = useModal();
-  const theme = useTheme();
-  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
-  const { activeTheme } = useAppearance();
-  const displayAccentSurface = getThemeDisplaySurfaceStyles(
-    activeTheme,
-    'accent',
-  );
 
   return (
     <Dialog
-      fullScreen={isCompactLayout}
-      fullWidth
-      maxWidth="sm"
-      open={modal.visible}
-      onClose={() => void modal.hide()}
-    >
-      <DialogTitle>
-        <Stack spacing={0.75}>
-          <Typography color="text.secondary" variant="overline">
-            {m.how_to_play_overline()}
-          </Typography>
-          <Typography variant="h4">{m.app_name()}</Typography>
-        </Stack>
-      </DialogTitle>
-      <DialogContent>
-        <Stack spacing={2.25}>
-          <Box
-            sx={{
-              ...displayAccentSurface,
-              borderRadius: designTokens.radius.md,
-              p: 2,
-            }}
-          >
-            <Typography variant="body1">
-              {m.how_to_play_intro()}
-            </Typography>
-          </Box>
-
-          <Stack spacing={1}>
-            <Typography variant="h6">{m.how_to_play_what_title()}</Typography>
-            <Typography variant="body2">{m.how_to_play_what_body()}</Typography>
-          </Stack>
-
-          <Stack spacing={1}>
-            <Typography variant="h6">{m.how_to_play_how_title()}</Typography>
-            <Typography variant="body2">{m.how_to_play_how_body_1()}</Typography>
-            <Typography variant="body2">{m.how_to_play_how_body_2()}</Typography>
-          </Stack>
-
-          <Stack spacing={1}>
-            <Typography variant="h6">{m.how_to_play_modes_title()}</Typography>
-            <Typography variant="body2">{m.how_to_play_modes_body()}</Typography>
-          </Stack>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
+      actions={(
         <Button variant="contained" onClick={() => void modal.hide()}>
           {m.action_close()}
         </Button>
-      </DialogActions>
+      )}
+      open={modal.visible}
+      size="md"
+      title={(
+        <div className="grid gap-1">
+          <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
+            {m.how_to_play_overline()}
+          </p>
+          <h2 className="m-0 text-xl font-semibold">{m.app_name()}</h2>
+        </div>
+      )}
+      onClose={() => void modal.hide()}
+    >
+      <div className="grid gap-5">
+        <div className="surface-display-accent rounded-sm p-4">
+          <p className="m-0">{m.how_to_play_intro()}</p>
+        </div>
+
+        <section className="grid gap-2">
+          <h3 className="m-0 text-base font-semibold">{m.how_to_play_what_title()}</h3>
+          <p className="m-0 text-sm">{m.how_to_play_what_body()}</p>
+        </section>
+
+        <section className="grid gap-2">
+          <h3 className="m-0 text-base font-semibold">{m.how_to_play_how_title()}</h3>
+          <p className="m-0 text-sm">{m.how_to_play_how_body_1()}</p>
+          <p className="m-0 text-sm">{m.how_to_play_how_body_2()}</p>
+        </section>
+
+        <section className="grid gap-2">
+          <h3 className="m-0 text-base font-semibold">{m.how_to_play_modes_title()}</h3>
+          <p className="m-0 text-sm">{m.how_to_play_modes_body()}</p>
+        </section>
+      </div>
     </Dialog>
   );
 });

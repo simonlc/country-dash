@@ -1,4 +1,3 @@
-import { Stack, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { m } from '@/paraglide/messages.js';
 import { formatElapsed } from '@/utils/gameLogic';
@@ -34,21 +33,13 @@ export function GameTimer({
       : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
 
   return (
-    <Stack spacing={0.2} sx={{ inlineSize: '100%', minInlineSize: 0 }}>
-      <Typography color="text.primary" variant="caption">
+    <div className="grid w-full min-w-0 gap-[2px]">
+      <p className="text-xs font-medium text-[var(--color-foreground)]">
         {m.game_stat_time()}
-      </Typography>
-      <Typography
-        component="p"
-        sx={{
-          fontVariantNumeric: 'tabular-nums',
-          fontSize: { sm: '1.1rem', xs: '1rem' },
-          whiteSpace: 'nowrap',
-        }}
-        variant="subtitle1"
-      >
+      </p>
+      <p className="m-0 whitespace-nowrap text-[1rem] font-semibold leading-[1.1] tabular-nums md:text-[1.1rem]">
         {formatElapsed(liveElapsedMs)}
-      </Typography>
-    </Stack>
+      </p>
+    </div>
   );
 }

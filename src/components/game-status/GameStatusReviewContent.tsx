@@ -1,11 +1,8 @@
-import { Box, Stack, Typography } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
 import { Award, CheckCircle, Clock, TrendingUp, XCircle } from 'react-feather';
-import { designTokens } from '@/app/designSystem';
 import { m } from '@/paraglide/messages.js';
-import { UiActionButton } from '@/components/ui/UiActionButton';
-import { UiCard } from '@/components/ui/UiCard';
-import { UiIconBadge } from '@/components/ui/UiIconBadge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { IconBadge } from '@/components/ui/icon-badge';
 
 interface ReviewStat {
   label: string;
@@ -13,7 +10,6 @@ interface ReviewStat {
 }
 
 interface GameStatusReviewContentProps {
-  dividerColor: (theme: Theme) => string;
   isCorrect: boolean;
   isReviewComplete: boolean;
   onNextRound: () => void;
@@ -26,7 +22,6 @@ interface GameStatusReviewContentProps {
 }
 
 export function GameStatusReviewContent({
-  dividerColor,
   isCorrect,
   isReviewComplete,
   onNextRound,
@@ -39,132 +34,59 @@ export function GameStatusReviewContent({
 }: GameStatusReviewContentProps) {
   return (
     <>
-      <Stack
-        role="status"
-        aria-live="polite"
-        spacing={0.45}
-        sx={{ alignItems: 'center' }}
-      >
-        <UiIconBadge
-          badgeColor={isCorrect ? 'primary.main' : 'error.main'}
-          badgeTextColor={
-            isCorrect
-              ? 'primary.contrastText'
-              : 'error.contrastText'
-          }
-        >
+      <div aria-live="polite" className="grid justify-items-center gap-1" role="status">
+        <IconBadge tone={isCorrect ? 'primary' : 'danger'}>
           {isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
-        </UiIconBadge>
-        <Typography
-          color={statusColor}
-          sx={{
-            fontSize: designTokens.fontSize.overline,
-            fontWeight: designTokens.fontWeight.bold,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-          }}
+        </IconBadge>
+        <p
+          className={`m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] ${
+            statusColor === 'primary.main' ? 'text-[var(--color-primary)]' : 'text-[#d54b41]'
+          }`}
         >
           {isCorrect ? m.game_correct_label() : m.game_missed()}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: 'clamp(1.65rem, 4.3vw, 2.1rem)',
-            fontWeight: designTokens.fontWeight.bold,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.05,
-          }}
-        >
+        </p>
+        <p className="m-0 text-[clamp(1.65rem,4.3vw,2.1rem)] font-bold leading-[1.05] tracking-[-0.03em]">
           {reviewAnswer}
-        </Typography>
+        </p>
         {reviewMetadata ? (
-          <Typography color="text.secondary" variant="body2">
-            {reviewMetadata}
-          </Typography>
+          <p className="m-0 text-sm text-[var(--color-muted)]">{reviewMetadata}</p>
         ) : null}
-      </Stack>
+      </div>
       {showPlayerGuess ? (
-        <UiCard
-          outlined
-          sx={{
-            px: { sm: 4, xs: 2 },
-            py: 1,
-            textAlign: 'center',
-            inlineSize: '100%',
-          }}
-        >
-          <Typography color="text.secondary" variant="caption">
-            {m.game_your_guess()}
-          </Typography>
-          <Typography variant="body1">{playerGuess}</Typography>
-        </UiCard>
+        <Card className="w-full px-4 py-2 text-center" tone="outlined">
+          <p className="m-0 text-xs text-[var(--color-muted)]">{m.game_your_guess()}</p>
+          <p className="m-0 text-base">{playerGuess}</p>
+        </Card>
       ) : null}
-      <UiCard
-        outlined
-        sx={{
-          borderColor: dividerColor,
-          display: 'grid',
-          gap: 0,
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          inlineSize: '100%',
-        }}
-      >
+      <Card className="grid w-full grid-cols-2 gap-0 border" tone="outlined">
         {reviewStats.map((item, index) => (
-          <Box
+          <div
+            className={`bg-transparent px-3 py-2 text-center ${index === 0 ? '' : 'border-s border-[var(--color-border)]'}`}
             key={item.label}
-            sx={{
-              background: 'transparent',
-              paddingBlock: 0.95,
-              paddingInline: 1.25,
-              textAlign: 'center',
-              ...(index === 0
-                ? null
-                : {
-                    borderInlineStart: '1px solid',
-                    borderInlineStartColor: dividerColor,
-                  }),
-            }}
           >
-            <Stack spacing={0.4} sx={{ alignItems: 'center' }}>
-              <Box
-                sx={{
-                  alignItems: 'center',
-                  color: 'primary.main',
-                  display: 'inline-flex',
-                  gap: 0.6,
-                }}
-              >
+            <div className="grid justify-items-center gap-1">
+              <div className="inline-flex items-center gap-1 text-[var(--color-primary)]">
                 {item.label === m.game_stat_time() ? (
                   <Clock size={14} />
                 ) : (
                   <TrendingUp size={14} />
                 )}
-                <Typography color="text.secondary" variant="caption">
-                  {item.label}
-                </Typography>
-              </Box>
-              <Typography
-                sx={{ fontVariantNumeric: 'tabular-nums' }}
-                variant="subtitle1"
-              >
-                {item.value}
-              </Typography>
-            </Stack>
-          </Box>
+                <span className="text-xs text-[var(--color-muted)]">{item.label}</span>
+              </div>
+              <p className="m-0 text-base font-semibold tabular-nums">{item.value}</p>
+            </div>
+          </div>
         ))}
-      </UiCard>
-      <UiActionButton
+      </Card>
+      <Button
         autoFocus
-        variant="contained"
+        className="self-center bg-[var(--color-primary)] text-[var(--color-primary-contrast)]"
         startIcon={isReviewComplete ? <Award size={15} /> : undefined}
+        variant="contained"
         onClick={onNextRound}
-        sx={{
-          alignSelf: 'center',
-          backgroundColor: 'primary.main',
-          backgroundImage: 'none',
-        }}
       >
         {isReviewComplete ? m.action_finish() : m.action_next()}
-      </UiActionButton>
+      </Button>
     </>
   );
 }

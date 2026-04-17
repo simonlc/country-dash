@@ -1,36 +1,16 @@
-import {
-  Box,
-  Button,
-  Paper,
-  Stack,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
 import type { ReactNode } from 'react';
 import { m } from '@/paraglide/messages.js';
-import { designTokens } from '@/app/designSystem';
-import type {
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
-} from '@/app/theme';
 import { GameTimer } from '@/components/GameTimer';
-import {
-  getChipShellSx,
-  getEdgeAttachedPanelRadiusSx,
-  getFloatingPanelSx,
-} from '@/utils/controlStyles';
+import { Button } from '@/components/ui/button';
+import { useMediaQuery } from '@/components/ui/theme-provider';
 
 interface GameHudProps {
   correct: number;
-  displayAccentSurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   displayElapsedMs: number;
-  displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   incorrect: number;
   isKeyboardOpen: boolean;
   livesRemaining: number | null;
   onRefocus: () => void;
-  panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
   roundLabel: string;
   runningSince: number | null;
   score: number;
@@ -44,14 +24,11 @@ interface GameHudProps {
 
 export function GameHud({
   correct,
-  displayAccentSurface,
   displayElapsedMs,
-  displaySurface,
   incorrect,
   isKeyboardOpen,
   livesRemaining,
   onRefocus,
-  panelSurface,
   roundLabel,
   runningSince,
   score,
@@ -62,8 +39,7 @@ export function GameHud({
   streak,
   topBarMenu,
 }: GameHudProps) {
-  const theme = useTheme();
-  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
+  const isCompactLayout = useMediaQuery('(max-width: 599.95px)');
   const isKeyboardCompact = isCompactLayout && isKeyboardOpen;
   const isDenseHud = isCompactLayout || isKeyboardCompact;
   const statItems = isCompactLayout
@@ -83,170 +59,81 @@ export function GameHud({
           ? [{ label: m.game_stat_lives(), value: livesRemaining }]
           : []),
       ];
-  const sessionModeVariant = isKeyboardCompact
-    ? 'caption'
-    : isCompactLayout
-      ? 'subtitle2'
-      : 'h6';
-  const hudPanelSx = {
-    ...getFloatingPanelSx({ compact: isDenseHud, maxWidth: '100%' }),
-    ...getEdgeAttachedPanelRadiusSx({
-      desktopRadius: designTokens.radius.md,
-      mobileAttach: 'top',
-      mobileFreeRadius: designTokens.radius.sm,
-    }),
-    pointerEvents: 'auto',
-    paddingBlock: {
-      md: designTokens.componentDensity.desktop.py,
-      xs: isKeyboardCompact ? 0.6 : designTokens.componentDensity.mobile.py,
-    },
-    paddingBlockStart: {
-      md: designTokens.componentDensity.desktop.py,
-      xs: `max(${isKeyboardCompact ? 6 : 10}px, calc(env(safe-area-inset-top) + ${isKeyboardCompact ? 6 : 10}px))`,
-    },
-    paddingInline: {
-      md: designTokens.componentDensity.desktop.px,
-      xs: isKeyboardCompact ? 0.65 : designTokens.componentDensity.mobile.px,
-    },
-  } as const;
-  const statContainerSx = isCompactLayout
-    ? {
-        display: 'grid',
-        gap: 0.7,
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      }
-    : {
-        alignItems: 'stretch',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 0.7,
-      };
-  const chipShellSx = getChipShellSx({
-    compact: isDenseHud,
-    wrapped: isCompactLayout,
-  });
-  const baseChipSx = {
-    alignContent: 'center',
-    display: 'grid',
-    flex: { md: '0 1 auto', xs: '1 1 auto' },
-    gap: 0.2,
-    inlineSize: { md: 'auto', xs: '100%' },
-    justifyItems: 'center',
-    minInlineSize: { md: 82, xs: 0 },
-    textAlign: 'center',
-  } as const;
 
   return (
-    <Paper
-      elevation={0}
-      sx={[
-        panelSurface,
-        hudPanelSx,
-      ]}
+    <section
+      className={`surface-elevated w-full rounded-t-none pt-[max(10px,calc(env(safe-area-inset-top)+10px))] md:rounded-md md:pt-2 ${
+        isDenseHud ? 'px-2 py-1' : 'px-2 py-2'
+      }`}
     >
-      <Stack spacing={isKeyboardCompact ? 0.7 : 0.95}>
-        <Stack alignItems="flex-start" direction="row" gap={1} justifyContent="space-between">
-          <Stack spacing={0.2} sx={{ minInlineSize: 0 }}>
-            <Typography
-              color="text.secondary"
-              letterSpacing="0.12em"
-              textTransform="uppercase"
-              variant="caption"
-            >
+      <div className={isKeyboardCompact ? 'grid gap-2' : 'grid gap-3'}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="m-0 text-xs uppercase tracking-[0.12em] text-[var(--color-muted)]">
               {roundLabel}
-            </Typography>
-            <Stack alignItems="baseline" direction="row" flexWrap="wrap" gap={0.6}>
-              <Typography sx={{ overflowWrap: 'anywhere' }} variant={sessionModeVariant}>
+            </p>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <p
+                className={`m-0 ${
+                  isKeyboardCompact || isCompactLayout
+                    ? 'text-sm font-semibold'
+                    : 'text-base font-semibold'
+                }`}
+              >
                 {sessionModeLabel}
-              </Typography>
+              </p>
               {sessionSummaryLabel && !isKeyboardCompact ? (
-                <Typography color="text.secondary" lineHeight={1.3} sx={{ overflowWrap: 'anywhere' }} variant="body2">
+                <p className="m-0 text-sm leading-[1.3] text-[var(--color-muted)]">
                   {sessionSummaryLabel}
-                </Typography>
+                </p>
               ) : null}
-            </Stack>
-          </Stack>
-          <Box flexShrink={0}>{topBarMenu}</Box>
-        </Stack>
+            </div>
+          </div>
+          <div className="shrink-0">{topBarMenu}</div>
+        </div>
 
         {!isCompactLayout && !isKeyboardCompact ? (
-          <Stack direction="row" flexWrap="wrap" gap={0.6}>
+          <div className="flex flex-wrap gap-2">
             {sessionLabels.map((label) => (
-              <Typography key={label} color="text.secondary" variant="caption">
+              <span className="text-xs text-[var(--color-muted)]" key={label}>
                 {label}
-              </Typography>
+              </span>
             ))}
-          </Stack>
+          </div>
         ) : null}
 
-        <Box sx={statContainerSx}>
+        <div className={isCompactLayout ? 'grid grid-cols-2 gap-2' : 'flex flex-wrap gap-2'}>
           {statItems.map((item) => (
-            <Box
+            <div
+              className={`surface-display-neutral grid min-h-11 justify-items-center gap-[2px] rounded-full px-3 text-center ${
+                isCompactLayout ? 'w-full py-2' : 'py-2'
+              }`}
               key={item.label}
-              sx={[
-                displaySurface,
-                chipShellSx,
-                baseChipSx,
-              ]}
             >
-              <Typography
-                color="text.secondary"
-                lineHeight={1.2}
-                sx={{ overflowWrap: 'anywhere' }}
-                variant="caption"
-              >
-                {item.label}
-              </Typography>
-              <Typography
-                lineHeight={1.05}
-                sx={{
-                  fontSize: {
-                    md: theme.typography.subtitle1.fontSize,
-                    xs: theme.typography.body1.fontSize,
-                  },
-                  fontVariantNumeric: 'tabular-nums',
-                  overflowWrap: 'anywhere',
-                }}
-                variant="subtitle2"
-              >
-                {item.value}
-              </Typography>
-            </Box>
+              <p className="m-0 text-xs leading-[1.2] text-[var(--color-muted)]">{item.label}</p>
+              <p className="m-0 text-sm font-semibold tabular-nums md:text-base">{item.value}</p>
+            </div>
           ))}
-          <Paper
-            elevation={0}
-            sx={[
-              displayAccentSurface,
-              chipShellSx,
-              {
-                alignContent: 'center',
-                display: 'grid',
-                flex: { md: '0 1 auto', xs: '1 1 auto' },
-                inlineSize: { md: 'auto', xs: '100%' },
-                justifyItems: 'center',
-                minInlineSize: { md: 90, xs: 0 },
-              },
-            ]}
+          <div
+            className={`surface-display-accent grid min-h-11 justify-items-center rounded-full px-3 ${
+              isCompactLayout ? 'w-full py-2' : 'py-2'
+            }`}
           >
             <GameTimer elapsedMs={displayElapsedMs} runningSince={runningSince} />
-          </Paper>
+          </div>
           {showRefocus && !isCompactLayout ? (
             <Button
               aria-label={m.game_refocus_country_aria()}
-              size="small"
-              sx={{
-                borderColor: 'rgba(150, 201, 255, 0.22)',
-                minBlockSize: designTokens.touchTarget.min,
-                paddingBlock: 0.85,
-              }}
+              className="min-h-11 border-[rgba(150,201,255,0.22)] py-[7px]"
+              size="sm"
               variant="contained"
               onClick={onRefocus}
             >
               {m.action_refocus()}
             </Button>
           ) : null}
-        </Box>
-      </Stack>
-    </Paper>
+        </div>
+      </div>
+    </section>
   );
 }

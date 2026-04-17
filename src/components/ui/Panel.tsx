@@ -1,24 +1,65 @@
-import Paper from '@mui/material/Paper';
-import Stack from '@mui/material/Stack';
-import type { SxProps, Theme } from '@mui/material/styles';
+import { cva, type VariantProps } from 'class-variance-authority';
 import type { ReactNode } from 'react';
-import { designTokens } from '@/app/designSystem';
-import {
-  getEdgeAttachedPanelRadiusSx,
-  getFloatingPanelSx,
-} from '@/utils/controlStyles';
+import { cn } from '@/lib/utils';
+import { useMediaQuery } from './theme-provider';
 
-type PanelSurfaceSx = Exclude<SxProps<Theme>, readonly unknown[]>;
+const panelVariants = cva(
+  'pointer-events-auto inline-size-full text-center',
+  {
+    variants: {
+      compact: {
+        false: 'px-4 py-4 md:px-[19px] md:py-[19px]',
+        true: 'px-[7px] py-[6px] md:px-[19px] md:py-[19px]',
+      },
+      edgeAttachment: {
+        bottom: 'rounded-t-sm rounded-b-none md:rounded-sm pb-[calc(16px+env(safe-area-inset-bottom))] md:pb-[19px]',
+        none: 'rounded-sm',
+        top: 'rounded-b-sm rounded-t-none md:rounded-md',
+      },
+      flat: {
+        false: '',
+        true: 'bg-none shadow-none',
+      },
+      maxWidth: {
+        '560': 'md:max-w-[560px]',
+        '720': 'md:max-w-[720px]',
+      },
+      surface: {
+        elevated: 'surface-elevated',
+        panel: 'surface-panel',
+      },
+    },
+    defaultVariants: {
+      compact: false,
+      edgeAttachment: 'none',
+      flat: false,
+      maxWidth: '560',
+      surface: 'elevated',
+    },
+  },
+);
+
+const panelContentGapVariants = cva('grid', {
+  variants: {
+    spacing: {
+      compact: 'gap-2',
+      roomy: 'gap-4',
+    },
+  },
+  defaultVariants: {
+    spacing: 'roomy',
+  },
+});
 
 interface PanelProps {
   children: ReactNode;
   className?: string;
-  compact?: boolean;
+  compact?: VariantProps<typeof panelVariants>['compact'];
   edgeAttachment?: 'bottom' | 'none' | 'top';
-  flat?: boolean;
-  maxWidth?: number;
-  panelSurface: PanelSurfaceSx;
-  spacing?: number;
+  flat?: VariantProps<typeof panelVariants>['flat'];
+  maxWidth?: 560 | 720;
+  spacing?: 'compact' | 'roomy';
+  surface?: VariantProps<typeof panelVariants>['surface'];
 }
 
 export function Panel({
@@ -28,75 +69,34 @@ export function Panel({
   edgeAttachment = 'none',
   flat = false,
   maxWidth = 560,
-  panelSurface,
-  spacing = 2,
+  spacing = 'roomy',
+  surface = 'elevated',
 }: PanelProps) {
-  const mobileFreeRadius = compact
-    ? designTokens.radius.sm
-    : designTokens.radius.xs;
-  const mobilePaddingBlock = compact
-    ? designTokens.componentDensity.mobile.py
-    : designTokens.componentSpacing.overlayPanel.mobile;
-  const mobilePaddingInline = compact
-    ? designTokens.componentDensity.mobile.px
-    : designTokens.componentSpacing.overlayPanel.mobile;
-  const panelShellSx = {
-    ...getFloatingPanelSx({
-      compact,
-      maxWidth,
-    }),
-    ...getEdgeAttachedPanelRadiusSx({
-      desktopRadius: designTokens.radius.sm,
-      mobileAttach: edgeAttachment,
-      mobileFreeRadius,
-    }),
-    alignSelf: 'end',
-    marginBlockEnd: {
-      md: designTokens.layout.floatingOffset.desktopBottom,
-      xs: 0,
-    },
-    maxInlineSize: { md: maxWidth, xs: '100%' },
-    overflow: 'visible',
-    paddingBlock: {
-      md: designTokens.componentSpacing.overlayPanel.desktop,
-      xs: mobilePaddingBlock,
-    },
-    paddingInline: {
-      md: designTokens.componentSpacing.overlayPanel.desktop,
-      xs: mobilePaddingInline,
-    },
-    pointerEvents: 'auto',
-    textAlign: 'center',
-    ...(edgeAttachment === 'bottom'
-      ? {
-          paddingBlockEnd: 'calc(16px + env(safe-area-inset-bottom))',
-        }
-      : null),
-    ...(flat
-      ? {
-          backgroundImage: 'none',
-          boxShadow: 'none',
-        }
-      : null),
-  } as const;
-  const resolvedSx = (theme: Theme) => {
-    const resolvedPanelSurface = typeof panelSurface === 'function'
-      ? panelSurface(theme)
-      : panelSurface;
-
-    return {
-      ...resolvedPanelSurface,
-      ...panelShellSx,
-    };
-  };
+  const isDesktop = useMediaQuery('(min-width: 900px)');
+  const mobileAttachmentClass = isDesktop
+    ? 'md:rounded-sm'
+    : edgeAttachment === 'top'
+      ? 'rounded-b-sm rounded-t-none'
+      : edgeAttachment === 'bottom'
+        ? 'rounded-t-sm rounded-b-none'
+        : 'rounded-sm';
 
   return (
-    <Paper
-      className={className}
-      elevation={0}
-      sx={resolvedSx}
+    <section
+      className={cn(
+        panelVariants({
+          compact,
+          edgeAttachment,
+          flat,
+          maxWidth: String(maxWidth) as '560' | '720',
+          surface,
+        }),
+        mobileAttachmentClass,
+        'self-end md:mb-6',
+        className,
+      )}
     >
-      <Stack spacing={spacing}>{children}</Stack>
-    </Paper>
+      <div className={panelContentGapVariants({ spacing })}>{children}</div>
+    </section>
   );
 }

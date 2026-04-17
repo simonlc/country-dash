@@ -1,8 +1,3 @@
-import type { Theme } from '@mui/material/styles';
-import type {
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
-} from '@/app/theme';
 import { m } from '@/paraglide/messages.js';
 import { Panel } from '@/components/ui/Panel';
 import { formatElapsed } from '@/utils/gameLogic';
@@ -16,7 +11,6 @@ interface GameStatusPanelProps {
   copyState: 'idle' | 'copied' | 'failed';
   currentCountryName: string | null;
   dailyShareText: string | null;
-  displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
   gameState: GameState;
   isCapitalMode: boolean;
   isDailyRun: boolean;
@@ -26,7 +20,6 @@ interface GameStatusPanelProps {
   onNextRound: () => void;
   onPlayAgain: () => void;
   onReturnToMenu: () => void;
-  panelSurface: ReturnType<typeof getThemeSurfaceStyles>;
   storedDailyResult: {
     correctCount: number;
     totalCount: number;
@@ -38,7 +31,6 @@ export function GameStatusPanel({
   copyState,
   currentCountryName,
   dailyShareText,
-  displaySurface,
   gameState,
   isCapitalMode,
   isDailyRun,
@@ -48,7 +40,6 @@ export function GameStatusPanel({
   onNextRound,
   onPlayAgain,
   onReturnToMenu,
-  panelSurface,
   storedDailyResult,
   totalRounds,
 }: GameStatusPanelProps) {
@@ -106,10 +97,8 @@ export function GameStatusPanel({
       });
   const isCorrect = gameState.lastRound?.answerResult === 'correct';
   const statusColor = isCorrect ? 'primary.main' : 'error.main';
-  const dividerColor = (theme: Theme) =>
-    theme.vars?.palette.divider ?? theme.palette.divider;
   const isDensePanel = isKeyboardOpen;
-  const panelSpacing = isResultView ? 1.1 : isDensePanel ? 1.1 : 2;
+  const panelSpacing = isResultView ? 'compact' : isDensePanel ? 'compact' : 'roomy';
 
   const renderStateContent = () => {
     if (gameState.status === 'gameOver') {
@@ -117,8 +106,6 @@ export function GameStatusPanel({
         <GameStatusGameOverContent
           copyState={copyState}
           dailyShareText={dailyShareText}
-          displaySurface={displaySurface}
-          dividerColor={dividerColor}
           gameOverMeta={gameOverMeta}
           gameOverSummary={gameOverSummary}
           gameState={gameState}
@@ -133,7 +120,6 @@ export function GameStatusPanel({
     if (isReviewing && gameState.lastRound) {
       return (
         <GameStatusReviewContent
-          dividerColor={dividerColor}
           isCorrect={isCorrect}
           isReviewComplete={isReviewComplete}
           onNextRound={onNextRound}
@@ -156,7 +142,7 @@ export function GameStatusPanel({
       edgeAttachment={isResultView ? 'bottom' : 'none'}
       flat={isResultView}
       maxWidth={560}
-      panelSurface={panelSurface}
+      surface="elevated"
       spacing={panelSpacing}
     >
       {renderStateContent()}

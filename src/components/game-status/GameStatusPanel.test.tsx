@@ -1,18 +1,9 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  appThemes,
-  getThemeDisplaySurfaceStyles,
-  getThemeSurfaceStyles,
-} from '@/app/theme';
 import { renderWithProviders } from '@/test/render';
 import type { GameState } from '@/types/game';
 import { GameStatusPanel } from './GameStatusPanel';
-
-const activeTheme = appThemes[0]!;
-const panelSurface = getThemeSurfaceStyles(activeTheme, 'panel');
-const displaySurface = getThemeDisplaySurfaceStyles(activeTheme, 'neutral');
 
 function createGameState(overrides: Partial<GameState>): GameState {
   return {
@@ -51,7 +42,6 @@ const baseProps = {
   copyState: 'idle' as const,
   currentCountryName: 'Canada',
   dailyShareText: null,
-  displaySurface,
   isCapitalMode: false,
   isDailyRun: false,
   isKeyboardOpen: false,
@@ -60,7 +50,6 @@ const baseProps = {
   onNextRound: vi.fn(),
   onPlayAgain: vi.fn(),
   onReturnToMenu: vi.fn(),
-  panelSurface,
   storedDailyResult: null,
   totalRounds: 5,
 };

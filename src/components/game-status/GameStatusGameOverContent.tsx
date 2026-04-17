@@ -1,20 +1,14 @@
-import { Box, Stack, Typography } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
 import { Award, Clock, Home, RotateCcw, Share2, TrendingUp } from 'react-feather';
-import { designTokens } from '@/app/designSystem';
 import { m } from '@/paraglide/messages.js';
-import { UiActionButton } from '@/components/ui/UiActionButton';
-import { UiCard } from '@/components/ui/UiCard';
-import { UiIconBadge } from '@/components/ui/UiIconBadge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { IconBadge } from '@/components/ui/icon-badge';
 import type { GameState } from '@/types/game';
-import type { getThemeDisplaySurfaceStyles } from '@/app/theme';
 import { formatElapsed } from '@/utils/gameLogic';
 
 interface GameStatusGameOverContentProps {
   copyState: 'idle' | 'copied' | 'failed';
   dailyShareText: string | null;
-  displaySurface: ReturnType<typeof getThemeDisplaySurfaceStyles>;
-  dividerColor: (theme: Theme) => string;
   gameOverMeta: string;
   gameOverSummary: string;
   gameState: GameState;
@@ -27,8 +21,6 @@ interface GameStatusGameOverContentProps {
 export function GameStatusGameOverContent({
   copyState,
   dailyShareText,
-  displaySurface,
-  dividerColor,
   gameOverMeta,
   gameOverSummary,
   gameState,
@@ -37,68 +29,29 @@ export function GameStatusGameOverContent({
   onPlayAgain,
   onReturnToMenu,
 }: GameStatusGameOverContentProps) {
-  const dailyMainMenuSx = isDailyRun
-    ? {
-        backgroundColor: 'primary.main',
-        backgroundImage: 'none',
-      }
-    : null;
-
   return (
     <>
-      <Stack spacing={0.5} sx={{ alignItems: 'center' }}>
-        <UiIconBadge badgeColor="primary.main" badgeTextColor="primary.contrastText">
+      <div className="grid justify-items-center gap-1">
+        <IconBadge>
           <Award size={16} />
-        </UiIconBadge>
-        <Typography
-          sx={{
-            color: 'primary.main',
-            fontSize: designTokens.fontSize.overline,
-            fontWeight: designTokens.fontWeight.bold,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-          }}
-        >
+        </IconBadge>
+        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--color-primary)]">
           {isDailyRun ? m.game_daily_complete() : m.game_run_complete()}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: 'clamp(1.9rem, 5vw, 2.5rem)',
-            fontWeight: designTokens.fontWeight.bold,
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-          }}
-        >
+        </p>
+        <p className="m-0 text-[clamp(1.9rem,5vw,2.5rem)] font-bold leading-none tracking-[-0.03em]">
           {gameOverSummary}
-        </Typography>
-        <Typography color="text.secondary" variant="body2">
-          {gameOverMeta}
-        </Typography>
-      </Stack>
+        </p>
+        <p className="m-0 text-sm text-[var(--color-muted)]">{gameOverMeta}</p>
+      </div>
+
       {isDailyRun && dailyShareText ? (
         <>
-          <UiCard
-            sx={{
-              ...displaySurface,
-              borderRadius: { sm: designTokens.radius.md, xs: designTokens.radius.xs },
-              backgroundImage: 'none',
-              p: 1.5,
-            }}
-          >
-            <Typography
-              component="pre"
-              sx={{
-                fontFamily: 'inherit',
-                m: 0,
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {dailyShareText}
-            </Typography>
-          </UiCard>
-          <UiActionButton
-            variant="outlined"
+          <Card className="surface-display-accent rounded-sm p-3">
+            <pre className="m-0 whitespace-pre-wrap font-inherit">{dailyShareText}</pre>
+          </Card>
+          <Button
             startIcon={<Share2 size={15} />}
+            variant="outlined"
             onClick={() => {
               void onCopyDailyShare();
             }}
@@ -108,19 +61,12 @@ export function GameStatusGameOverContent({
               : copyState === 'failed'
                 ? m.game_copy_failed()
                 : m.action_copy_results()}
-          </UiActionButton>
+          </Button>
         </>
       ) : null}
+
       {!isDailyRun ? (
-        <UiCard
-          outlined
-          sx={{
-            borderColor: dividerColor,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            inlineSize: '100%',
-          }}
-        >
+        <Card className="grid w-full grid-cols-2 border" tone="outlined">
           {[
             {
               icon: TrendingUp,
@@ -133,74 +79,42 @@ export function GameStatusGameOverContent({
               value: formatElapsed(gameState.totalElapsedMs),
             },
           ].map((item, index) => (
-            <Box
+            <div
+              className={`px-3 py-2 text-center ${index === 0 ? '' : 'border-s border-[var(--color-border)]'}`}
               key={item.label}
-              sx={{
-                paddingBlock: 0.95,
-                paddingInline: 1.25,
-                textAlign: 'center',
-                ...(index === 0
-                  ? null
-                  : {
-                      borderInlineStart: '1px solid',
-                      borderInlineStartColor: dividerColor,
-                    }),
-              }}
             >
-              <Stack spacing={0.4} sx={{ alignItems: 'center' }}>
-                <Box
-                  sx={{
-                    alignItems: 'center',
-                    color: 'primary.main',
-                    display: 'inline-flex',
-                    gap: 0.6,
-                  }}
-                >
+              <div className="grid justify-items-center gap-1">
+                <div className="inline-flex items-center gap-1 text-[var(--color-primary)]">
                   <item.icon size={14} />
-                  <Typography color="text.secondary" variant="caption">
-                    {item.label}
-                  </Typography>
-                </Box>
-                <Typography
-                  sx={{ fontVariantNumeric: 'tabular-nums' }}
-                  variant="subtitle1"
-                >
-                  {item.value}
-                </Typography>
-              </Stack>
-            </Box>
+                  <span className="text-xs text-[var(--color-muted)]">{item.label}</span>
+                </div>
+                <p className="m-0 text-base font-semibold tabular-nums">{item.value}</p>
+              </div>
+            </div>
           ))}
-        </UiCard>
+        </Card>
       ) : null}
-      <Stack
-        alignSelf="center"
-        direction={{ sm: 'row', xs: 'column' }}
-        justifyContent="center"
-        spacing={0.85}
-        sx={{ inlineSize: '100%' }}
-      >
+
+      <div className="grid w-full justify-center gap-2 sm:flex">
         {!isDailyRun ? (
-          <UiActionButton
-            variant="contained"
+          <Button
+            className="bg-[var(--color-primary)] text-[var(--color-primary-contrast)]"
             startIcon={<RotateCcw size={15} />}
+            variant="contained"
             onClick={onPlayAgain}
-            sx={{
-              backgroundColor: 'primary.main',
-              backgroundImage: 'none',
-            }}
           >
             {m.action_play_again()}
-          </UiActionButton>
+          </Button>
         ) : null}
-        <UiActionButton
-          variant={!isDailyRun ? 'outlined' : 'contained'}
+        <Button
+          className={isDailyRun ? 'bg-[var(--color-primary)] text-[var(--color-primary-contrast)]' : ''}
           startIcon={<Home size={15} />}
+          variant={!isDailyRun ? 'outlined' : 'contained'}
           onClick={onReturnToMenu}
-          {...(dailyMainMenuSx ? { sx: dailyMainMenuSx } : {})}
         >
           {m.action_main_menu()}
-        </UiActionButton>
-      </Stack>
+        </Button>
+      </div>
     </>
   );
 }

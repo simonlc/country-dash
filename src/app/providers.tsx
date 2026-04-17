@@ -1,13 +1,13 @@
-import { CssBaseline, ThemeProvider } from '@mui/material';
 import type { PropsWithChildren } from 'react';
+import { CssBaseline, ThemeProvider } from '@/components/ui/theme-provider';
 import { AppearanceProvider, useAppearance } from './appearance';
 import { I18nProvider } from './i18n';
 
 function ThemedProviders({ children }: PropsWithChildren) {
-  const { muiTheme } = useAppearance();
+  const { activeTheme, uiTheme } = useAppearance();
 
   return (
-    <ThemeProvider theme={muiTheme}>
+    <ThemeProvider activeTheme={activeTheme} theme={uiTheme}>
       <CssBaseline />
       {children}
     </ThemeProvider>

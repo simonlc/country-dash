@@ -1,11 +1,7 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { appThemes, getThemeSurfaceStyles } from '@/app/theme';
 import { renderWithProviders } from '@/test/render';
 import { GuessPanel } from './GuessPanel';
-
-const activeTheme = appThemes[0]!;
-const panelSurface = getThemeSurfaceStyles(activeTheme, 'panel');
 
 describe('GuessPanel', () => {
   it('renders the prompt and guess input', () => {
@@ -21,7 +17,6 @@ describe('GuessPanel', () => {
         isCapitalMode={false}
         isKeyboardOpen={false}
         onSubmit={vi.fn()}
-        panelSurface={panelSurface}
       />,
     );
 

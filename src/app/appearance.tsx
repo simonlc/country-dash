@@ -19,7 +19,7 @@ const storageKey = 'country-guesser-theme';
 
 interface AppearanceContextValue {
   activeTheme: AppThemeDefinition;
-  muiTheme: ReturnType<typeof createAppTheme>;
+  uiTheme: ReturnType<typeof createAppTheme>;
   setTheme: (themeId: AppThemeId) => void;
   themes: AppThemeDefinition[];
 }
@@ -54,7 +54,7 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
   const value = useMemo(
     () => ({
       activeTheme: getAppThemeDefinition(themeId),
-      muiTheme: createAppTheme(themeId),
+      uiTheme: createAppTheme(themeId),
       setTheme: setThemeId,
       themes: appThemes,
     }),

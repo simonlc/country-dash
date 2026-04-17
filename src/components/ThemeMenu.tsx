@@ -1,27 +1,11 @@
-import {
-  Box,
-  Button,
-  ClickAwayListener,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Paper,
-  Stack,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
 import { Check, Crosshair, Globe, Info, MoreVertical, RotateCcw, XCircle } from 'react-feather';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { useI18n } from '@/app/i18n';
-import { designTokens } from '@/app/designSystem';
 import { m } from '@/paraglide/messages.js';
-import { getThemeSurfaceStyles } from '@/app/theme';
 import { ThemePreview } from '@/components/ThemePreview';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { getThemeLabel } from '@/utils/themeTranslations';
 
 interface ThemeMenuProps {
@@ -32,7 +16,7 @@ interface ThemeMenuProps {
 }
 
 interface MenuAction {
-  color?: 'error' | 'primary';
+  color?: 'danger' | 'primary';
   icon: typeof Crosshair;
   label: string;
   onClick: () => void;
@@ -47,308 +31,214 @@ export function ThemeMenu({
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
-  const theme = useTheme();
-  const isCompactLayout = useMediaQuery(theme.breakpoints.down('sm'));
   const { languages, locale, setLocale } = useI18n();
   const { activeTheme, setTheme, themes } = useAppearance();
-  const panelSurface = getThemeSurfaceStyles(activeTheme, 'elevated');
   const menuPanelId = 'theme-menu-panel';
-  const isRtlDocument = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
-  const menuTransformOrigin = isRtlDocument ? 'top left' : 'top right';
+  const isRtlDocument =
+    typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  const menuAnchorRef = useRef<HTMLDivElement | null>(null);
 
-  const closeMenu = () => {
-    setOpen(false);
-  };
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
 
-  const actions: MenuAction[] = [
-    {
-      icon: Crosshair,
-      label: m.action_refocus(),
-      onClick: () => {
-        closeMenu();
-        onRefocus();
-      },
-    },
-    {
-      icon: RotateCcw,
-      label: m.action_retry(),
-      onClick: () => {
-        closeMenu();
-        onRestart();
-      },
-    },
-    {
-      icon: XCircle,
-      label: m.action_quit(),
-      color: 'error',
-      onClick: () => {
-        closeMenu();
-        setConfirmQuitOpen(true);
-      },
-    },
-    {
-      icon: Info,
-      label: m.action_about(),
-      onClick: () => {
-        closeMenu();
-        onAbout();
-      },
-    },
-    {
-      icon: Globe,
-      label: m.menu_language_selector_aria(),
-      onClick: () => {
-        closeMenu();
-        setLanguageDialogOpen(true);
-      },
-    },
-  ];
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (menuAnchorRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
 
-  const menuContent = (
-    <Stack spacing={1.25}>
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 1,
-          gridTemplateColumns: {
-            md: 'repeat(2, minmax(0, 1fr))',
-            xs: 'repeat(1, minmax(0, 1fr))',
-          },
-          paddingBlock: 2,
-        }}
-      >
-        {actions.map((action) => {
-          const ActionIcon = action.icon;
+    window.addEventListener('mousedown', onPointerDown);
+    return () => window.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
 
-          return (
-            <Button
-              aria-label={
-                action.label === m.action_refocus()
-                  ? m.game_refocus_country_aria()
-                  : action.label
-              }
-              color={action.color ?? 'primary'}
-              key={action.label}
-              size="small"
-              startIcon={<ActionIcon size={14} />}
-              sx={{
-                justifyContent: 'flex-start',
-                minBlockSize: designTokens.touchTarget.comfortable,
-                minInlineSize: 0,
-                paddingInline: 1.5,
-                textAlign: 'start',
-                textTransform: 'none',
-                whiteSpace: 'normal',
-              }}
-              variant="contained"
-              onClick={action.onClick}
-            >
-              {action.label}
-            </Button>
-          );
-        })}
-      </Box>
-      <Typography color="text.secondary" variant="caption">
-        {m.menu_themes()}
-      </Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 0.9,
-          gridTemplateColumns: {
-            md: 'repeat(3, minmax(0, 1fr))',
-            xs: 'repeat(2, minmax(0, 1fr))',
-          },
-        }}
-      >
-        {themes.map((themeOption) => {
-          const isActive = themeOption.id === activeTheme.id;
-
-          return (
-            <ThemePreview
-              ariaLabel={getThemeLabel(themeOption.id)}
-              key={themeOption.id}
-              selected={isActive}
-              theme={themeOption}
-              onClick={() => {
-                setTheme(themeOption.id);
-                closeMenu();
-              }}
-            />
-          );
-        })}
-      </Box>
-    </Stack>
+  const actions = useMemo<MenuAction[]>(
+    () => [
+      {
+        icon: Crosshair,
+        label: m.action_refocus(),
+        onClick: () => {
+          setOpen(false);
+          onRefocus();
+        },
+      },
+      {
+        icon: RotateCcw,
+        label: m.action_retry(),
+        onClick: () => {
+          setOpen(false);
+          onRestart();
+        },
+      },
+      {
+        icon: XCircle,
+        label: m.action_quit(),
+        color: 'danger',
+        onClick: () => {
+          setOpen(false);
+          setConfirmQuitOpen(true);
+        },
+      },
+      {
+        icon: Info,
+        label: m.action_about(),
+        onClick: () => {
+          setOpen(false);
+          onAbout();
+        },
+      },
+      {
+        icon: Globe,
+        label: m.menu_language_selector_aria(),
+        onClick: () => {
+          setOpen(false);
+          setLanguageDialogOpen(true);
+        },
+      },
+    ],
+    [onAbout, onRefocus, onRestart],
   );
 
   return (
     <>
-      <Box
-        sx={{
-          display: 'inline-flex',
-          pointerEvents: 'auto',
-          position: 'relative',
-          zIndex: 2,
-        }}
-      >
-        <ClickAwayListener
-          onClickAway={() => {
-            if (open) {
-              closeMenu();
-            }
-          }}
+      <div className="pointer-events-auto relative inline-flex z-[2]" ref={menuAnchorRef}>
+        <button
+          aria-controls={open ? menuPanelId : undefined}
+          aria-expanded={open ? 'true' : undefined}
+          aria-label={open ? m.action_close() : m.action_menu()}
+          className="surface-elevated grid min-h-11 min-w-11 place-items-center rounded-sm border border-[var(--surface-panel-border)] text-[var(--color-primary)]"
+          type="button"
+          onClick={() => setOpen((value) => !value)}
         >
-          <Stack alignItems="flex-end" spacing={1} sx={{ position: 'relative' }}>
-            <IconButton
-              aria-controls={open ? menuPanelId : undefined}
-              aria-expanded={open ? 'true' : undefined}
-              aria-label={open ? m.action_close() : m.action_menu()}
-              color="primary"
-              size={isCompactLayout ? 'medium' : 'small'}
-              sx={[
-                panelSurface,
-                {
-                  minBlockSize: designTokens.touchTarget.min,
-                  minInlineSize: designTokens.touchTarget.min,
-                },
-              ]}
-              onClick={() => setOpen((value) => !value)}
-            >
-              <MoreVertical size={17} />
-            </IconButton>
-            <Collapse
-              in={open}
-              sx={{
-                position: 'absolute',
-                insetBlockStart: 'calc(100% + 8px)',
-                insetInlineEnd: 0,
-                transformOrigin: menuTransformOrigin,
-                inlineSize: {
-                  md: designTokens.menu.panelWidth,
-                  xs: `min(92vw, ${designTokens.menu.panelWidth + 40}px)`,
-                },
-                zIndex: theme.zIndex.modal,
-              }}
-            >
-              <Paper
-                id={menuPanelId}
-                elevation={0}
-                sx={{
-                  ...panelSurface,
-                  borderRadius: designTokens.radius.sm,
-                  maxHeight: {
-                    md: 'none',
-                    xs: `min(calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - ${designTokens.menu.viewportOffset}px), 70vh)`,
-                  },
-                  overflowY: {
-                    md: 'visible',
-                    xs: 'auto',
-                  },
-                  padding: 2,
-                }}
-              >
-                {menuContent}
-              </Paper>
-            </Collapse>
-          </Stack>
-        </ClickAwayListener>
-      </Box>
-      <Dialog
-        fullScreen={isCompactLayout}
-        fullWidth
-        maxWidth="xs"
-        open={languageDialogOpen}
-        PaperProps={{
-          sx: {
-            ...panelSurface,
-            borderRadius: { md: designTokens.radius.md, xs: designTokens.radius.xs },
-            backgroundImage: 'none',
-          },
-        }}
-        onClose={() => setLanguageDialogOpen(false)}
-      >
-        <DialogTitle>{m.menu_language_selector_aria()}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1}>
-            {languages.map((language) => {
-              const isActiveLocale = language.locale === locale;
+          <MoreVertical size={17} />
+        </button>
+        {open ? (
+          <div
+            className={`surface-elevated absolute top-[calc(100%+8px)] z-[1300] max-h-[min(calc(var(--visual-viewport-height,100dvh)-env(safe-area-inset-top)-136px),70vh)] w-[min(92vw,360px)] overflow-y-auto rounded-sm border border-[var(--surface-panel-border)] p-4 ${isRtlDocument ? 'left-0' : 'right-0'}`}
+            id={menuPanelId}
+          >
+            <div className="grid gap-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {actions.map((action) => {
+                  const ActionIcon = action.icon;
 
-              return (
-                <Button
-                  key={language.locale}
-                  size="large"
-                  sx={{
-                    justifyContent: 'space-between',
-                    minBlockSize: designTokens.touchTarget.comfortable,
-                    paddingBlock: 1.1,
-                    paddingInline: 1.4,
-                    textAlign: 'start',
-                    textTransform: 'none',
-                    whiteSpace: 'normal',
-                  }}
-                  variant={isActiveLocale ? 'contained' : 'outlined'}
-                  onClick={() => {
-                    void setLocale(language.locale);
-                    setLanguageDialogOpen(false);
-                  }}
-                >
-                  <Stack spacing={0} sx={{ alignItems: 'flex-start', minInlineSize: 0 }}>
-                    <Typography sx={{ fontWeight: designTokens.fontWeight.medium }} variant="body2">
-                      {language.nativeLabel}
-                    </Typography>
-                    {language.englishLabel !== language.nativeLabel ? (
-                      <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">
-                        {language.englishLabel}
-                      </Typography>
-                    ) : null}
-                  </Stack>
-                  {isActiveLocale ? <Check size={15} /> : null}
-                </Button>
-              );
-            })}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
+                  return (
+                    <Button
+                      aria-label={
+                        action.label === m.action_refocus()
+                          ? m.game_refocus_country_aria()
+                          : action.label
+                      }
+                      className="justify-start text-start"
+                      tone={action.color ?? 'primary'}
+                      key={action.label}
+                      size="sm"
+                      startIcon={<ActionIcon size={14} />}
+                      variant="contained"
+                      onClick={action.onClick}
+                    >
+                      {action.label}
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="m-0 text-xs text-[var(--color-muted)]">{m.menu_themes()}</p>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                {themes.map((themeOption) => {
+                  const isActive = themeOption.id === activeTheme.id;
+
+                  return (
+                    <ThemePreview
+                      ariaLabel={getThemeLabel(themeOption.id)}
+                      key={themeOption.id}
+                      selected={isActive}
+                      theme={themeOption}
+                      onClick={() => {
+                        setTheme(themeOption.id);
+                        setOpen(false);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <Dialog
+        actions={(
           <Button onClick={() => setLanguageDialogOpen(false)}>
             {m.action_close()}
           </Button>
-        </DialogActions>
+        )}
+        open={languageDialogOpen}
+        size="sm"
+        title={m.menu_language_selector_aria()}
+        onClose={() => setLanguageDialogOpen(false)}
+      >
+        <div className="grid gap-2">
+          {languages.map((language) => {
+            const isActiveLocale = language.locale === locale;
+
+            return (
+              <Button
+                className="justify-between text-start"
+                key={language.locale}
+                size="lg"
+                variant={isActiveLocale ? 'contained' : 'outlined'}
+                onClick={() => {
+                  void setLocale(language.locale);
+                  setLanguageDialogOpen(false);
+                }}
+              >
+                <span className="grid min-w-0 text-start">
+                  <span className="text-sm font-medium">{language.nativeLabel}</span>
+                  {language.englishLabel !== language.nativeLabel ? (
+                    <span className="break-words text-xs text-[var(--color-muted)]">
+                      {language.englishLabel}
+                    </span>
+                  ) : null}
+                </span>
+                {isActiveLocale ? <Check size={15} /> : null}
+              </Button>
+            );
+          })}
+        </div>
       </Dialog>
+
       <Dialog
-        fullScreen={isCompactLayout}
-        fullWidth
-        maxWidth="xs"
+        actions={(
+          <>
+            <Button onClick={() => setConfirmQuitOpen(false)}>
+              {m.action_cancel()}
+            </Button>
+            <Button
+              tone="danger"
+              variant="contained"
+              onClick={() => {
+                setConfirmQuitOpen(false);
+                onQuit();
+              }}
+            >
+              {m.action_quit()}
+            </Button>
+          </>
+        )}
         open={confirmQuitOpen}
-        PaperProps={{
-          sx: {
-            ...panelSurface,
-            borderRadius: { md: designTokens.radius.md, xs: designTokens.radius.xs },
-            backgroundImage: 'none',
-          },
-        }}
+        size="sm"
+        title={m.menu_quit_current_run_title()}
         onClose={() => setConfirmQuitOpen(false)}
       >
-        <DialogTitle>{m.menu_quit_current_run_title()}</DialogTitle>
-        <DialogContent>
-          <Typography color="text.secondary">
-            {m.menu_quit_current_run_body()}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmQuitOpen(false)}>
-            {m.action_cancel()}
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => {
-              setConfirmQuitOpen(false);
-              onQuit();
-            }}
-          >
-            {m.action_quit()}
-          </Button>
-        </DialogActions>
+        <p className="m-0 text-sm text-[var(--color-muted)]">
+          {m.menu_quit_current_run_body()}
+        </p>
       </Dialog>
     </>
   );
