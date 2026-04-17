@@ -38,7 +38,7 @@ function getSessionModeLabel(gameState: GameState) {
   return getModeLabel(gameState.sessionConfig.mode);
 }
 
-export function useGameHudState() {
+export function useHudState() {
   const gameState = useAtomValue(gameStateAtom);
   const totalRounds = useAtomValue(totalRoundsAtom);
   const displayElapsedMs = useAtomValue(displayElapsedMsAtom);
@@ -65,6 +65,7 @@ export function useGameHudState() {
 
   return {
     displayElapsedMs,
+    gameState,
     roundLabel,
     runningSince,
     sessionLabels,

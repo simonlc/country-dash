@@ -2,6 +2,7 @@ import { Check, Crosshair, Globe, Info, MoreVertical, RotateCcw, XCircle } from 
 import { useId, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { useI18n } from '@/app/i18n';
+import { useGameMenuActions } from '@/game/menu/useGameMenuActions';
 import { m } from '@/paraglide/messages.js';
 import { ThemePreview } from '@/components/ThemePreview';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -26,10 +27,10 @@ import { cn } from '@/lib/utils';
 import { getThemeLabel } from '@/utils/themeTranslations';
 
 interface ThemeMenuProps {
-  onAbout: () => void;
-  onRefocus: () => void;
-  onRestart: () => void;
-  onQuit: () => void;
+  onAbout?: () => void;
+  onRefocus?: () => void;
+  onRestart?: () => void;
+  onQuit?: () => void;
 }
 
 interface MenuAction {
@@ -46,6 +47,7 @@ export function ThemeMenu({
   onRefocus,
   onRestart,
 }: ThemeMenuProps) {
+  const defaultActions = useGameMenuActions();
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
@@ -59,21 +61,21 @@ export function ThemeMenu({
     {
       id: 'refocus',
       icon: Crosshair,
-      label: m.action_refocus(),
-      onSelect: () => {
-        setOpen(false);
-        onRefocus();
+        label: m.action_refocus(),
+        onSelect: () => {
+          setOpen(false);
+          (onRefocus ?? defaultActions.onRefocus)();
+        },
       },
-    },
     {
       id: 'retry',
       icon: RotateCcw,
-      label: m.action_retry(),
-      onSelect: () => {
-        setOpen(false);
-        onRestart();
+        label: m.action_retry(),
+        onSelect: () => {
+          setOpen(false);
+          (onRestart ?? defaultActions.onRestart)();
+        },
       },
-    },
     {
       id: 'quit',
       icon: XCircle,
@@ -87,12 +89,12 @@ export function ThemeMenu({
     {
       id: 'about',
       icon: Info,
-      label: m.action_about(),
-      onSelect: () => {
-        setOpen(false);
-        onAbout();
+        label: m.action_about(),
+        onSelect: () => {
+          setOpen(false);
+          (onAbout ?? defaultActions.onAbout)();
+        },
       },
-    },
     {
       id: 'language',
       icon: Globe,
@@ -257,7 +259,7 @@ export function ThemeMenu({
               variant="contained"
               onClick={() => {
                 setConfirmQuitOpen(false);
-                onQuit();
+                (onQuit ?? defaultActions.onQuit)();
               }}
             >
               {m.action_quit()}

@@ -22,6 +22,34 @@ interface BrowserStorage {
   setItem: (key: string, value: string) => void;
 }
 
+export interface GameViewportState {
+  height: number;
+  isKeyboardOpen: boolean;
+  visualHeight: number;
+  width: number;
+}
+
+function getInitialViewportState(): GameViewportState {
+  if (typeof window === 'undefined') {
+    return {
+      height: 0,
+      isKeyboardOpen: false,
+      visualHeight: 0,
+      width: 0,
+    };
+  }
+
+  const width = Math.round(document.documentElement.clientWidth || window.innerWidth);
+  const height = Math.round(document.documentElement.clientHeight || window.innerHeight);
+
+  return {
+    height,
+    isKeyboardOpen: false,
+    visualHeight: height,
+    width,
+  };
+}
+
 function getBrowserStorage(): BrowserStorage | null {
   if (typeof window === 'undefined') {
     return null;
@@ -110,6 +138,7 @@ export const copyStateAtom = atom<'copied' | 'failed' | 'idle'>('idle');
 export const cipherTrafficStateAtom = atom<CipherTrafficState>(
   emptyCipherTrafficState,
 );
+export const viewportStateAtom = atom<GameViewportState>(getInitialViewportState());
 
 export const dailyResultAtomFamily = atomFamily((dateKey: string) =>
   atomWithStorage<DailyChallengeResult | null>(

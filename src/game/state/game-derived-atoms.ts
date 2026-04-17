@@ -5,7 +5,7 @@ import {
   buildRegionCountryPool,
   getRandomRunCountryCount,
 } from '@/utils/gameLogic';
-import { gameStateAtom, worldDataAtom } from './game-atoms';
+import { gameStateAtom, viewportStateAtom, worldDataAtom } from './game-atoms';
 
 export const countryPoolAtom = atom(
   (get) => get(worldDataAtom)?.world.features ?? [],
@@ -88,3 +88,7 @@ export const isReviewCompleteAtom = atom((get) => {
       gameState.roundIndex + 1 >= totalRounds)
   );
 });
+
+export const isKeyboardOpenAtom = atom(
+  (get) => get(viewportStateAtom).isKeyboardOpen,
+);
