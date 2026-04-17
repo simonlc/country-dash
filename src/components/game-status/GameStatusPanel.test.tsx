@@ -7,8 +7,8 @@ import {
   getThemeSurfaceStyles,
 } from '@/app/theme';
 import { renderWithProviders } from '@/test/render';
-import { GameStatusPanel } from './GameStatusPanel';
 import type { GameState } from '@/types/game';
+import { GameStatusPanel } from './GameStatusPanel';
 
 const activeTheme = appThemes[0]!;
 const panelSurface = getThemeSurfaceStyles(activeTheme, 'panel');
@@ -49,13 +49,6 @@ function createGameState(overrides: Partial<GameState>): GameState {
 
 const baseProps = {
   copyState: 'idle' as const,
-  countryOptions: [
-    {
-      isocode: 'CA',
-      isocode3: 'CAN',
-      nameEn: 'Canada',
-    },
-  ],
   currentCountryName: 'Canada',
   dailyShareText: null,
   displaySurface,
@@ -67,7 +60,6 @@ const baseProps = {
   onNextRound: vi.fn(),
   onPlayAgain: vi.fn(),
   onReturnToMenu: vi.fn(),
-  onSubmit: vi.fn(),
   panelSurface,
   storedDailyResult: null,
   totalRounds: 5,
@@ -83,18 +75,6 @@ describe('GameStatusPanel', () => {
     );
 
     expect(screen.getByText(/choose a run to begin/i)).toBeVisible();
-  });
-
-  it('renders the playing branch', () => {
-    renderWithProviders(
-      <GameStatusPanel
-        {...baseProps}
-        gameState={createGameState({ status: 'playing' })}
-      />,
-    );
-
-    expect(screen.getByText(/guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByLabelText(/guess the country/i)).toBeVisible();
   });
 
   it('renders the reviewing branch', () => {

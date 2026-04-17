@@ -8,7 +8,8 @@ import { CipherTelemetryPanel } from '@/components/CipherTelemetryPanel';
 import { FloatingOverlayLayer } from '@/components/FloatingOverlayLayer';
 import { GameBackground } from '@/components/GameBackground';
 import { GameHud } from '@/components/GameHud';
-import { GameStatusPanel } from '@/components/GameStatusPanel';
+import { GameStatusPanel } from '@/components/game-status/GameStatusPanel';
+import { GuessPanel } from '@/components/guess/GuessPanel';
 import { m } from '@/paraglide/messages.js';
 import { getThemeLabel } from '@/utils/themeTranslations';
 import { useGamePageState } from '@/hooks/useGamePageState';
@@ -20,6 +21,7 @@ export function GamePage() {
   const globeViewportHeight = state.size.visualHeight;
   const mobileInlineStartInset = 'max(env(safe-area-inset-left), 0px)';
   const mobileInlineEndInset = 'max(env(safe-area-inset-right), 0px)';
+  const isPlaying = state.gameState.status === 'playing';
   const topHudLayer = (
     <FloatingOverlayLayer
       alignItems="start"
@@ -73,26 +75,34 @@ export function GamePage() {
       mobileInlineEndInset={mobileInlineEndInset}
       mobileInlineStartInset={mobileInlineStartInset}
     >
-      <GameStatusPanel
-        copyState={state.copyState}
-        countryOptions={state.countryOptions}
-        currentCountryName={state.currentCountryName}
-        dailyShareText={state.dailyShareText}
-        displaySurface={state.displaySurface}
-        gameState={state.gameState}
-        isCapitalMode={state.isCapitalMode}
-        isDailyRun={state.isDailyRun}
-        isKeyboardOpen={state.isKeyboardOpen}
-        isReviewComplete={state.isReviewComplete}
-        onCopyDailyShare={state.handlers.onCopyDailyShare}
-        onNextRound={state.handlers.onNextRound}
-        onPlayAgain={state.handlers.onPlayAgain}
-        onReturnToMenu={state.handlers.onReturnToMenu}
-        onSubmit={state.handlers.onSubmit}
-        panelSurface={state.panelSurface}
-        storedDailyResult={state.storedDailyResult}
-        totalRounds={state.totalRounds}
-      />
+      {isPlaying ? (
+        <GuessPanel
+          countryOptions={state.countryOptions}
+          isCapitalMode={state.isCapitalMode}
+          isKeyboardOpen={state.isKeyboardOpen}
+          onSubmit={state.handlers.onSubmit}
+          panelSurface={state.panelSurface}
+        />
+      ) : (
+        <GameStatusPanel
+          copyState={state.copyState}
+          currentCountryName={state.currentCountryName}
+          dailyShareText={state.dailyShareText}
+          displaySurface={state.displaySurface}
+          gameState={state.gameState}
+          isCapitalMode={state.isCapitalMode}
+          isDailyRun={state.isDailyRun}
+          isKeyboardOpen={state.isKeyboardOpen}
+          isReviewComplete={state.isReviewComplete}
+          onCopyDailyShare={state.handlers.onCopyDailyShare}
+          onNextRound={state.handlers.onNextRound}
+          onPlayAgain={state.handlers.onPlayAgain}
+          onReturnToMenu={state.handlers.onReturnToMenu}
+          panelSurface={state.panelSurface}
+          storedDailyResult={state.storedDailyResult}
+          totalRounds={state.totalRounds}
+        />
+      )}
     </FloatingOverlayLayer>
   );
 
