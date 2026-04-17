@@ -105,6 +105,27 @@ describe('GuessInput', () => {
     expect(input).toHaveValue('Dominica');
   });
 
+  it('shows the tab-completion hint text that Tab applies', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={options}
+        variant="country"
+      />,
+    );
+
+    const input = screen.getByLabelText(/guess the country/i);
+    await user.type(input, 'dom');
+
+    expect(screen.getByTestId('guess-tab-hint')).toHaveTextContent(/dominica/i);
+    await user.keyboard('{Tab}');
+
+    expect(input).toHaveValue('Dominica');
+    expect(screen.queryByTestId('guess-tab-hint')).not.toBeInTheDocument();
+  });
+
   it('uses capital options in capital mode', async () => {
     const user = userEvent.setup();
 

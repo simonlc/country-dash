@@ -272,6 +272,31 @@ describe('GamePage', () => {
     expect(screen.queryByText(/^Hints$/i)).not.toBeInTheDocument();
   });
 
+  it('focuses guess input after advancing to next round', async () => {
+    const user = userEvent.setup();
+    const intro = await getIntroHandlers();
+
+    act(() => {
+      intro.onStartRandom({
+        mode: 'classic',
+        regionFilter: null,
+        countrySizeFilter: 'mixed',
+      });
+    });
+
+    const input = await screen.findByLabelText(/guess the country/i);
+    await user.type(input, 'Atlantis');
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Missed');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+
+    const nextRoundInput = await screen.findByLabelText(/guess the country/i);
+    await waitFor(() => {
+      expect(nextRoundInput).toHaveFocus();
+    });
+  });
+
   it('supports retry and confirms quit from the menu', async () => {
     const user = userEvent.setup();
     const intro = await getIntroHandlers();

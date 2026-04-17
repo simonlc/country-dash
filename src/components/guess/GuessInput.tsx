@@ -1,6 +1,14 @@
 import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
-import { useCallback, useId, useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { useI18n } from '@/app/i18n';
 import { m } from '@/paraglide/messages.js';
 import {
@@ -19,7 +27,9 @@ import {
   buildGuessChoices,
   filterGuessChoices,
   findExactGuessChoice,
+  labelStartsWithInput,
 } from './guessChoices';
+import { GuessAutocompleteInput } from './GuessAutocompleteInput';
 import type { GuessInputProps, HighlightPart } from './types';
 
 function getGuessLabel(variant: 'country' | 'capital') {
@@ -37,6 +47,7 @@ function getGuessPlaceholder(variant: 'country' | 'capital') {
 export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
   const { locale } = useI18n();
   const listboxId = useId();
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -47,6 +58,12 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
   const filteredOptions = useMemo(
     () => filterGuessChoices(choices, inputValue),
     [choices, inputValue],
+  );
+  const completionChoice = useMemo(
+    () =>
+      filteredOptions.find((choice) => labelStartsWithInput(choice, inputValue)) ??
+      null,
+    [filteredOptions, inputValue],
   );
 
   const submitGuess = useCallback((rawValue?: string) => {
@@ -89,9 +106,8 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
     }
 
     if (event.key === 'Tab' && open) {
-      const firstMatchingOption = filteredOptions[0];
-      if (firstMatchingOption) {
-        selectOption(firstMatchingOption.label, false);
+      if (completionChoice) {
+        selectOption(completionChoice.label, false);
         event.preventDefault();
       }
       return;
@@ -120,11 +136,22 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
     filteredOptions,
     highlightedIndex,
     open,
+    completionChoice,
     selectOption,
     submitGuess,
   ]);
 
   const guessLabel = getGuessLabel(variant);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   return (
     <form
@@ -148,7 +175,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
           }}
         >
           <PopoverAnchor asChild>
-            <input
+            <GuessAutocompleteInput
               aria-activedescendant={
                 open && highlightedIndex >= 0 && filteredOptions[highlightedIndex]
                   ? `${listboxId}-${filteredOptions[highlightedIndex]?.id}`
@@ -161,7 +188,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
               autoCapitalize="none"
               autoComplete="off"
               autoCorrect="off"
-              className="flex h-11 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-base font-semibold text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              completionValue={completionChoice?.label ?? ''}
               enterKeyHint="done"
               id="country-guess"
               inputMode="search"
@@ -169,14 +196,14 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
               role="combobox"
               spellCheck={false}
               value={inputValue}
+              ref={inputRef}
               onBlur={() => {
                 window.setTimeout(() => {
                   setOpen(false);
                   setHighlightedIndex(-1);
                 }, 80);
               }}
-              onChange={(event) => {
-                const nextValue = event.target.value;
+              onValueChange={(nextValue) => {
                 setInputValue(nextValue);
                 setHighlightedIndex(-1);
                 setOpen(nextValue.trim().length > 0);
