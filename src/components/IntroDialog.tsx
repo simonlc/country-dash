@@ -217,16 +217,15 @@ export const IntroDialog = NiceModal.create(
           }
         }}
       >
-        <DialogContent
-          className="left-0 top-0 h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 rounded-none border-none p-0"
-          showCloseButton={false}
-        >
+        <DialogContent showCloseButton={false}>
           <DialogTitle className="sr-only">{m.app_name()}</DialogTitle>
           <div className="grid gap-4 px-5 pt-[max(env(safe-area-inset-top),8px)] pb-[max(env(safe-area-inset-bottom),10px)]">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
               <div className="grid gap-2">
                 <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
-                <p className="m-0 text-sm text-[var(--color-muted)]">{m.app_subtitle()}</p>
+                <p className="m-0 text-sm text-[var(--color-muted)]">
+                  {m.app_subtitle()}
+                </p>
                 <div>
                   <Button
                     size="sm"
@@ -246,197 +245,220 @@ export const IntroDialog = NiceModal.create(
                     {m.game_daily_complete_short_label()}
                   </p>
 
-                {dailySummary ? (
-                  <div className="flex min-h-[54px] items-center justify-between gap-4">
+                  {dailySummary ? (
+                    <div className="flex min-h-[54px] items-center justify-between gap-4">
+                      <div className="grid gap-1">
+                        <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-[#d7902d]">
+                          {m.game_done_today()}
+                        </p>
+                        <p className="m-0 text-3xl font-bold leading-none">
+                          {dailySummary}
+                        </p>
+                      </div>
+                      <div className="grid text-end">
+                        <p className="m-0 text-sm text-[var(--color-muted)]">
+                          {m.game_finished()}
+                        </p>
+                        <p className="m-0 text-xs">
+                          {dailyResult
+                            ? formatCompletedDate(
+                                locale,
+                                dailyResult.completedAt,
+                              )
+                            : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
                     <div className="grid gap-1">
-                      <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-[#d7902d]">
-                        {m.game_done_today()}
-                      </p>
-                      <p className="m-0 text-3xl font-bold leading-none">{dailySummary}</p>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <p className="m-0 text-3xl font-bold leading-none">5</p>
+                        <p className="m-0 text-xs uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                          {m.country_count_plural_label()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="grid text-end">
-                      <p className="m-0 text-sm text-[var(--color-muted)]">{m.game_finished()}</p>
-                      <p className="m-0 text-xs">
-                        {dailyResult
-                          ? formatCompletedDate(locale, dailyResult.completedAt)
-                          : ''}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid gap-1">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <p className="m-0 text-3xl font-bold leading-none">5</p>
-                      <p className="m-0 text-xs uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                        {m.country_count_plural_label()}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {dailySummary ? (
-                  <p className="m-0 text-sm text-[var(--color-muted)]">
-                    {m.game_today_finished_reset({
-                      countdown: dailyResetCountdownLabel,
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-2">
+                  {dailySummary ? (
                     <p className="m-0 text-sm text-[var(--color-muted)]">
-                      {m.game_resets_in({ countdown: dailyResetCountdownLabel })}
+                      {m.game_today_finished_reset({
+                        countdown: dailyResetCountdownLabel,
+                      })}
                     </p>
-                    <Button
-                      size="lg"
-                      variant="contained"
-                      onClick={() => {
-                        onStartDaily();
-                        void modal.hide();
-                      }}
-                    >
-                      {m.action_start_daily_challenge()}
-                    </Button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="grid gap-2">
+                      <p className="m-0 text-sm text-[var(--color-muted)]">
+                        {m.game_resets_in({
+                          countdown: dailyResetCountdownLabel,
+                        })}
+                      </p>
+                      <Button
+                        size="lg"
+                        variant="contained"
+                        onClick={() => {
+                          onStartDaily();
+                          void modal.hide();
+                        }}
+                      >
+                        {m.action_start_daily_challenge()}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
 
-          <Card className="p-4" tone="elevated">
-            <div className="grid gap-4">
-              <div>
-                <h2 className="m-0 text-xl font-semibold">{m.game_new_game()}</h2>
-                <p className="m-0 text-sm text-[var(--color-muted)]">
-                  {m.game_new_game_subtitle()}
-                </p>
-              </div>
+            <Card className="p-4" tone="elevated">
+              <div className="grid gap-4">
+                <div>
+                  <h2 className="m-0 text-xl font-semibold">
+                    {m.game_new_game()}
+                  </h2>
+                  <p className="m-0 text-sm text-[var(--color-muted)]">
+                    {m.game_new_game_subtitle()}
+                  </p>
+                </div>
 
-              <div className="grid gap-2">
+                <div className="grid gap-2">
+                  <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                    {m.how_to_play_modes_title()}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {modeDetails.map((option) => {
+                      const ModeIcon = option.icon;
+
+                      return (
+                        <button
+                          aria-label={getModeLabel(option.value)}
+                          aria-pressed={mode === option.value}
+                          className={`grid min-h-[84px] gap-2 rounded-md border p-3 text-start ${
+                            mode === option.value
+                              ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
+                              : 'border-[var(--color-border)] bg-[var(--color-card)]'
+                          }`}
+                          key={option.value}
+                          type="button"
+                          onClick={() => setMode(option.value)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ModeIcon aria-hidden size={15} strokeWidth={2} />
+                            <span className="text-sm font-medium">
+                              {getModeLabel(option.value)}
+                            </span>
+                          </div>
+                          <span className="text-xs text-[var(--color-muted)]">
+                            {option.value === 'classic'
+                              ? m.intro_mode_classic_description()
+                              : option.value === 'threeLives'
+                                ? m.intro_mode_three_lives_description()
+                                : option.value === 'capitals'
+                                  ? m.intro_mode_capitals_description()
+                                  : m.intro_mode_streak_description()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                  {m.how_to_play_modes_title()}
+                  {m.game_pool_country_pools()}
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {modeDetails.map((option) => {
-                    const ModeIcon = option.icon;
+                <div className="grid gap-2 md:grid-cols-3">
+                  {sizeItems.map((item) => {
+                    const ItemIcon = item.icon;
 
                     return (
                       <button
-                        aria-label={getModeLabel(option.value)}
-                        aria-pressed={mode === option.value}
-                        className={`grid min-h-[84px] gap-2 rounded-md border p-3 text-start ${
-                          mode === option.value
+                        aria-label={m.intro_pool_option_aria({
+                          description: item.description,
+                          label: item.label,
+                          meta: item.meta,
+                        })}
+                        aria-pressed={item.selected}
+                        className={`grid min-h-[112px] content-start gap-2 rounded-md border p-4 text-start ${
+                          item.selected
                             ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
                             : 'border-[var(--color-border)] bg-[var(--color-card)]'
                         }`}
-                        key={option.value}
+                        key={`size-${item.value}`}
                         type="button"
-                        onClick={() => setMode(option.value)}
+                        onClick={() => {
+                          setCountrySizeFilter(item.value);
+                          setRegionFilter(null);
+                        }}
                       >
-                        <div className="flex items-center gap-2">
-                          <ModeIcon aria-hidden size={15} strokeWidth={2} />
-                          <span className="text-sm font-medium">{getModeLabel(option.value)}</span>
-                        </div>
+                        <ItemIcon aria-hidden size={18} strokeWidth={2} />
+                        <span className="text-base font-semibold">
+                          {item.label}
+                        </span>
                         <span className="text-xs text-[var(--color-muted)]">
-                          {option.value === 'classic'
-                            ? m.intro_mode_classic_description()
-                            : option.value === 'threeLives'
-                              ? m.intro_mode_three_lives_description()
-                              : option.value === 'capitals'
-                                ? m.intro_mode_capitals_description()
-                                : m.intro_mode_streak_description()}
+                          {item.meta}
+                        </span>
+                        <span className="text-xs text-[var(--color-muted)]">
+                          {item.detail}
                         </span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
 
-              <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                {m.game_pool_country_pools()}
-              </p>
-              <div className="grid gap-2 md:grid-cols-3">
-                {sizeItems.map((item) => {
-                  const ItemIcon = item.icon;
-
-                  return (
+                <div className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
+                  {categoryItems.map((item) => (
                     <button
-                      aria-label={m.intro_pool_option_aria({
+                      aria-label={m.intro_region_option_aria({
                         description: item.description,
                         label: item.label,
                         meta: item.meta,
                       })}
                       aria-pressed={item.selected}
-                      className={`grid min-h-[112px] content-start gap-2 rounded-md border p-4 text-start ${
+                      className={`grid gap-0.5 px-0 py-2 text-start ${
                         item.selected
-                          ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
-                          : 'border-[var(--color-border)] bg-[var(--color-card)]'
+                          ? 'text-[var(--color-primary)]'
+                          : 'text-[var(--color-muted)]'
                       }`}
-                      key={`size-${item.value}`}
+                      key={`region-${item.value}`}
                       type="button"
                       onClick={() => {
-                        setCountrySizeFilter(item.value);
-                        setRegionFilter(null);
+                        setRegionFilter(item.value);
+                        setCountrySizeFilter('mixed');
                       }}
                     >
-                      <ItemIcon aria-hidden size={18} strokeWidth={2} />
-                      <span className="text-base font-semibold">{item.label}</span>
-                      <span className="text-xs text-[var(--color-muted)]">{item.meta}</span>
-                      <span className="text-xs text-[var(--color-muted)]">{item.detail}</span>
+                      <span
+                        className={`text-sm ${item.selected ? 'font-bold' : 'font-medium'}`}
+                      >
+                        {item.label}
+                      </span>
+                      <span
+                        className={`text-xs uppercase tracking-[0.04em] ${
+                          item.selected ? 'opacity-100' : 'opacity-60'
+                        }`}
+                      >
+                        {item.meta}
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
 
-              <div className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
-                {categoryItems.map((item) => (
-                  <button
-                    aria-label={m.intro_region_option_aria({
-                      description: item.description,
-                      label: item.label,
-                      meta: item.meta,
-                    })}
-                    aria-pressed={item.selected}
-                    className={`grid gap-0.5 px-0 py-2 text-start ${
-                      item.selected ? 'text-[var(--color-primary)]' : 'text-[var(--color-muted)]'
-                    }`}
-                    key={`region-${item.value}`}
-                    type="button"
-                    onClick={() => {
-                      setRegionFilter(item.value);
-                      setCountrySizeFilter('mixed');
-                    }}
-                  >
-                    <span className={`text-sm ${item.selected ? 'font-bold' : 'font-medium'}`}>
-                      {item.label}
-                    </span>
-                    <span
-                      className={`text-xs uppercase tracking-[0.04em] ${
-                        item.selected ? 'opacity-100' : 'opacity-60'
-                      }`}
-                    >
-                      {item.meta}
-                    </span>
-                  </button>
-                ))}
+                <Button
+                  size="lg"
+                  variant="contained"
+                  onClick={() => {
+                    onStartRandom({
+                      mode,
+                      regionFilter,
+                      countrySizeFilter,
+                    });
+                    void modal.hide();
+                  }}
+                >
+                  {m.action_start_with_pool({
+                    pool: getSelectedPoolLabel(countrySizeFilter, regionFilter),
+                  })}
+                </Button>
               </div>
-
-              <Button
-                size="lg"
-                variant="contained"
-                onClick={() => {
-                  onStartRandom({
-                    mode,
-                    regionFilter,
-                    countrySizeFilter,
-                  });
-                  void modal.hide();
-                }}
-              >
-                {m.action_start_with_pool({
-                  pool: getSelectedPoolLabel(countrySizeFilter, regionFilter),
-                })}
-              </Button>
-            </div>
-          </Card>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>
