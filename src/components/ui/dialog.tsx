@@ -1,5 +1,6 @@
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { useEffect, useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const dialogPanelVariants = cva(
@@ -42,58 +43,45 @@ export function Dialog({
   size = 'md',
   title,
 }: DialogProps) {
-  const titleId = useId();
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose, open]);
-
-  if (!open) {
-    return null;
-  }
+  const accessibleTitle = typeof title === 'string' ? title : 'Dialog';
 
   return (
-    <div
-      className="fixed inset-0 z-[1300] grid place-items-center bg-black/35 p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
           onClose();
         }
       }}
     >
-      <div
-        aria-labelledby={title ? titleId : undefined}
-        aria-modal="true"
-        className={cn(dialogPanelVariants({ fullScreen, size }))}
-        role="dialog"
-      >
-        {title ? (
-          <header className="px-5 pt-5" id={titleId}>
-            {typeof title === 'string' ? (
-              <h2 className="m-0 text-xl font-semibold">{title}</h2>
-            ) : (
-              title
-            )}
-          </header>
-        ) : null}
-        <div className="px-5 pb-4 pt-4">{children}</div>
-        {actions ? (
-          <footer className="flex flex-wrap justify-end gap-2 border-t border-[var(--color-border)] px-5 py-4">
-            {actions}
-          </footer>
-        ) : null}
-      </div>
-    </div>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[1300] bg-black/35" />
+        <DialogPrimitive.Content
+          aria-describedby={undefined}
+          className={cn(
+            dialogPanelVariants({ fullScreen, size }),
+            'fixed z-[1300]',
+            fullScreen ? 'inset-0' : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+          )}
+        >
+          <DialogPrimitive.Title className="sr-only">{accessibleTitle}</DialogPrimitive.Title>
+          {title ? (
+            <header className="px-5 pt-5">
+              {typeof title === 'string' ? (
+                <h2 className="m-0 text-xl font-semibold">{title}</h2>
+              ) : (
+                <div>{title}</div>
+              )}
+            </header>
+          ) : null}
+          <div className="px-5 pb-4 pt-4">{children}</div>
+          {actions ? (
+            <footer className="flex flex-wrap justify-end gap-2 border-t border-[var(--color-border)] px-5 py-4">
+              {actions}
+            </footer>
+          ) : null}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

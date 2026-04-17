@@ -26,14 +26,12 @@ export function GamePage() {
         incorrect={state.gameState.incorrect}
         isKeyboardOpen={state.isKeyboardOpen}
         livesRemaining={state.gameState.livesRemaining}
-        onRefocus={state.handlers.onRefocus}
         roundLabel={state.roundLabel}
         runningSince={state.runningSince}
         score={state.gameState.score}
         sessionLabels={state.sessionLabels}
         sessionModeLabel={state.sessionModeLabel}
         sessionSummaryLabel={state.sessionSummaryLabel}
-        showRefocus={state.showRefocus}
         streak={state.gameState.streak}
         topBarMenu={(
           <ThemeMenu

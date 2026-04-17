@@ -27,7 +27,7 @@ export function FloatingOverlayLayer({
         'ps-[max(env(safe-area-inset-left),0px)] pe-[max(env(safe-area-inset-right),0px)] md:px-2',
       )}
     >
-      <div className={cn('w-full', maxWidth === 'hud' ? 'max-w-[1240px]' : 'max-w-[860px]')}>
+      <div className={cn('mx-auto w-full', maxWidth === 'hud' ? 'max-w-[1240px]' : 'max-w-[860px]')}>
         {children}
       </div>
     </div>

@@ -2,6 +2,22 @@ import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
+if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
+  class ResizeObserverMock {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  }
+
+  window.ResizeObserver = ResizeObserverMock as typeof ResizeObserver;
+}
+
+if (typeof window !== 'undefined' && typeof Element !== 'undefined') {
+  Element.prototype.scrollIntoView = vi.fn();
+}
+
 interface LevaControlValue {
   value: boolean | number | string;
 }

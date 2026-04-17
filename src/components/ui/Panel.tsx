@@ -92,7 +92,7 @@ export function Panel({
           surface,
         }),
         mobileAttachmentClass,
-        'self-end md:mb-6',
+        'mx-auto md:mb-6',
         className,
       )}
     >

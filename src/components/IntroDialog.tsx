@@ -16,6 +16,7 @@ import { useI18n } from '@/app/i18n';
 import { m } from '@/paraglide/messages.js';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import type {
   CountrySizeFilter,
@@ -227,7 +228,7 @@ export const IntroDialog = NiceModal.create(
               </div>
             </div>
 
-            <section className="surface-elevated rounded-sm border border-[var(--surface-panel-border)] p-4">
+            <Card className="p-4" tone="elevated">
               <div className="grid gap-3">
                 <p className="m-0 inline-flex w-fit rounded-full border border-[color:color-mix(in_srgb,var(--color-primary)_36%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#d7902d]">
                   {m.game_daily_complete_short_label()}
@@ -285,10 +286,10 @@ export const IntroDialog = NiceModal.create(
                   </div>
                 )}
               </div>
-            </section>
+            </Card>
           </div>
 
-          <section className="surface-elevated rounded-sm p-4">
+          <Card className="p-4" tone="elevated">
             <div className="grid gap-4">
               <div>
                 <h2 className="m-0 text-xl font-semibold">{m.game_new_game()}</h2>
@@ -423,7 +424,7 @@ export const IntroDialog = NiceModal.create(
                 })}
               </Button>
             </div>
-          </section>
+          </Card>
         </div>
       </Dialog>
     );

@@ -1,6 +1,7 @@
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import { m } from '@/paraglide/messages.js';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 
 export const HowToPlayDialog = NiceModal.create(() => {
@@ -26,9 +27,9 @@ export const HowToPlayDialog = NiceModal.create(() => {
       onClose={() => void modal.hide()}
     >
       <div className="grid gap-5">
-        <div className="surface-display-accent rounded-sm p-4">
+        <Card className="p-4" tone="accent">
           <p className="m-0">{m.how_to_play_intro()}</p>
-        </div>
+        </Card>
 
         <section className="grid gap-2">
           <h3 className="m-0 text-base font-semibold">{m.how_to_play_what_title()}</h3>

@@ -9,6 +9,7 @@ const cardVariants = cva(
       tone: {
         accent: 'bg-[var(--surface-display-accent-bg)] border border-[var(--surface-display-accent-border)]',
         default: '',
+        elevated: 'surface-elevated border border-[var(--surface-panel-border)]',
         muted: 'bg-[var(--surface-display-neutral-bg)] border border-[var(--surface-display-neutral-border)]',
         outlined: 'bg-[var(--color-card)] border border-[var(--color-border)]',
       },

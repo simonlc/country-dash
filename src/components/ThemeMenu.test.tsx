@@ -28,14 +28,14 @@ describe('ThemeMenu', () => {
 
     const menuTrigger = screen.getByRole('button', { name: /^menu$/i });
     await user.click(menuTrigger);
-    const refocusButton = screen.getByRole('button', { name: /refocus country/i });
+    const refocusButton = screen.getByRole('menuitem', { name: /refocus country/i });
     refocusButton.focus();
     await user.keyboard('{Enter}');
 
     expect(onRefocus).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('button', { name: /^about$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^about$/i }));
 
     expect(onAbout).toHaveBeenCalledTimes(1);
   });
@@ -58,12 +58,12 @@ describe('ThemeMenu', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('button', { name: /^retry$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^retry$/i }));
 
     expect(onRestart).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('button', { name: /^quit$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^quit$/i }));
 
     expect(onQuit).toHaveBeenCalledTimes(1);
@@ -72,7 +72,7 @@ describe('ThemeMenu', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('button', { name: /select language/i }));
+    await user.click(screen.getByRole('menuitem', { name: /select language/i }));
     expect(await screen.findByRole('dialog', { name: /select language/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /english/i })).toBeVisible();
   });

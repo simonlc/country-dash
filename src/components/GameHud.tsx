@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { m } from '@/paraglide/messages.js';
 import { GameTimer } from '@/components/GameTimer';
-import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/components/ui/theme-provider';
 
 interface GameHudProps {
@@ -10,14 +9,12 @@ interface GameHudProps {
   incorrect: number;
   isKeyboardOpen: boolean;
   livesRemaining: number | null;
-  onRefocus: () => void;
   roundLabel: string;
   runningSince: number | null;
   score: number;
   sessionLabels: string[];
   sessionModeLabel: string;
   sessionSummaryLabel: string;
-  showRefocus: boolean;
   streak: number;
   topBarMenu: ReactNode;
 }
@@ -28,14 +25,12 @@ export function GameHud({
   incorrect,
   isKeyboardOpen,
   livesRemaining,
-  onRefocus,
   roundLabel,
   runningSince,
   score,
   sessionLabels,
   sessionModeLabel,
   sessionSummaryLabel,
-  showRefocus,
   streak,
   topBarMenu,
 }: GameHudProps) {
@@ -121,17 +116,6 @@ export function GameHud({
           >
             <GameTimer elapsedMs={displayElapsedMs} runningSince={runningSince} />
           </div>
-          {showRefocus && !isCompactLayout ? (
-            <Button
-              aria-label={m.game_refocus_country_aria()}
-              className="min-h-11 border-[rgba(150,201,255,0.22)] py-[7px]"
-              size="sm"
-              variant="contained"
-              onClick={onRefocus}
-            >
-              {m.action_refocus()}
-            </Button>
-          ) : null}
         </div>
       </div>
     </section>

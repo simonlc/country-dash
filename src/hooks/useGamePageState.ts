@@ -175,7 +175,6 @@ interface UseGamePageStateResult {
   setAdminOverridePatch: (
     patch: GlobeThemeSettingsPatch,
   ) => void;
-  showRefocus: boolean;
   size: {
     width: number;
     height: number;
@@ -649,8 +648,6 @@ export function useGamePageState(): UseGamePageStateResult {
     sessionModeLabel,
     sessionSummaryLabel,
     setAdminOverridePatch,
-    showRefocus:
-      gameState.status !== 'gameOver' && gameState.status !== 'intro',
     size: {
       width: size.width,
       height: size.height,
