@@ -5,7 +5,7 @@ import { normalizeGuess } from '@/utils/gameLogic';
 import { matchSorter } from 'match-sorter';
 import type { GuessChoice } from './types';
 
-const MAX_VISIBLE_RESULTS = 4;
+const MAX_VISIBLE_RESULTS = 5;
 
 function normalizeText(value: string) {
   return normalizeGuess(value);

@@ -17,7 +17,7 @@ import { m } from '@/paraglide/messages.js';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type {
   CountrySizeFilter,
   DailyChallengeResult,
@@ -209,30 +209,42 @@ export const IntroDialog = NiceModal.create(
     }));
 
     return (
-      <Dialog fullScreen open={modal.visible} size="lg" onClose={() => void modal.hide()}>
-        <div className="grid gap-4 pt-[max(env(safe-area-inset-top),8px)] pb-[max(env(safe-area-inset-bottom),10px)]">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
-            <div className="grid gap-2">
-              <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
-              <p className="m-0 text-sm text-[var(--color-muted)]">{m.app_subtitle()}</p>
-              <div>
-                <Button
-                  size="sm"
-                  startIcon={<Info />}
-                  onClick={() => {
-                    void NiceModal.show(HowToPlayDialog);
-                  }}
-                >
-                  {m.action_how_to_play()}
-                </Button>
+      <Dialog
+        open={modal.visible}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            void modal.hide();
+          }
+        }}
+      >
+        <DialogContent
+          className="left-0 top-0 h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 rounded-none border-none p-0"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">{m.app_name()}</DialogTitle>
+          <div className="grid gap-4 px-5 pt-[max(env(safe-area-inset-top),8px)] pb-[max(env(safe-area-inset-bottom),10px)]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
+              <div className="grid gap-2">
+                <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
+                <p className="m-0 text-sm text-[var(--color-muted)]">{m.app_subtitle()}</p>
+                <div>
+                  <Button
+                    size="sm"
+                    startIcon={<Info />}
+                    onClick={() => {
+                      void NiceModal.show(HowToPlayDialog);
+                    }}
+                  >
+                    {m.action_how_to_play()}
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <Card className="p-4" tone="elevated">
-              <div className="grid gap-3">
-                <p className="m-0 inline-flex w-fit rounded-full border border-[color:color-mix(in_srgb,var(--color-primary)_36%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#d7902d]">
-                  {m.game_daily_complete_short_label()}
-                </p>
+              <Card className="p-4" tone="elevated">
+                <div className="grid gap-3">
+                  <p className="m-0 inline-flex w-fit rounded-full border border-[color:color-mix(in_srgb,var(--color-primary)_36%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#d7902d]">
+                    {m.game_daily_complete_short_label()}
+                  </p>
 
                 {dailySummary ? (
                   <div className="flex min-h-[54px] items-center justify-between gap-4">
@@ -285,9 +297,9 @@ export const IntroDialog = NiceModal.create(
                     </Button>
                   </div>
                 )}
-              </div>
-            </Card>
-          </div>
+                </div>
+              </Card>
+            </div>
 
           <Card className="p-4" tone="elevated">
             <div className="grid gap-4">
@@ -425,7 +437,8 @@ export const IntroDialog = NiceModal.create(
               </Button>
             </div>
           </Card>
-        </div>
+          </div>
+        </DialogContent>
       </Dialog>
     );
   },

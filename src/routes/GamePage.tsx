@@ -51,12 +51,14 @@ export function GamePage() {
       maxWidth="status"
     >
       {isPlaying ? (
-        <GuessPanel
-          countryOptions={state.countryOptions}
-          isCapitalMode={state.isCapitalMode}
-          isKeyboardOpen={state.isKeyboardOpen}
-          onSubmit={state.handlers.onSubmit}
-        />
+        <div className="md:mb-12">
+          <GuessPanel
+            countryOptions={state.countryOptions}
+            isCapitalMode={state.isCapitalMode}
+            isKeyboardOpen={state.isKeyboardOpen}
+            onSubmit={state.handlers.onSubmit}
+          />
+        </div>
       ) : (
         <GameStatusPanel
           copyState={state.copyState}

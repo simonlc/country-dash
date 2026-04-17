@@ -232,7 +232,7 @@ describe('GuessInput', () => {
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
-  it('limits autocomplete results to four options', async () => {
+  it('limits autocomplete results to five options', async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -252,7 +252,7 @@ describe('GuessInput', () => {
     const input = screen.getByLabelText(/guess the country/i);
     await user.type(input, 'd');
 
-    expect(screen.getAllByRole('option')).toHaveLength(4);
-    expect(screen.queryByRole('option', { name: 'Algeria' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    expect(screen.getByRole('option', { name: 'Algeria' })).toBeVisible();
   });
 });

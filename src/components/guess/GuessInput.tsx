@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/command';
 import {
   Popover,
-  PopoverAnchor,
   PopoverContent,
+  PopoverTrigger,
 } from '@/components/ui/popover';
 import {
   buildGuessChoices,
@@ -174,53 +174,55 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
             setOpen(nextOpen && inputValue.trim().length > 0);
           }}
         >
-          <PopoverAnchor asChild>
-            <GuessAutocompleteInput
-              aria-activedescendant={
-                open && highlightedIndex >= 0 && filteredOptions[highlightedIndex]
-                  ? `${listboxId}-${filteredOptions[highlightedIndex]?.id}`
-                  : undefined
-              }
-              aria-autocomplete="list"
-              aria-controls={listboxId}
-              aria-expanded={open}
-              aria-haspopup="listbox"
-              autoCapitalize="none"
-              autoComplete="off"
-              autoCorrect="off"
-              completionValue={completionChoice?.label ?? ''}
-              enterKeyHint="done"
-              id="country-guess"
-              inputMode="search"
-              placeholder={getGuessPlaceholder(variant)}
-              role="combobox"
-              spellCheck={false}
-              value={inputValue}
-              ref={inputRef}
-              onBlur={() => {
-                window.setTimeout(() => {
-                  setOpen(false);
+          <PopoverTrigger
+            nativeButton={false}
+            render={(
+              <GuessAutocompleteInput
+                aria-activedescendant={
+                  open && highlightedIndex >= 0 && filteredOptions[highlightedIndex]
+                    ? `${listboxId}-${filteredOptions[highlightedIndex]?.id}`
+                    : undefined
+                }
+                aria-autocomplete="list"
+                aria-controls={listboxId}
+                aria-expanded={open}
+                aria-haspopup="listbox"
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                completionValue={completionChoice?.label ?? ''}
+                enterKeyHint="done"
+                id="country-guess"
+                inputMode="search"
+                placeholder={getGuessPlaceholder(variant)}
+                role="combobox"
+                spellCheck={false}
+                value={inputValue}
+                ref={inputRef}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setOpen(false);
+                    setHighlightedIndex(-1);
+                  }, 80);
+                }}
+                onValueChange={(nextValue) => {
+                  setInputValue(nextValue);
                   setHighlightedIndex(-1);
-                }, 80);
-              }}
-              onValueChange={(nextValue) => {
-                setInputValue(nextValue);
-                setHighlightedIndex(-1);
-                setOpen(nextValue.trim().length > 0);
-              }}
-              onFocus={() => {
-                setOpen(inputValue.trim().length > 0);
-              }}
-              onKeyDown={onKeyDown}
-            />
-          </PopoverAnchor>
+                  setOpen(nextValue.trim().length > 0);
+                }}
+                onFocus={() => {
+                  setOpen(inputValue.trim().length > 0);
+                }}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
           <PopoverContent
             align="start"
             className="max-h-64 p-0"
+            initialFocus={false}
+            side="bottom"
             sideOffset={6}
-            onOpenAutoFocus={(event) => {
-              event.preventDefault();
-            }}
           >
             <Command shouldFilter={false}>
               <CommandList id={listboxId} role="listbox">

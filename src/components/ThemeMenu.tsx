@@ -1,11 +1,18 @@
 import { Check, Crosshair, Globe, Info, MoreVertical, RotateCcw, XCircle } from 'react-feather';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useAppearance } from '@/app/appearance';
 import { useI18n } from '@/app/i18n';
 import { m } from '@/paraglide/messages.js';
 import { ThemePreview } from '@/components/ThemePreview';
-import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +49,7 @@ export function ThemeMenu({
   const [open, setOpen] = useState(false);
   const [confirmQuitOpen, setConfirmQuitOpen] = useState(false);
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+  const menuTriggerId = useId();
   const { languages, locale, setLocale } = useI18n();
   const { activeTheme, setTheme, themes } = useAppearance();
   const isRtlDocument =
@@ -99,17 +107,26 @@ export function ThemeMenu({
   return (
     <>
       <div className="pointer-events-auto relative inline-flex z-[2]">
-        <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              aria-label={open ? m.action_close() : m.action_menu()}
-              className="surface-elevated min-h-11 min-w-11 rounded-sm border border-[var(--surface-panel-border)] p-0 text-[var(--color-primary)]"
-              size="sm"
-              type="button"
-              variant="text"
-            >
-              <MoreVertical size={17} />
-            </Button>
+        <DropdownMenu
+          modal={false}
+          open={open}
+          triggerId={menuTriggerId}
+          onOpenChange={setOpen}
+        >
+          <DropdownMenuTrigger
+            aria-label={open ? m.action_close() : m.action_menu()}
+            className={cn(
+              buttonVariants({ size: 'sm', variant: 'text' }),
+              'surface-elevated min-h-11 min-w-11 rounded-sm border border-[var(--surface-panel-border)] p-0 text-[var(--color-primary)]',
+            )}
+            id={menuTriggerId}
+            onClick={() => {
+              if (!open) {
+                setOpen(true);
+              }
+            }}
+          >
+            <MoreVertical size={17} />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align={isRtlDocument ? 'start' : 'end'}
@@ -131,8 +148,7 @@ export function ThemeMenu({
                           : null,
                       )}
                       key={action.id}
-                      onSelect={(event) => {
-                        event.preventDefault();
+                      onClick={() => {
                         action.onSelect();
                       }}
                     >
@@ -143,74 +159,96 @@ export function ThemeMenu({
                 })}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="px-1 text-xs">{m.menu_themes()}</DropdownMenuLabel>
-              <div className="grid grid-cols-2 gap-2 px-1">
-                {themes.map((themeOption) => {
-                  const isActive = themeOption.id === activeTheme.id;
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-1 text-xs">{m.menu_themes()}</DropdownMenuLabel>
+                <div className="grid grid-cols-2 gap-2 px-1">
+                  {themes.map((themeOption) => {
+                    const isActive = themeOption.id === activeTheme.id;
 
-                  return (
-                    <ThemePreview
-                      ariaLabel={getThemeLabel(themeOption.id)}
-                      key={themeOption.id}
-                      selected={isActive}
-                      theme={themeOption}
-                      onClick={() => {
-                        setTheme(themeOption.id);
-                        setOpen(false);
-                      }}
-                    />
-                  );
-                })}
-              </div>
+                    return (
+                      <ThemePreview
+                        ariaLabel={getThemeLabel(themeOption.id)}
+                        key={themeOption.id}
+                        selected={isActive}
+                        theme={themeOption}
+                        onClick={() => {
+                          setTheme(themeOption.id);
+                          setOpen(false);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </DropdownMenuGroup>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <Dialog
-        actions={(
-          <Button onClick={() => setLanguageDialogOpen(false)}>
-            {m.action_close()}
-          </Button>
-        )}
         open={languageDialogOpen}
-        size="sm"
-        title={m.menu_language_selector_aria()}
-        onClose={() => setLanguageDialogOpen(false)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setLanguageDialogOpen(false);
+          }
+        }}
       >
-        <div className="grid gap-2">
-          {languages.map((language) => {
-            const isActiveLocale = language.locale === locale;
+        <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{m.menu_language_selector_aria()}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {languages.map((language) => {
+              const isActiveLocale = language.locale === locale;
 
-            return (
-              <Button
-                className="justify-between text-start"
-                key={language.locale}
-                size="lg"
-                variant={isActiveLocale ? 'contained' : 'outlined'}
-                onClick={() => {
-                  void setLocale(language.locale);
-                  setLanguageDialogOpen(false);
-                }}
-              >
-                <span className="grid min-w-0 text-start">
-                  <span className="text-sm font-medium">{language.nativeLabel}</span>
-                  {language.englishLabel !== language.nativeLabel ? (
-                    <span className="break-words text-xs text-[var(--color-muted)]">
-                      {language.englishLabel}
-                    </span>
-                  ) : null}
-                </span>
-                {isActiveLocale ? <Check size={15} /> : null}
-              </Button>
-            );
-          })}
-        </div>
+              return (
+                <Button
+                  className="justify-between text-start"
+                  key={language.locale}
+                  size="lg"
+                  variant={isActiveLocale ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    void setLocale(language.locale);
+                    setLanguageDialogOpen(false);
+                  }}
+                >
+                  <span className="grid min-w-0 text-start">
+                    <span className="text-sm font-medium">{language.nativeLabel}</span>
+                    {language.englishLabel !== language.nativeLabel ? (
+                      <span className="break-words text-xs text-[var(--color-muted)]">
+                        {language.englishLabel}
+                      </span>
+                    ) : null}
+                  </span>
+                  {isActiveLocale ? <Check size={15} /> : null}
+                </Button>
+              );
+            })}
+          </div>
+          <DialogFooter className="-mb-0 -mx-0 border-none bg-transparent p-0">
+            <Button onClick={() => setLanguageDialogOpen(false)}>
+              {m.action_close()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <Dialog
-        actions={(
-          <>
+        open={confirmQuitOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setConfirmQuitOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{m.menu_quit_current_run_title()}</DialogTitle>
+            <DialogDescription>
+              {m.menu_quit_current_run_body()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="-mb-0 -mx-0 border-none bg-transparent p-0">
             <Button onClick={() => setConfirmQuitOpen(false)}>
               {m.action_cancel()}
             </Button>
@@ -224,16 +262,8 @@ export function ThemeMenu({
             >
               {m.action_quit()}
             </Button>
-          </>
-        )}
-        open={confirmQuitOpen}
-        size="sm"
-        title={m.menu_quit_current_run_title()}
-        onClose={() => setConfirmQuitOpen(false)}
-      >
-        <p className="m-0 text-sm text-[var(--color-muted)]">
-          {m.menu_quit_current_run_body()}
-        </p>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
