@@ -25,6 +25,7 @@ import {
   buildCombinedTextureCanvas,
   buildCountryTextureCanvas,
   buildOceanTextureCanvas,
+  type GlobeTextureRenderConfig,
 } from '@/utils/globeTextures';
 import {
   configureTexture,
@@ -51,7 +52,7 @@ interface CachedTextureSet {
   countryTextureCanvas: HTMLCanvasElement | null;
 }
 
-const textureCacheVersion = 2;
+const textureCacheVersion = 3;
 
 function getTextureCacheKey(args: {
   hasLakes: boolean;
@@ -59,7 +60,7 @@ function getTextureCacheKey(args: {
   hasRivers: boolean;
   palette: GlobePalette;
   quality: GlobeQualityConfig;
-  render: GlobeRenderConfig;
+  render: GlobeTextureRenderConfig;
   textureResolution: number;
   themeId: AppThemeId;
   worldFeatureCount: number;
@@ -134,6 +135,48 @@ export function WebGlGlobe({
     import.meta.env.VITE_OPENSKY_PROXY_URL?.trim() ||
     (import.meta.env.DEV ? 'http://127.0.0.1:8787/api/opensky/states' : null);
   const slowScanlineStrength = render.slowScanlineStrength;
+  const textureRenderConfig = useMemo<GlobeTextureRenderConfig>(
+    () => ({
+      atlasBiomeWatercolorOpacity: render.atlasBiomeWatercolorOpacity,
+      atlasCoastalWashOpacity: render.atlasCoastalWashOpacity,
+      atlasCountryStrokeWidth: render.atlasCountryStrokeWidth,
+      atlasExpeditionDetailsOpacity: render.atlasExpeditionDetailsOpacity,
+      atlasGraticuleDashLength: render.atlasGraticuleDashLength,
+      atlasGraticuleGapLength: render.atlasGraticuleGapLength,
+      atlasGraticuleLineWidth: render.atlasGraticuleLineWidth,
+      atlasGraticuleOpacity: render.atlasGraticuleOpacity,
+      atlasInkBleedOpacity: render.atlasInkBleedOpacity,
+      atlasInkCoastlineOpacity: render.atlasInkCoastlineOpacity,
+      atlasOceanCurrentHatchingOpacity: render.atlasOceanCurrentHatchingOpacity,
+      atlasParchmentAgingOpacity: render.atlasParchmentAgingOpacity,
+      atlasStyleEnabled: render.atlasStyleEnabled,
+      atlasWatercolorLandOpacity: render.atlasWatercolorLandOpacity,
+      atlasWatercolorOceanOpacity: render.atlasWatercolorOceanOpacity,
+      cipherHydroTextureEffectOpacity: render.cipherHydroTextureEffectOpacity,
+      standardCountryStrokeWidth: render.standardCountryStrokeWidth,
+      standardGraticuleLineWidth: render.standardGraticuleLineWidth,
+    }),
+    [
+      render.atlasBiomeWatercolorOpacity,
+      render.atlasCoastalWashOpacity,
+      render.atlasCountryStrokeWidth,
+      render.atlasExpeditionDetailsOpacity,
+      render.atlasGraticuleDashLength,
+      render.atlasGraticuleGapLength,
+      render.atlasGraticuleLineWidth,
+      render.atlasGraticuleOpacity,
+      render.atlasInkBleedOpacity,
+      render.atlasInkCoastlineOpacity,
+      render.atlasOceanCurrentHatchingOpacity,
+      render.atlasParchmentAgingOpacity,
+      render.atlasStyleEnabled,
+      render.atlasWatercolorLandOpacity,
+      render.atlasWatercolorOceanOpacity,
+      render.cipherHydroTextureEffectOpacity,
+      render.standardCountryStrokeWidth,
+      render.standardGraticuleLineWidth,
+    ],
+  );
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -174,12 +217,14 @@ export function WebGlGlobe({
     () => Math.max(Math.min(width, height) / 2 - 10, 1),
     [height, width],
   );
-  const targetFeature = useMemo(
+  const worldFeaturesById = useMemo(
     () =>
-      world.features.find(
-        (feature): feature is typeof country => feature.id === country.id,
-      ) ?? country,
-    [country, world.features],
+      new Map(world.features.map((feature) => [feature.id, feature] as const)),
+    [world.features],
+  );
+  const targetFeature = useMemo(
+    () => worldFeaturesById.get(country.id) ?? country,
+    [country, worldFeaturesById],
   );
   const cipherTrafficState = useCipherTraffic({
     enabled: render.cipherTrafficOverlayOpacity > 0,
@@ -305,7 +350,9 @@ export function WebGlGlobe({
 
     const timeoutId = window.setTimeout(() => {
       setCipherTransition((currentTransition) =>
-        currentTransition?.key === cipherTransition.key ? null : currentTransition,
+        currentTransition?.key === cipherTransition.key
+          ? null
+          : currentTransition,
       );
       drawCurrentFrameRef.current();
     }, cipherCountryTransitionDurationMs + 80);
@@ -479,7 +526,7 @@ export function WebGlGlobe({
       hasRivers: Boolean(riversData),
       palette,
       quality,
-      render,
+      render: textureRenderConfig,
       textureResolution,
       themeId,
       worldFeatureCount: world.features.length,
@@ -493,14 +540,14 @@ export function WebGlGlobe({
               world,
               palette,
               textureResolution,
-              render,
+              textureRenderConfig,
             )
           : buildCombinedTextureCanvas(
               world,
               palette,
               quality,
               textureResolution,
-              render,
+              textureRenderConfig,
               lakesData,
               riversData,
             );
@@ -510,7 +557,7 @@ export function WebGlGlobe({
               palette,
               quality,
               textureResolution,
-              render,
+              textureRenderConfig,
               lakesData,
               riversData,
             )
@@ -605,7 +652,7 @@ export function WebGlGlobe({
       );
     }
 
-    drawCurrentFrame();
+    drawCurrentFrameRef.current();
 
     return () => {
       cancelled = true;
@@ -613,7 +660,6 @@ export function WebGlGlobe({
   }, [
     cityLightsImage,
     dayImageryImage,
-    drawCurrentFrame,
     height,
     lakesData,
     nightImageryImage,
@@ -626,13 +672,13 @@ export function WebGlGlobe({
     width,
     world,
     themeId,
+    textureRenderConfig,
     onRenderError,
-    render,
   ]);
 
   useEffect(() => {
-    drawCurrentFrame();
-  }, [criticalSites, drawCurrentFrame, targetFeature]);
+    drawOverlayFrame();
+  }, [criticalSites, drawOverlayFrame, targetFeature]);
 
   useGlobeRenderLoop({
     ambientAnimationEnabled,
@@ -655,10 +701,7 @@ export function WebGlGlobe({
         className="globe-atmosphere pointer-events-none absolute inset-0 mix-blend-screen"
         data-theme-id={themeId}
       />
-      <canvas
-        className="relative block h-full w-full"
-        ref={canvasRef}
-      />
+      <canvas className="relative block h-full w-full" ref={canvasRef} />
       <canvas
         className="pointer-events-none absolute inset-0 block h-full w-full"
         ref={overlayCanvasRef}

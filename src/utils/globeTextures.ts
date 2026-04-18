@@ -32,6 +32,28 @@ export interface PreparedCityLightsMaps {
   pollution: HTMLCanvasElement;
 }
 
+export type GlobeTextureRenderConfig = Pick<
+  GlobeRenderConfig,
+  | 'atlasBiomeWatercolorOpacity'
+  | 'atlasCoastalWashOpacity'
+  | 'atlasCountryStrokeWidth'
+  | 'atlasExpeditionDetailsOpacity'
+  | 'atlasGraticuleDashLength'
+  | 'atlasGraticuleGapLength'
+  | 'atlasGraticuleLineWidth'
+  | 'atlasGraticuleOpacity'
+  | 'atlasInkBleedOpacity'
+  | 'atlasInkCoastlineOpacity'
+  | 'atlasOceanCurrentHatchingOpacity'
+  | 'atlasParchmentAgingOpacity'
+  | 'atlasStyleEnabled'
+  | 'atlasWatercolorLandOpacity'
+  | 'atlasWatercolorOceanOpacity'
+  | 'cipherHydroTextureEffectOpacity'
+  | 'standardCountryStrokeWidth'
+  | 'standardGraticuleLineWidth'
+>;
+
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -363,7 +385,7 @@ export function buildOceanTextureCanvas(
   world: FeatureCollectionLike,
   palette: GlobePalette,
   textureSize: number,
-  render: GlobeRenderConfig,
+  render: GlobeTextureRenderConfig,
 ) {
   const textureCanvas = createCanvas(textureSize, textureSize / 2);
 
@@ -376,12 +398,7 @@ export function buildOceanTextureCanvas(
         .scale(textureCanvas.width / (2 * Math.PI));
       const path = geoPath(projection, context);
       drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
-        applyAtlasBiomeWatercolor(
-          context,
-          path,
-          world,
-          textureCanvas,
-        );
+        applyAtlasBiomeWatercolor(context, path, world, textureCanvas);
       });
     }
     if (render.atlasStyleEnabled && render.atlasWatercolorOceanOpacity > 0) {
@@ -447,7 +464,7 @@ export function buildCombinedTextureCanvas(
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
-  render: GlobeRenderConfig,
+  render: GlobeTextureRenderConfig,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
 ) {
@@ -491,12 +508,7 @@ export function buildCombinedTextureCanvas(
     }
     if (render.atlasStyleEnabled && render.atlasBiomeWatercolorOpacity > 0) {
       drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
-        applyAtlasBiomeWatercolor(
-          context,
-          path,
-          world,
-          textureCanvas,
-        );
+        applyAtlasBiomeWatercolor(context, path, world, textureCanvas);
       });
     }
     if (render.atlasStyleEnabled && render.atlasCoastalWashOpacity > 0) {
@@ -573,7 +585,7 @@ export function buildCountryTextureCanvas(
   palette: GlobePalette,
   quality: GlobeQualityConfig,
   textureSize: number,
-  render: GlobeRenderConfig,
+  render: GlobeTextureRenderConfig,
   lakesData: HydroFeatureCollection | null,
   riversData: HydroFeatureCollection | null,
 ) {
@@ -602,12 +614,7 @@ export function buildCountryTextureCanvas(
     }
     if (render.atlasStyleEnabled && render.atlasBiomeWatercolorOpacity > 0) {
       drawWithOpacity(context, render.atlasBiomeWatercolorOpacity, () => {
-        applyAtlasBiomeWatercolor(
-          context,
-          path,
-          world,
-          textureCanvas,
-        );
+        applyAtlasBiomeWatercolor(context, path, world, textureCanvas);
       });
     }
     if (render.atlasStyleEnabled && render.atlasCoastalWashOpacity > 0) {

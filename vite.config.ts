@@ -5,6 +5,9 @@ import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import path from 'node:path';
 
 export default defineConfig(({ command }) => ({
+  server: {
+    allowedHosts: ['rancidity-applause-nursing.ngrok-free.dev'],
+  },
   plugins: [
     tailwindcss(),
     paraglideVitePlugin({

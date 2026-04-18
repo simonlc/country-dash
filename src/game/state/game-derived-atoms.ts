@@ -40,11 +40,15 @@ export const totalRoundsAtom = atom(
   (get) => get(gameStateAtom).sessionPlan?.totalRounds ?? 0,
 );
 
-export const displayElapsedMsAtom = atom((get) => get(gameStateAtom).totalElapsedMs);
+export const displayElapsedMsAtom = atom(
+  (get) => get(gameStateAtom).totalElapsedMs,
+);
 
 export const runningSinceAtom = atom((get) => {
   const gameState = get(gameStateAtom);
-  return gameState.status === 'playing' ? gameState.currentRoundStartedAt : null;
+  return gameState.status === 'playing'
+    ? gameState.currentRoundStartedAt
+    : null;
 });
 
 export const isDailyRunAtom = atom(
@@ -54,6 +58,13 @@ export const isDailyRunAtom = atom(
 export const isCapitalModeAtom = atom(
   (get) => get(gameStateAtom).sessionConfig?.mode === 'capitals',
 );
+
+export const gameModeAtom = atom((get) => {
+  const gameState = get(gameStateAtom);
+  return gameState.sessionConfig?.mode ?? gameState.mode;
+});
+
+export const roundIndexAtom = atom((get) => get(gameStateAtom).roundIndex);
 
 export const sizeCountsAtom = atom((get) => {
   const countryPool = get(countryPoolAtom);
@@ -68,7 +79,10 @@ export const categoryCountsAtom = atom((get) => {
   const countryPool = get(countryPoolAtom);
   return regionFilters.reduce(
     (counts, regionFilter) => {
-      counts[regionFilter] = buildRegionCountryPool(countryPool, regionFilter).length;
+      counts[regionFilter] = buildRegionCountryPool(
+        countryPool,
+        regionFilter,
+      ).length;
       return counts;
     },
     {} as Record<RegionFilter, number>,
@@ -92,3 +106,9 @@ export const isReviewCompleteAtom = atom((get) => {
 export const isKeyboardOpenAtom = atom(
   (get) => get(viewportStateAtom).isKeyboardOpen,
 );
+
+export const viewportVisualHeightAtom = atom(
+  (get) => get(viewportStateAtom).visualHeight,
+);
+
+export const viewportWidthAtom = atom((get) => get(viewportStateAtom).width);

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface UseGlobeRenderLoopArgs {
   ambientAnimationEnabled: boolean;
@@ -19,6 +19,17 @@ export function useGlobeRenderLoop({
   hasCipherTrafficAnimation,
   isAnimating,
 }: UseGlobeRenderLoopArgs) {
+  const drawBaseFrameRef = useRef(drawBaseFrame);
+  const drawOverlayFrameRef = useRef(drawOverlayFrame);
+
+  useEffect(() => {
+    drawBaseFrameRef.current = drawBaseFrame;
+  }, [drawBaseFrame]);
+
+  useEffect(() => {
+    drawOverlayFrameRef.current = drawOverlayFrame;
+  }, [drawOverlayFrame]);
+
   useEffect(() => {
     let cancelled = false;
     let frameId = 0;
@@ -47,10 +58,10 @@ export function useGlobeRenderLoop({
 
     const renderLoop = (now: number) => {
       if (ambientAnimationEnabled) {
-        drawBaseFrame(now);
+        drawBaseFrameRef.current(now);
       }
       if (hasOverlayAnimation) {
-        drawOverlayFrame(now);
+        drawOverlayFrameRef.current(now);
       }
       scheduleNextFrame();
     };
@@ -61,10 +72,10 @@ export function useGlobeRenderLoop({
 
       if (!cancelled && document.visibilityState === 'visible') {
         if (ambientAnimationEnabled) {
-          drawBaseFrame();
+          drawBaseFrameRef.current();
         }
         if (hasOverlayAnimation) {
-          drawOverlayFrame();
+          drawOverlayFrameRef.current();
         }
         scheduleNextFrame();
       }

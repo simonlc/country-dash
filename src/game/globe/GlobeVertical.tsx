@@ -9,20 +9,27 @@ import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
 import {
   cipherTrafficStateAtom,
   focusRequestAtom,
-  gameStateAtom,
-  viewportStateAtom,
   worldDataAtom,
 } from '@/game/state/game-atoms';
-import { currentCountryAtom, isCapitalModeAtom } from '@/game/state/game-derived-atoms';
+import {
+  currentCountryAtom,
+  gameModeAtom,
+  isCapitalModeAtom,
+  roundIndexAtom,
+  viewportVisualHeightAtom,
+  viewportWidthAtom,
+} from '@/game/state/game-derived-atoms';
 import { getInitialRotation } from '@/utils/gameLogic';
 import { getThemeLabel } from '@/utils/themeTranslations';
 
 export function GlobeVertical() {
   const { activeTheme } = useAppearance();
-  const viewport = useAtomValue(viewportStateAtom);
+  const viewportWidth = useAtomValue(viewportWidthAtom);
+  const viewportVisualHeight = useAtomValue(viewportVisualHeightAtom);
   const worldData = useAtomValue(worldDataAtom);
   const focusRequest = useAtomValue(focusRequestAtom);
-  const gameState = useAtomValue(gameStateAtom);
+  const gameMode = useAtomValue(gameModeAtom);
+  const roundIndex = useAtomValue(roundIndexAtom);
   const currentCountry = useAtomValue(currentCountryAtom);
   const isCapitalMode = useAtomValue(isCapitalModeAtom);
   const defaultThemeSettings = useMemo(
@@ -81,15 +88,15 @@ export function GlobeVertical() {
         <Globe
           country={currentCountry}
           focusRequest={focusRequest}
-          height={viewport.visualHeight}
-          mode={gameState.sessionConfig?.mode ?? gameState.mode}
+          height={viewportVisualHeight}
+          mode={gameMode}
           palette={effectiveSettings.globe}
           quality={effectiveSettings.quality}
           render={effectiveSettings.render}
           rotation={rotation}
-          roundIndex={gameState.roundIndex}
+          roundIndex={roundIndex}
           themeId={activeTheme.id}
-          width={viewport.width}
+          width={viewportWidth}
           world={worldData.world}
           onCipherTrafficStateChange={onCipherTrafficStateChange}
         />

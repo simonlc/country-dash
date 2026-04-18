@@ -30,7 +30,6 @@ import { m } from '@/paraglide/messages.js';
 import { getThemeLabel } from '@/utils/themeTranslations';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import { useSetAtom } from 'jotai';
-import { useId, useState } from 'react';
 import {
   Check,
   Crosshair,
@@ -52,8 +51,6 @@ interface MenuAction {
 export function Menu() {
   const requestRefocus = useSetAtom(refocusAtom);
   const playAgain = useSetAtom(playAgainAtom);
-  const [open, setOpen] = useState(false);
-  const menuTriggerId = useId();
   const { activeTheme, setTheme, themes } = useAppearance();
   const quitConfirm = useModal(QuitConfirmDialog);
   const selectLanguage = useModal(LanguageSelectorDialog);
@@ -66,7 +63,6 @@ export function Menu() {
       icon: Crosshair,
       label: m.action_refocus(),
       onSelect: () => {
-        setOpen(false);
         requestRefocus();
       },
     },
@@ -75,7 +71,6 @@ export function Menu() {
       icon: RotateCcw,
       label: m.action_retry(),
       onSelect: () => {
-        setOpen(false);
         playAgain();
       },
     },
@@ -85,7 +80,6 @@ export function Menu() {
       label: m.action_quit(),
       color: 'danger',
       onSelect: () => {
-        setOpen(false);
         void quitConfirm.show();
       },
     },
@@ -94,7 +88,6 @@ export function Menu() {
       icon: Info,
       label: m.action_about(),
       onSelect: () => {
-        setOpen(false);
         void NiceModal.show(AboutDialog);
       },
     },
@@ -103,7 +96,6 @@ export function Menu() {
       icon: Globe,
       label: m.menu_language_selector_aria(),
       onSelect: () => {
-        setOpen(false);
         void selectLanguage.show();
       },
     },
@@ -170,7 +162,6 @@ export function Menu() {
                         theme={themeOption}
                         onClick={() => {
                           setTheme(themeOption.id);
-                          setOpen(false);
                         }}
                       />
                     </DropdownMenuItem>

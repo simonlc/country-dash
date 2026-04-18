@@ -13,7 +13,9 @@ export type HydroFeatureCollection = FeatureCollection<
   GeoJsonProperties
 >;
 
-function isHydroFeatureCollection(value: object | null): value is HydroFeatureCollection {
+function isHydroFeatureCollection(
+  value: object | null,
+): value is HydroFeatureCollection {
   if (!value) {
     return false;
   }
@@ -22,7 +24,9 @@ function isHydroFeatureCollection(value: object | null): value is HydroFeatureCo
     features?: object;
     type?: string;
   };
-  return candidate.type === 'FeatureCollection' && Array.isArray(candidate.features);
+  return (
+    candidate.type === 'FeatureCollection' && Array.isArray(candidate.features)
+  );
 }
 
 export async function loadHydroFeatureCollection(path: string) {
@@ -44,7 +48,7 @@ export function drawHydroLayers(args: {
   lakesData: HydroFeatureCollection | null;
   path: AtlasPath;
   quality: GlobeQualityConfig;
-  render: GlobeRenderConfig;
+  render: Pick<GlobeRenderConfig, 'cipherHydroTextureEffectOpacity'>;
   riversData: HydroFeatureCollection | null;
   textureCanvas: HTMLCanvasElement;
 }) {
@@ -116,7 +120,10 @@ export function drawHydroLayers(args: {
       ) {
         context.beginPath();
         context.moveTo(offset, 0);
-        context.lineTo(offset - textureCanvas.height * 0.55, textureCanvas.height);
+        context.lineTo(
+          offset - textureCanvas.height * 0.55,
+          textureCanvas.height,
+        );
         context.stroke();
       }
       context.restore();
@@ -249,9 +256,7 @@ export function drawCipherHydroOverlay(args: {
         const flow =
           Math.sin(px * 0.041 + y * 0.082 - nowMs * 0.00034) * 0.5 + 0.5;
         const beat =
-          Math.sin(
-            px * 0.017 - y * 0.024 + nowMs * 0.00021 + rowIndex * 0.31,
-          ) *
+          Math.sin(px * 0.017 - y * 0.024 + nowMs * 0.00021 + rowIndex * 0.31) *
             0.5 +
           0.5;
         const signal = flow * 0.68 + beat * 0.32;
@@ -314,13 +319,7 @@ export function drawCipherHydroOverlay(args: {
       context.globalCompositeOperation = 'screen';
       context.shadowColor = shiftColor(quality.lakesColor, 180, 14, 42, 0.34);
       context.shadowBlur = 10;
-      context.strokeStyle = shiftColor(
-        quality.lakesColor,
-        164,
-        10,
-        38,
-        0.22,
-      );
+      context.strokeStyle = shiftColor(quality.lakesColor, 164, 10, 38, 0.22);
       context.lineWidth = 1;
       context.beginPath();
       path(lakeShape);
@@ -331,13 +330,7 @@ export function drawCipherHydroOverlay(args: {
         Math.min((boundsWidth + boundsHeight) * 0.14, 34),
       );
       context.shadowBlur = 14;
-      context.strokeStyle = shiftColor(
-        quality.lakesColor,
-        196,
-        28,
-        56,
-        0.48,
-      );
+      context.strokeStyle = shiftColor(quality.lakesColor, 196, 28, 56, 0.48);
       context.lineWidth = 1.45;
       context.setLineDash([tracerLength, tracerLength * 1.9]);
       context.lineDashOffset = -nowMs * 0.008 + visibleLakeCount * 11;
@@ -346,13 +339,7 @@ export function drawCipherHydroOverlay(args: {
       context.stroke();
 
       context.shadowBlur = 8;
-      context.strokeStyle = shiftColor(
-        quality.lakesColor,
-        124,
-        4,
-        24,
-        0.14,
-      );
+      context.strokeStyle = shiftColor(quality.lakesColor, 124, 4, 24, 0.14);
       context.lineWidth = 2.2;
       context.setLineDash([2.2, tracerLength * 2.6]);
       context.lineDashOffset = nowMs * 0.004 + visibleLakeCount * 7;

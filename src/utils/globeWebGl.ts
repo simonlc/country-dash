@@ -6,10 +6,7 @@ import {
   getTerminatorHalfAngleRadians,
   getTwilightHalfAngleRadians,
 } from '@/utils/globeShared';
-import {
-  fragmentShaderSource,
-  vertexShaderSource,
-} from '@/utils/globeShaders';
+import { fragmentShaderSource, vertexShaderSource } from '@/utils/globeShaders';
 
 interface SphereMesh {
   indices: Uint16Array;
@@ -106,12 +103,17 @@ interface CachedSunDirection {
   vector: ReturnType<typeof geoToSpherePosition>;
 }
 
-const paletteUniformCache = new WeakMap<GlobePalette, ResolvedPaletteUniforms>();
+const paletteUniformCache = new WeakMap<
+  GlobePalette,
+  ResolvedPaletteUniforms
+>();
 const qualityUniformCache = new WeakMap<
   GlobeQualityConfig,
   ResolvedQualityUniforms
 >();
 let cachedSunDirection: CachedSunDirection | null = null;
+const rotationMatrixScratch = new Float32Array(9);
+const rotatedVectorScratch = { x: 0, y: 0, z: 0 };
 
 function compileShader(
   gl: WebGLRenderingContext,
@@ -206,7 +208,7 @@ function createSphereMesh(
   };
 }
 
-function createRotationMatrix(rotation: [number, number]) {
+function writeRotationMatrix(rotation: [number, number], target: Float32Array) {
   const longitude = (rotation[0] * Math.PI) / 180;
   const latitude = (rotation[1] * Math.PI) / 180;
   const cosLongitude = Math.cos(longitude);
@@ -214,22 +216,26 @@ function createRotationMatrix(rotation: [number, number]) {
   const cosLatitude = Math.cos(latitude);
   const sinLatitude = Math.sin(latitude);
 
-  return new Float32Array([
-    cosLongitude,
-    -sinLongitude * sinLatitude,
-    sinLongitude * cosLatitude,
-    0,
-    cosLatitude,
-    sinLatitude,
-    -sinLongitude,
-    -cosLongitude * sinLatitude,
-    cosLongitude * cosLatitude,
-  ]);
+  target[0] = cosLongitude;
+  target[1] = -sinLongitude * sinLatitude;
+  target[2] = sinLongitude * cosLatitude;
+  target[3] = 0;
+  target[4] = cosLatitude;
+  target[5] = sinLatitude;
+  target[6] = -sinLongitude;
+  target[7] = -cosLongitude * sinLatitude;
+  target[8] = cosLongitude * cosLatitude;
+  return target;
 }
 
 function multiplyRotationMatrixVector(
   rotationMatrix: Float32Array,
   vector: ReturnType<typeof geoToSpherePosition>,
+  target: {
+    x: number;
+    y: number;
+    z: number;
+  },
 ) {
   const [
     m00 = 0,
@@ -243,11 +249,10 @@ function multiplyRotationMatrixVector(
     m22 = 0,
   ] = rotationMatrix;
 
-  return {
-    x: m00 * vector.x + m10 * vector.y + m20 * vector.z,
-    y: m01 * vector.x + m11 * vector.y + m21 * vector.z,
-    z: m02 * vector.x + m12 * vector.y + m22 * vector.z,
-  };
+  target.x = m00 * vector.x + m10 * vector.y + m20 * vector.z;
+  target.y = m01 * vector.x + m11 * vector.y + m21 * vector.z;
+  target.z = m02 * vector.x + m12 * vector.y + m22 * vector.z;
+  return target;
 }
 
 function getResolvedPaletteUniforms(palette: GlobePalette) {
@@ -256,16 +261,18 @@ function getResolvedPaletteUniforms(palette: GlobePalette) {
     return cachedPalette;
   }
 
-  const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(palette.nightShade);
+  const { alpha: nightAlpha, rgb: nightRgb } = parseCssColor(
+    palette.nightShade,
+  );
   const resolvedPalette = {
     atmosphereTint: cssColorToVec3(palette.atmosphereTint),
     gridColor: cssColorToVec3(palette.gridColor),
     nightAlpha,
-    nightColor: [
-      nightRgb[0] / 255,
-      nightRgb[1] / 255,
-      nightRgb[2] / 255,
-    ] as [number, number, number],
+    nightColor: [nightRgb[0] / 255, nightRgb[1] / 255, nightRgb[2] / 255] as [
+      number,
+      number,
+      number,
+    ],
     rimLightColor: cssColorToVec3(palette.rimLightColor),
     specularColor: cssColorToVec3(palette.specularColor),
   } satisfies ResolvedPaletteUniforms;
@@ -312,8 +319,10 @@ function getUniformLocation(
   const location = gl.getUniformLocation(program, name);
   if (location === null) {
     const activeUniformNames: string[] = [];
-    const activeUniformCountValue =
-      gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) as unknown;
+    const activeUniformCountValue = gl.getProgramParameter(
+      program,
+      gl.ACTIVE_UNIFORMS,
+    ) as unknown;
 
     if (typeof activeUniformCountValue === 'number') {
       for (let index = 0; index < activeUniformCountValue; index += 1) {
@@ -581,11 +590,7 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     umbraDarkness: getUniformLocation(gl, program, 'u_umbraDarkness'),
     useCityLights: getUniformLocation(gl, program, 'u_useCityLights'),
     useDayImagery: getUniformLocation(gl, program, 'u_useDayImagery'),
-    useLightPollution: getUniformLocation(
-      gl,
-      program,
-      'u_useLightPollution',
-    ),
+    useLightPollution: getUniformLocation(gl, program, 'u_useLightPollution'),
     useNightImagery: getUniformLocation(gl, program, 'u_useNightImagery'),
     useWaterMask: getUniformLocation(gl, program, 'u_useWaterMask'),
     waterMaskTexture: getUniformLocation(gl, program, 'u_waterMaskTexture'),
@@ -681,10 +686,14 @@ export function drawGlobe(
   const radius = 0.9 * zoomScale;
   const scaleX = aspect >= 1 ? radius / aspect : radius;
   const scaleY = aspect >= 1 ? radius : radius * aspect;
-  const rotationMatrix = createRotationMatrix(currentRotation);
+  const rotationMatrix = writeRotationMatrix(
+    currentRotation,
+    rotationMatrixScratch,
+  );
   const sunDirection = multiplyRotationMatrixVector(
     rotationMatrix,
     getCachedSunDirection(),
+    rotatedVectorScratch,
   );
   const resolvedPalette = getResolvedPaletteUniforms(palette);
   const resolvedQuality = getResolvedQualityUniforms(quality);
@@ -703,7 +712,11 @@ export function drawGlobe(
   gl.uniform1f(uniforms.cityLightsThreshold, quality.cityLightsThreshold);
   gl.uniform1f(uniforms.reliefStrength, reliefStrength);
   gl.uniform1f(uniforms.umbraDarkness, quality.umbraDarkness);
-  gl.uniform2f(uniforms.reliefTexelSize, reliefTexelSize[0], reliefTexelSize[1]);
+  gl.uniform2f(
+    uniforms.reliefTexelSize,
+    reliefTexelSize[0],
+    reliefTexelSize[1],
+  );
   gl.uniform3f(
     uniforms.lightPollutionColor,
     resolvedQuality.lightPollutionColor[0],
@@ -714,10 +727,7 @@ export function drawGlobe(
     uniforms.lightPollutionIntensity,
     quality.lightPollutionIntensity,
   );
-  gl.uniform1f(
-    uniforms.lightPollutionSpread,
-    quality.lightPollutionSpread,
-  );
+  gl.uniform1f(uniforms.lightPollutionSpread, quality.lightPollutionSpread);
   gl.uniform1f(uniforms.useCityLights, quality.cityLightsEnabled ? 1 : 0);
   gl.uniform1f(uniforms.useDayImagery, quality.dayImageryEnabled ? 1 : 0);
   gl.uniform1f(
@@ -767,10 +777,7 @@ export function drawGlobe(
     uniforms.surfaceDistortionStrength,
     palette.surfaceDistortionStrength,
   );
-  gl.uniform1f(
-    uniforms.surfaceTextureStrength,
-    palette.surfaceTextureStrength,
-  );
+  gl.uniform1f(uniforms.surfaceTextureStrength, palette.surfaceTextureStrength);
   gl.uniform3f(
     uniforms.specularColor,
     resolvedPalette.specularColor[0],
