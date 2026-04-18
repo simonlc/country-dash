@@ -68,7 +68,7 @@ export function GameHud() {
   ];
 
   return (
-    <section className="surface-elevated w-full rounded-b-xl md:rounded-full grid gap-2 py-2 px-12">
+    <section className="surface-elevated w-full rounded-b-xl md:rounded-full grid gap-2 py-2 px-3 md:px-12">
       <div className="grid grid-cols-3 grid-flow-col justify-between items-center gap-2">
         <div className="font-bold text-lg">Country Dash</div>
         <GameTimer />
@@ -94,7 +94,7 @@ export function GameHud() {
         {/*   ))} */}
         {/* </div> */}
 
-        <div className="flex gap-2">
+        <div className="flex gap-4">
           {statItems.map((item) => (
             <HudInfo key={item.label} title={item.label} value={item.value} />
           ))}

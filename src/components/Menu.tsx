@@ -111,24 +111,12 @@ export function Menu() {
 
   return (
     <div className="pointer-events-auto relative">
-      <DropdownMenu
-        modal={false}
-        open={open}
-        triggerId={menuTriggerId}
-        onOpenChange={setOpen}
-      >
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger
-          aria-label={open ? m.action_close() : m.action_menu()}
           className={cn(
             buttonVariants({ size: 'sm', variant: 'text' }),
             'surface-elevated min-h-11 min-w-11 rounded-full border border-[var(--surface-panel-border)] p-0 text-primary',
           )}
-          id={menuTriggerId}
-          onClick={() => {
-            if (!open) {
-              setOpen(true);
-            }
-          }}
         >
           <MoreVertical size={17} />
         </DropdownMenuTrigger>
@@ -175,16 +163,17 @@ export function Menu() {
                   const isActive = themeOption.id === activeTheme.id;
 
                   return (
-                    <ThemePreview
-                      ariaLabel={getThemeLabel(themeOption.id)}
-                      key={themeOption.id}
-                      selected={isActive}
-                      theme={themeOption}
-                      onClick={() => {
-                        setTheme(themeOption.id);
-                        setOpen(false);
-                      }}
-                    />
+                    <DropdownMenuItem className="p-0" key={themeOption.id}>
+                      <ThemePreview
+                        ariaLabel={getThemeLabel(themeOption.id)}
+                        selected={isActive}
+                        theme={themeOption}
+                        onClick={() => {
+                          setTheme(themeOption.id);
+                          setOpen(false);
+                        }}
+                      />
+                    </DropdownMenuItem>
                   );
                 })}
               </div>
