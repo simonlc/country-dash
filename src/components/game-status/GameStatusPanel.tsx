@@ -139,7 +139,6 @@ export function GameStatusPanel({
   return (
     <Panel
       compact={isDensePanel}
-      edgeAttachment={isResultView ? 'bottom' : 'none'}
       flat={isResultView}
       maxWidth={560}
       surface="elevated"

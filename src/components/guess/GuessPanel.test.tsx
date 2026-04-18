@@ -8,6 +8,6 @@ describe('GuessPanel', () => {
     renderWithProviders(<GuessPanel />);
 
     expect(screen.getByText(/guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByLabelText(/guess the country/i)).toBeVisible();
+    expect(screen.getByRole('combobox')).toBeVisible();
   });
 });

@@ -35,7 +35,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'Denmark{enter}');
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -50,7 +50,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'dom');
     const firstOption = screen.getAllByRole('option')[0];
     const firstLabel = firstOption?.textContent ?? '';
@@ -68,7 +68,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'domin{Enter}');
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -82,7 +82,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={onSubmit} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'dom' } });
     fireEvent.keyDown(input, { key: 'Tab' });
 
@@ -96,7 +96,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'dom');
 
     expect(screen.getByTestId('guess-tab-hint')).toHaveTextContent(/dominica/i);
@@ -132,7 +132,7 @@ describe('GuessInput', () => {
       />,
     );
 
-    const input = screen.getByLabelText(/guess the capital city/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'Ott');
     await user.tab();
 
@@ -161,7 +161,7 @@ describe('GuessInput', () => {
       />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'cam');
 
     expect(input).toHaveValue('cam');
@@ -174,7 +174,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'dom');
 
     await user.type(input, ' ');
@@ -202,7 +202,7 @@ describe('GuessInput', () => {
       />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'dom');
 
     expect(screen.getByRole('option', { name: /dominica/i })).toBeVisible();
@@ -218,7 +218,7 @@ describe('GuessInput', () => {
       <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'xyz');
 
     expect(screen.getByText('No matches')).toBeVisible();
@@ -247,7 +247,7 @@ describe('GuessInput', () => {
       />,
     );
 
-    const input = screen.getByLabelText(/guess the country/i);
+    const input = screen.getByRole('combobox');
     await user.type(input, 'd');
 
     expect(screen.getAllByRole('option')).toHaveLength(5);

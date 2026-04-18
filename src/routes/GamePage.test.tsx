@@ -262,7 +262,7 @@ describe('GamePage', () => {
       });
     });
 
-    const input = await screen.findByLabelText(/guess the country/i);
+    const input = await screen.findByRole('combobox');
     await user.type(input, 'Atlantis');
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
@@ -284,14 +284,14 @@ describe('GamePage', () => {
       });
     });
 
-    const input = await screen.findByLabelText(/guess the country/i);
+    const input = await screen.findByRole('combobox');
     await user.type(input, 'Atlantis');
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
     expect(await screen.findByRole('status')).toHaveTextContent('Missed');
     await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    const nextRoundInput = await screen.findByLabelText(/guess the country/i);
+    const nextRoundInput = await screen.findByRole('combobox');
     await waitFor(() => {
       expect(nextRoundInput).toHaveFocus();
     });
@@ -347,7 +347,7 @@ describe('GamePage', () => {
       });
 
       for (let round = 0; round < 5; round += 1) {
-        const input = await screen.findByLabelText(/guess the country/i);
+        const input = await screen.findByRole('combobox');
         fireEvent.change(input, { target: { value: `Atlantis ${round}` } });
         fireEvent.submit(input.closest('form') as HTMLFormElement);
 

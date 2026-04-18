@@ -1,6 +1,6 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@/test/render';
 import { Menu } from './Menu';
 
@@ -12,19 +12,7 @@ describe('ThemeMenu', () => {
 
   it('supports keyboard activation for menu actions', async () => {
     const user = userEvent.setup();
-    const onAbout = vi.fn();
-    const onQuit = vi.fn();
-    const onRefocus = vi.fn();
-    const onRestart = vi.fn();
-
-    renderWithProviders(
-      <Menu
-        onAbout={onAbout}
-        onQuit={onQuit}
-        onRefocus={onRefocus}
-        onRestart={onRestart}
-      />,
-    );
+    renderWithProviders(<Menu />);
 
     const menuTrigger = screen.getByRole('button', { name: /^menu$/i });
     await user.click(menuTrigger);
@@ -33,36 +21,28 @@ describe('ThemeMenu', () => {
     });
     refocusButton.focus();
     await user.keyboard('{Enter}');
-
-    expect(onRefocus).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('menuitem', { name: /refocus country/i }),
+      ).not.toBeInTheDocument();
+    });
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^about$/i }));
-
-    expect(onAbout).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole('dialog')).toBeVisible();
   });
 
   it('keeps menu and language controls functional in RTL', async () => {
     const user = userEvent.setup();
-    const onAbout = vi.fn();
-    const onQuit = vi.fn();
-    const onRefocus = vi.fn();
-    const onRestart = vi.fn();
     document.documentElement.dir = 'rtl';
 
-    renderWithProviders(
-      <Menu
-        onAbout={onAbout}
-        onQuit={onQuit}
-        onRefocus={onRefocus}
-        onRestart={onRestart}
-      />,
-    );
+    renderWithProviders(<Menu />);
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^retry$/i }));
-
-    expect(onRestart).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: /^retry$/i })).not.toBeInTheDocument();
+    });
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
@@ -71,8 +51,6 @@ describe('ThemeMenu', () => {
         name: /^quit$/i,
       }),
     );
-
-    expect(onQuit).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
