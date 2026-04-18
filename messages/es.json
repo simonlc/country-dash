@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Piscinas campestres",
   "game_refocus_country_aria": "Reenfocar el país",
   "game_resets_in": "Se reinicia en {countdown} (UTC).",
-  "game_round": "Ronda {current}/{total}",
+  "game_round": "Ronda",
   "game_round_ready": "Listo",
   "game_run_complete": "Ejecución completa",
   "game_stat_hit": "Golpear",

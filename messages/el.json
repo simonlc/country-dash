@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Country Pools",
   "game_refocus_country_aria": "Επαναεστίαση της χώρας",
   "game_resets_in": "Επαναφέρεται σε {countdown} (UTC).",
-  "game_round": "Γύρος {current}/{total}",
+  "game_round": "Γύρος",
   "game_round_ready": "Ετοιμος",
   "game_run_complete": "Η εκτέλεση ολοκληρώθηκε",
   "game_stat_hit": "Επιτυχία",

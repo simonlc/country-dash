@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Kolam Pedesaan",
   "game_refocus_country_aria": "Fokuskan kembali negara",
   "game_resets_in": "Direset dalam {countdown} (UTC).",
-  "game_round": "Putaran {current}/{total}",
+  "game_round": "Putaran",
   "game_round_ready": "Siap",
   "game_run_complete": "Jalankan selesai",
   "game_stat_hit": "Memukul",

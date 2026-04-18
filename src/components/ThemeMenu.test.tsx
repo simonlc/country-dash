@@ -2,7 +2,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test/render';
-import { ThemeMenu } from './ThemeMenu';
+import { Menu } from './Menu';
 
 describe('ThemeMenu', () => {
   afterEach(() => {
@@ -18,7 +18,7 @@ describe('ThemeMenu', () => {
     const onRestart = vi.fn();
 
     renderWithProviders(
-      <ThemeMenu
+      <Menu
         onAbout={onAbout}
         onQuit={onQuit}
         onRefocus={onRefocus}
@@ -28,7 +28,9 @@ describe('ThemeMenu', () => {
 
     const menuTrigger = screen.getByRole('button', { name: /^menu$/i });
     await user.click(menuTrigger);
-    const refocusButton = screen.getByRole('menuitem', { name: /refocus country/i });
+    const refocusButton = screen.getByRole('menuitem', {
+      name: /refocus country/i,
+    });
     refocusButton.focus();
     await user.keyboard('{Enter}');
 
@@ -49,7 +51,7 @@ describe('ThemeMenu', () => {
     document.documentElement.dir = 'rtl';
 
     renderWithProviders(
-      <ThemeMenu
+      <Menu
         onAbout={onAbout}
         onQuit={onQuit}
         onRefocus={onRefocus}
@@ -64,7 +66,11 @@ describe('ThemeMenu', () => {
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^quit$/i }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /^quit$/i,
+      }),
+    );
 
     expect(onQuit).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -72,8 +78,12 @@ describe('ThemeMenu', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('menuitem', { name: /select language/i }));
-    expect(await screen.findByRole('dialog', { name: /select language/i })).toBeVisible();
+    await user.click(
+      screen.getByRole('menuitem', { name: /select language/i }),
+    );
+    expect(
+      await screen.findByRole('dialog', { name: /select language/i }),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: /english/i })).toBeVisible();
   });
 });

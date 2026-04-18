@@ -1,17 +1,16 @@
-import { useEffect, useState } from 'react';
-import { m } from '@/paraglide/messages.js';
+import { HudInfo } from '@/components/ui/hud-info';
+import {
+  displayElapsedMsAtom,
+  runningSinceAtom,
+} from '@/game/state/game-derived-atoms';
 import { formatElapsed } from '@/utils/gameLogic';
+import { useAtomValue } from 'jotai';
+import { useEffect, useState } from 'react';
 
-interface GameTimerProps {
-  elapsedMs: number;
-  runningSince?: number | null;
-}
-
-export function GameTimer({
-  elapsedMs,
-  runningSince = null,
-}: GameTimerProps) {
+export function GameTimer() {
   const [tickNow, setTickNow] = useState(() => Date.now());
+  const elapsedMs = useAtomValue(displayElapsedMsAtom);
+  const runningSince = useAtomValue(runningSinceAtom);
 
   useEffect(() => {
     if (runningSince === null) {
@@ -33,13 +32,6 @@ export function GameTimer({
       : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
 
   return (
-    <div className="grid w-full min-w-0 gap-[2px]">
-      <p className="text-xs font-medium text-[var(--color-foreground)]">
-        {m.game_stat_time()}
-      </p>
-      <p className="m-0 whitespace-nowrap text-[1rem] font-semibold leading-[1.1] tabular-nums md:text-[1.1rem]">
-        {formatElapsed(liveElapsedMs)}
-      </p>
-    </div>
+    <HudInfo className="items-center" value={formatElapsed(liveElapsedMs)} />
   );
 }

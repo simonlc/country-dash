@@ -1,15 +1,67 @@
-import { useCallback } from 'react';
-import { useSetAtom } from 'jotai';
+import { useCallback, useMemo } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useAppearance } from '@/app/appearance';
 import { Globe } from '@/components/Globe';
 import { GlobeAdminPanel } from '@/components/GlobeAdminPanel';
 import { GameBackground } from '@/components/GameBackground';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
-import { cipherTrafficStateAtom } from '@/game/state/game-atoms';
+import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
+import {
+  cipherTrafficStateAtom,
+  focusRequestAtom,
+  gameStateAtom,
+  viewportStateAtom,
+  worldDataAtom,
+} from '@/game/state/game-atoms';
+import { currentCountryAtom, isCapitalModeAtom } from '@/game/state/game-derived-atoms';
+import { getInitialRotation } from '@/utils/gameLogic';
 import { getThemeLabel } from '@/utils/themeTranslations';
-import { useGlobeSceneState } from './useGlobeSceneState';
 
 export function GlobeVertical() {
-  const state = useGlobeSceneState();
+  const { activeTheme } = useAppearance();
+  const viewport = useAtomValue(viewportStateAtom);
+  const worldData = useAtomValue(worldDataAtom);
+  const focusRequest = useAtomValue(focusRequestAtom);
+  const gameState = useAtomValue(gameStateAtom);
+  const currentCountry = useAtomValue(currentCountryAtom);
+  const isCapitalMode = useAtomValue(isCapitalModeAtom);
+  const defaultThemeSettings = useMemo(
+    () => ({
+      globe: activeTheme.globe,
+      quality: activeTheme.qualityDefaults,
+      render: activeTheme.render,
+    }),
+    [activeTheme],
+  );
+  const {
+    adminEnabled,
+    effectiveSettings,
+    resetAdminOverride,
+    resetRevision,
+    setAdminOverridePatch,
+  } = useGlobeAdminTuning({
+    defaults: defaultThemeSettings,
+    themeId: activeTheme.id,
+  });
+  const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
+  const rotation = useMemo<[number, number]>(() => {
+    if (!currentCountry) {
+      return [0, 0];
+    }
+
+    if (
+      isCapitalMode &&
+      typeof currentCountry.properties.capitalLongitude === 'number' &&
+      typeof currentCountry.properties.capitalLatitude === 'number'
+    ) {
+      return [
+        -currentCountry.properties.capitalLongitude,
+        -currentCountry.properties.capitalLatitude,
+      ];
+    }
+
+    return getInitialRotation(currentCountry);
+  }, [currentCountry, isCapitalMode]);
   const setCipherTrafficState = useSetAtom(cipherTrafficStateAtom);
   const onCipherTrafficStateChange = useCallback(
     (nextState: CipherTrafficState) => {
@@ -18,42 +70,42 @@ export function GlobeVertical() {
     [setCipherTrafficState],
   );
 
-  if (!state.currentCountry || !state.worldData) {
+  if (!currentCountry || !worldData) {
     return null;
   }
 
   return (
     <>
-      <GameBackground atlasStyleEnabled={state.atlasStyleEnabled} />
+      <GameBackground atlasStyleEnabled={atlasStyleEnabled} />
       <div className="h-full">
         <Globe
-          country={state.currentCountry}
-          focusRequest={state.focusRequest}
-          height={state.viewport.visualHeight}
-          mode={state.currentMode}
-          palette={state.effectiveThemeSettings.globe}
-          quality={state.effectiveThemeSettings.quality}
-          render={state.effectiveThemeSettings.render}
-          rotation={state.rotation}
-          roundIndex={state.gameState.roundIndex}
-          themeId={state.activeTheme.id}
-          width={state.viewport.width}
-          world={state.worldData.world}
+          country={currentCountry}
+          focusRequest={focusRequest}
+          height={viewport.visualHeight}
+          mode={gameState.sessionConfig?.mode ?? gameState.mode}
+          palette={effectiveSettings.globe}
+          quality={effectiveSettings.quality}
+          render={effectiveSettings.render}
+          rotation={rotation}
+          roundIndex={gameState.roundIndex}
+          themeId={activeTheme.id}
+          width={viewport.width}
+          world={worldData.world}
           onCipherTrafficStateChange={onCipherTrafficStateChange}
         />
       </div>
-      {state.adminEnabled ? (
+      {adminEnabled ? (
         <GlobeAdminPanel
-          key={`${state.activeTheme.id}:${state.resetRevision}`}
+          key={`${activeTheme.id}:${resetRevision}`}
           defaultSettings={{
-            globe: state.activeTheme.globe,
-            quality: state.activeTheme.qualityDefaults,
-            render: state.activeTheme.render,
+            globe: activeTheme.globe,
+            quality: activeTheme.qualityDefaults,
+            render: activeTheme.render,
           }}
-          settings={state.effectiveThemeSettings}
-          setSettingsPatch={state.setAdminOverridePatch}
-          themeLabel={getThemeLabel(state.activeTheme.id)}
-          onReset={state.resetAdminOverride}
+          settings={effectiveSettings}
+          setSettingsPatch={setAdminOverridePatch}
+          themeLabel={getThemeLabel(activeTheme.id)}
+          onReset={resetAdminOverride}
         />
       ) : null}
     </>

@@ -98,7 +98,7 @@
   "game_pool_country_pools": "کنٹری پولز",
   "game_refocus_country_aria": "ملک پر توجہ مرکوز کریں۔",
   "game_resets_in": "{countdown} (UTC) میں دوبارہ ترتیب دیتا ہے۔",
-  "game_round": "راؤنڈ {current}/{total}",
+  "game_round": "راؤنڈ",
   "game_round_ready": "تیار",
   "game_run_complete": "مکمل چلائیں۔",
   "game_stat_hit": "مارا۔",

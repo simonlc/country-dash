@@ -98,7 +98,7 @@
   "game_pool_country_pools": "カントリープール",
   "game_refocus_country_aria": "国に焦点を当て直す",
   "game_resets_in": "{countdown} (UTC) にリセットされます。",
-  "game_round": "ラウンド {current}/{total}",
+  "game_round": "ラウンド",
   "game_round_ready": "準備ができて",
   "game_run_complete": "実行が完了しました",
   "game_stat_hit": "打つ",

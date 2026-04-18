@@ -98,7 +98,7 @@
   "game_pool_country_pools": "鄉村泳池",
   "game_refocus_country_aria": "重新聚焦國家",
   "game_resets_in": "在 {countdown} (UTC) 重設。",
-  "game_round": "第 {current}/{total} 輪",
+  "game_round": "輪",
   "game_round_ready": "準備好",
   "game_run_complete": "運行完成",
   "game_stat_hit": "打",

@@ -1,33 +1,120 @@
+import NiceModal from '@ebay/nice-modal-react';
 import { useEffect } from 'react';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { FloatingOverlayLayer } from '@/components/FloatingOverlayLayer';
-import { Hud } from '@/game/hud/Hud';
-import { GuessInputScreen } from '@/game/guess-input/GuessInputScreen';
+import { GameHud } from '@/components/GameHud';
+import { IntroDialog } from '@/components/IntroDialog';
+import { GuessPanel } from '@/components/guess/GuessPanel';
 import { RoundStatusScreen } from '@/game/round-status/RoundStatusScreen';
 import { GlobeVertical } from '@/game/globe/GlobeVertical';
 import { CipherTelemetryLayer } from '@/game/globe/CipherTelemetryLayer';
-import { useViewportStateSync } from '@/game/globe/useViewportStateSync';
-import { useGameSessionEffects } from '@/game/session/useGameSessionEffects';
-import { gameStateAtom, loadingErrorAtom, worldDataAtom } from '@/game/state/game-atoms';
-import { currentCountryAtom, isKeyboardOpenAtom } from '@/game/state/game-derived-atoms';
+import { useWindowSize } from '@/hooks/useWindowSize';
+import {
+  loadWorldDataAtom,
+  startDailyGameAtom,
+  startRandomGameAtom,
+  syncStoredDailyResultAtom,
+} from '@/game/state/game-actions';
+import {
+  gameStateAtom,
+  loadingErrorAtom,
+  storedDailyResultAtom,
+  viewportStateAtom,
+  worldDataAtom,
+} from '@/game/state/game-atoms';
+import {
+  categoryCountsAtom,
+  currentCountryAtom,
+  isKeyboardOpenAtom,
+  sizeCountsAtom,
+} from '@/game/state/game-derived-atoms';
 import { m } from '@/paraglide/messages.js';
+import type {
+  CountrySizeFilter,
+  GameMode,
+  RegionFilter,
+} from '@/types/game';
 
 export function GamePage() {
-  useViewportStateSync();
-  useGameSessionEffects();
-
+  const size = useWindowSize();
+  const setViewportState = useSetAtom(viewportStateAtom);
+  const loadWorldData = useSetAtom(loadWorldDataAtom);
+  const syncStoredDailyResult = useSetAtom(syncStoredDailyResultAtom);
+  const startDailyGame = useSetAtom(startDailyGameAtom);
+  const startRandomGame = useSetAtom(startRandomGameAtom);
   const gameState = useAtomValue(gameStateAtom);
   const isKeyboardOpen = useAtomValue(isKeyboardOpenAtom);
   const loadingError = useAtomValue(loadingErrorAtom);
   const worldData = useAtomValue(worldDataAtom);
   const currentCountry = useAtomValue(currentCountryAtom);
+  const sizeCounts = useAtomValue(sizeCountsAtom);
+  const categoryCounts = useAtomValue(categoryCountsAtom);
+  const storedDailyResult = useAtomValue(storedDailyResultAtom);
   const isPlaying = gameState.status === 'playing';
+
+  useEffect(() => {
+    setViewportState({
+      height: size.height,
+      isKeyboardOpen: size.isKeyboardOpen,
+      visualHeight: size.visualHeight,
+      width: size.width,
+    });
+  }, [
+    setViewportState,
+    size.height,
+    size.isKeyboardOpen,
+    size.visualHeight,
+    size.width,
+  ]);
+
+  useEffect(() => {
+    void loadWorldData();
+  }, [loadWorldData]);
+
+  useEffect(() => {
+    if (!gameState.dailyResult) {
+      return;
+    }
+
+    syncStoredDailyResult();
+  }, [gameState.dailyResult, syncStoredDailyResult]);
+
+  useEffect(() => {
+    if (!worldData || gameState.status !== 'intro') {
+      return;
+    }
+
+    void NiceModal.show(IntroDialog, {
+      categoryCounts,
+      counts: sizeCounts,
+      dailyResult: storedDailyResult,
+      onStartDaily: () => {
+        startDailyGame();
+      },
+      onStartRandom: (options: {
+        mode: GameMode;
+        regionFilter: RegionFilter | null;
+        countrySizeFilter: CountrySizeFilter;
+      }) => {
+        startRandomGame(options);
+      },
+    });
+  }, [
+    categoryCounts,
+    gameState.status,
+    sizeCounts,
+    startDailyGame,
+    startRandomGame,
+    storedDailyResult,
+    worldData,
+  ]);
+
   const topHudLayer = (
     <FloatingOverlayLayer
       align="start"
       maxWidth="hud"
     >
-      <Hud />
+      <GameHud />
     </FloatingOverlayLayer>
   );
   const bottomPanelLayer = (
@@ -38,7 +125,7 @@ export function GamePage() {
     >
       {isPlaying ? (
         <div className="md:mb-12">
-          <GuessInputScreen />
+          <GuessPanel />
         </div>
       ) : (
         <RoundStatusScreen />

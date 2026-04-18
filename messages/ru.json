@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Загородные бассейны",
   "game_refocus_country_aria": "Переориентация страны",
   "game_resets_in": "Сбрасывается в {countdown} (UTC).",
-  "game_round": "Раунд {current}/{total}",
+  "game_round": "Раунд",
   "game_round_ready": "Готовый",
   "game_run_complete": "Запуск завершен",
   "game_stat_hit": "Ударять",

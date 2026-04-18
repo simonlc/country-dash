@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Baseny wiejskie",
   "game_refocus_country_aria": "Zmień ostrość kraju",
   "game_resets_in": "Resetuje się w {countdown} (UTC).",
-  "game_round": "Okrągły {current}/{total}",
+  "game_round": "Okrągły",
   "game_round_ready": "Gotowy",
   "game_run_complete": "Uruchom kompletny",
   "game_stat_hit": "Uderzyć",

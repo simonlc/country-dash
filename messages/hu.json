@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Vidéki medencék",
   "game_refocus_country_aria": "Fókuszálja át az országot",
   "game_resets_in": "Visszaállítás {countdown} (UTC) múlva.",
-  "game_round": "{current}/{total} forduló",
+  "game_round": "forduló",
   "game_round_ready": "Kész",
   "game_run_complete": "Futtatás kész",
   "game_stat_hit": "Találat",

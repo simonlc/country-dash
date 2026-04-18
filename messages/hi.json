@@ -98,7 +98,7 @@
   "game_pool_country_pools": "देशी ताल",
   "game_refocus_country_aria": "देश पर दोबारा ध्यान केंद्रित करें",
   "game_resets_in": "{countdown} (UTC) में रीसेट होता है।",
-  "game_round": "गोल {current}/{total}",
+  "game_round": "गोल",
   "game_round_ready": "तैयार",
   "game_run_complete": "पूरा चलाएँ",
   "game_stat_hit": "मार",

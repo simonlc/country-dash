@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Pools de pays",
   "game_refocus_country_aria": "Recentrer le pays",
   "game_resets_in": "Réinitialisation dans {countdown} (UTC).",
-  "game_round": "Manche {current}/{total}",
+  "game_round": "Manche",
   "game_round_ready": "Prêt",
   "game_run_complete": "Partie terminée",
   "game_stat_hit": "Réussites",

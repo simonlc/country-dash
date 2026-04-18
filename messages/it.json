@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Piscine di campagna",
   "game_refocus_country_aria": "Rifocalizzare il paese",
   "game_resets_in": "Si reimposta tra {countdown} (UTC).",
-  "game_round": "Giro {current}/{total}",
+  "game_round": "Giro",
   "game_round_ready": "Pronto",
   "game_run_complete": "Esegui completato",
   "game_stat_hit": "Colpo",

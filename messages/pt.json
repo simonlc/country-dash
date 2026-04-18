@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Piscinas rurais",
   "game_refocus_country_aria": "Reorientar o país",
   "game_resets_in": "Reinicia em {countdown} (UTC).",
-  "game_round": "Rodada {current}/{total}",
+  "game_round": "Rodada",
   "game_round_ready": "Preparar",
   "game_run_complete": "Execução concluída",
   "game_stat_hit": "Bater",

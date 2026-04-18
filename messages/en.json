@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Country Pools",
   "game_refocus_country_aria": "Refocus country",
   "game_resets_in": "Resets in {countdown} (UTC).",
-  "game_round": "Round {current}/{total}",
+  "game_round": "Round",
   "game_round_ready": "Ready",
   "game_run_complete": "Run complete",
   "game_stat_hit": "Hit",

@@ -1,15 +1,21 @@
+import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
 interface HudInfoProps {
-  title: ReactNode;
+  title?: ReactNode;
   value: ReactNode;
+  className?: string;
 }
 
-export function HudInfo({ title, value }: HudInfoProps) {
+export function HudInfo({ className, title, value }: HudInfoProps) {
   return (
-    <div className="flex flex-col">
-      <div>{title}</div>
-      <div>{value}</div>
+    <div className={cn('flex flex-col', className)}>
+      {title && (
+        <div className="uppercase text-sm font-bold text-muted tracking-widest">
+          {title}
+        </div>
+      )}
+      <div className="text-md font-medium">{value}</div>
     </div>
   );
 }

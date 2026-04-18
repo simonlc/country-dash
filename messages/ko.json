@@ -98,7 +98,7 @@
   "game_pool_country_pools": "컨트리 풀",
   "game_refocus_country_aria": "다시 초점을 맞춘 국가",
   "game_resets_in": "{countdown}(UTC)에 재설정됩니다.",
-  "game_round": "라운드 {current}/{total}",
+  "game_round": "라운드",
   "game_round_ready": "준비가 된",
   "game_run_complete": "실행 완료",
   "game_stat_hit": "때리다",

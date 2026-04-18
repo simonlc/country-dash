@@ -98,7 +98,7 @@
   "game_pool_country_pools": "استخرهای کشور",
   "game_refocus_country_aria": "تمرکز مجدد کشور",
   "game_resets_in": "بازنشانی در {countdown} (UTC).",
-  "game_round": "دور {current}/{total}",
+  "game_round": "دور",
   "game_round_ready": "آماده است",
   "game_run_complete": "اجرا کامل",
   "game_stat_hit": "ضربه بزنید",

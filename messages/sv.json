@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Country Pooler",
   "game_refocus_country_aria": "Fokusera om landet",
   "game_resets_in": "Återställs i {countdown} (UTC).",
-  "game_round": "Omgång {current}/{total}",
+  "game_round": "Omgång",
   "game_round_ready": "Redo",
   "game_run_complete": "Kör komplett",
   "game_stat_hit": "Hit",

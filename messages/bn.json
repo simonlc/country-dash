@@ -98,7 +98,7 @@
   "game_pool_country_pools": "কান্ট্রি পুল",
   "game_refocus_country_aria": "রিফোকাস দেশ",
   "game_resets_in": "{countdown} (UTC) এ পুনরায় সেট করে।",
-  "game_round": "রাউন্ড {current}/{total}",
+  "game_round": "রাউন্ড",
   "game_round_ready": "প্রস্তুত",
   "game_run_complete": "রান সম্পূর্ণ",
   "game_stat_hit": "আঘাত",

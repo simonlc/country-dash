@@ -98,7 +98,7 @@
   "game_pool_country_pools": "حمامات البلد",
   "game_refocus_country_aria": "إعادة التركيز على البلد",
   "game_resets_in": "تتم إعادة التعيين في {countdown} (التوقيت العالمي المنسق).",
-  "game_round": "الجولة {current}/{total}",
+  "game_round": "الجولة",
   "game_round_ready": "مستعد",
   "game_run_complete": "اكتمل التشغيل",
   "game_stat_hit": "يضرب",

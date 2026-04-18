@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Landelijke zwembaden",
   "game_refocus_country_aria": "Heroriënteer het land",
   "game_resets_in": "Resetten over {countdown} (UTC).",
-  "game_round": "Ronde {current}/{total}",
+  "game_round": "Ronde",
   "game_round_ready": "Klaar",
   "game_run_complete": "Voltooid",
   "game_stat_hit": "Hit",

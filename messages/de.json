@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Landpools",
   "game_refocus_country_aria": "Land neu ausrichten",
   "game_resets_in": "Wird in {countdown} (UTC) zurückgesetzt.",
-  "game_round": "Runde {current}/{total}",
+  "game_round": "Runde",
   "game_round_ready": "Bereit",
   "game_run_complete": "Lauf abgeschlossen",
   "game_stat_hit": "Schlag",

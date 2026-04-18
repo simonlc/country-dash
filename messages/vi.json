@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Hồ bơi đồng quê",
   "game_refocus_country_aria": "Tập trung lại quốc gia",
   "game_resets_in": "Đặt lại sau {countdown} (UTC).",
-  "game_round": "Vòng {current}/{total}",
+  "game_round": "Vòng",
   "game_round_ready": "Sẵn sàng",
   "game_run_complete": "Chạy hoàn tất",
   "game_stat_hit": "Đánh",

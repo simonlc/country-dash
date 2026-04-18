@@ -98,7 +98,7 @@
   "game_pool_country_pools": "Ülke Havuzları",
   "game_refocus_country_aria": "Ülkeye yeniden odaklan",
   "game_resets_in": "{countdown} (UTC) tarihinde sıfırlanır.",
-  "game_round": "Yuvarlak {current}/{total}",
+  "game_round": "Yuvarlak",
   "game_round_ready": "Hazır",
   "game_run_complete": "Çalıştırma tamamlandı",
   "game_stat_hit": "Vurmak",
