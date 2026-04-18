@@ -29,11 +29,7 @@ import {
   sizeCountsAtom,
 } from '@/game/state/game-derived-atoms';
 import { m } from '@/paraglide/messages.js';
-import type {
-  CountrySizeFilter,
-  GameMode,
-  RegionFilter,
-} from '@/types/game';
+import type { CountrySizeFilter, GameMode, RegionFilter } from '@/types/game';
 
 export function GamePage() {
   const size = useWindowSize();
@@ -110,10 +106,7 @@ export function GamePage() {
   ]);
 
   const topHudLayer = (
-    <FloatingOverlayLayer
-      align="start"
-      maxWidth="hud"
-    >
+    <FloatingOverlayLayer align="start" maxWidth="hud">
       <GameHud />
     </FloatingOverlayLayer>
   );
@@ -124,7 +117,7 @@ export function GamePage() {
       maxWidth="status"
     >
       {isPlaying ? (
-        <div className="md:mb-12">
+        <div className="md:mb-42">
           <GuessPanel />
         </div>
       ) : (
@@ -178,17 +171,27 @@ export function GamePage() {
           fill="none"
           viewBox="0 0 24 24"
         >
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.2" strokeWidth="3" />
-          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeOpacity="0.2"
+            strokeWidth="3"
+          />
+          <path
+            d="M22 12a10 10 0 0 1-10 10"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="3"
+          />
         </svg>
       </div>
     );
   }
 
   return (
-    <div
-      className="fixed left-[var(--visual-viewport-offset-left,0px)] top-[var(--visual-viewport-offset-top,0px)] h-[var(--layout-height,100svh)] min-h-[100svh] w-[var(--layout-width,100vw)] overflow-hidden bg-[image:var(--app-background)]"
-    >
+    <div className="fixed left-[var(--visual-viewport-offset-left,0px)] top-[var(--visual-viewport-offset-top,0px)] h-[var(--layout-height,100svh)] min-h-[100svh] w-[var(--layout-width,100vw)] overflow-hidden bg-[image:var(--app-background)]">
       <GlobeVertical />
       <CipherTelemetryLayer />
       <div className="pointer-events-none absolute inset-0 z-[1]">

@@ -28,11 +28,11 @@ import {
 import { GuessAutocompleteInput } from './GuessAutocompleteInput';
 import type { GuessInputProps, HighlightPart } from './types';
 
-function getGuessLabel(variant: 'country' | 'capital') {
-  return variant === 'capital'
-    ? m.game_guess_label_capital()
-    : m.game_guess_label_country();
-}
+// function getGuessLabel(variant: 'country' | 'capital') {
+//   return variant === 'capital'
+//     ? m.game_guess_label_capital()
+//     : m.game_guess_label_country();
+// }
 
 function getGuessPlaceholder(variant: 'country' | 'capital') {
   return variant === 'capital'
@@ -152,7 +152,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
     ],
   );
 
-  const guessLabel = getGuessLabel(variant);
+  // const guessLabel = getGuessLabel(variant);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -173,12 +173,12 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
       }}
     >
       <div className="grid gap-1">
-        <label
-          className="mb-1 block text-sm font-semibold"
-          htmlFor="country-guess"
-        >
-          {guessLabel}
-        </label>
+        {/* <label */}
+        {/*   className="mb-1 block text-sm font-semibold" */}
+        {/*   htmlFor="country-guess" */}
+        {/* > */}
+        {/*   {guessLabel} */}
+        {/* </label> */}
         <Popover
           open={open}
           onOpenChange={(nextOpen) => {
@@ -207,12 +207,12 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
             spellCheck={false}
             value={inputValue}
             ref={inputRef}
-            onBlur={() => {
-              window.setTimeout(() => {
-                setOpen(false);
-                setHighlightedIndex(-1);
-              }, 80);
-            }}
+            //onBlur={() => {
+            //  window.setTimeout(() => {
+            //    setOpen(false);
+            //    setHighlightedIndex(-1);
+            //  }, 80);
+            //}}
             onValueChange={(nextValue) => {
               setInputValue(nextValue);
               setHighlightedIndex(-1);
