@@ -194,12 +194,6 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
             spellCheck={false}
             value={inputValue}
             ref={inputRef}
-            //onBlur={() => {
-            //  window.setTimeout(() => {
-            //    setOpen(false);
-            //    setHighlightedIndex(-1);
-            //  }, 80);
-            //}}
             onValueChange={(nextValue) => {
               setInputValue(nextValue);
               setHighlightedIndex(-1);
