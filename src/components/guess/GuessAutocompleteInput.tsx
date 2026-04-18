@@ -22,7 +22,7 @@ export const GuessAutocompleteInput = forwardRef<
     <div className="relative">
       <input
         {...props}
-        className="flex h-11 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-base font-semibold text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="flex h-11 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-base font-semibold text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
         ref={ref}
         value={value}
         onChange={(event) => {

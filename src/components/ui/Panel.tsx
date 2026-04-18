@@ -32,12 +32,25 @@ const panelVariants = cva(
   },
 );
 
+const panelContentVariants = cva('', {
+  variants: {
+    spacing: {
+      compact: 'gap-2',
+      roomy: 'gap-4',
+    },
+  },
+  defaultVariants: {
+    spacing: 'compact',
+  },
+});
+
 interface PanelProps {
   children: ReactNode;
   className?: string;
   compact?: VariantProps<typeof panelVariants>['compact'];
   flat?: VariantProps<typeof panelVariants>['flat'];
   maxWidth?: 560 | 720;
+  spacing?: VariantProps<typeof panelContentVariants>['spacing'];
   surface?: VariantProps<typeof panelVariants>['surface'];
 }
 
@@ -47,6 +60,7 @@ export function Panel({
   compact = false,
   flat = false,
   maxWidth = 560,
+  spacing = 'compact',
   surface = 'elevated',
 }: PanelProps) {
   return (
@@ -61,7 +75,9 @@ export function Panel({
         className,
       )}
     >
-      <div className="grid gap-2">{children}</div>
+      <div className={cn('grid', panelContentVariants({ spacing }))}>
+        {children}
+      </div>
     </section>
   );
 }

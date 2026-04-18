@@ -46,7 +46,7 @@ export function GameStatusGameOverContent({
 
       {isDailyRun && dailyShareText ? (
         <>
-          <Card className="surface-display-accent rounded-sm p-3">
+          <Card className="surface-display-accent rounded-xs p-3">
             <pre className="m-0 whitespace-pre-wrap font-inherit">{dailyShareText}</pre>
           </Card>
           <Button

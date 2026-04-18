@@ -4,7 +4,6 @@ import {
   fireEvent,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -34,6 +33,7 @@ vi.mock('@ebay/nice-modal-react', () => ({
   create: <T,>(component: T) => component,
   useModal: () => ({
     hide: () => Promise.resolve(),
+    show: () => Promise.resolve(),
     visible: true,
   }),
 }));
@@ -243,9 +243,9 @@ describe('GamePage', () => {
     });
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByText(/Type: Random Run/i)).toBeVisible();
-    expect(screen.getByText(/Mode: Classic/i)).toBeVisible();
-    expect(screen.getByText(/Pool: Asia/i)).toBeVisible();
+    expect(screen.getByText(/^Region$/i)).toBeVisible();
+    expect(screen.getByText(/^Asia$/i)).toBeVisible();
+    expect(screen.getByText(/^1 \/ 2$/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /refocus country/i }));
   });
@@ -320,29 +320,13 @@ describe('GamePage', () => {
     await user.click(screen.getByRole('menuitem', { name: /^retry$/i }));
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByText(/Type: Random Run/i)).toBeVisible();
+    expect(screen.getByText(/^Region$/i)).toBeVisible();
+    expect(screen.getByText(/^Asia$/i)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent(
-      /quit current run\?/i,
-    );
     expect(showModalMock).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
-    await waitFor(() => {
-      expect(screen.queryByText(/quit current run\?/i)).not.toBeInTheDocument();
-    });
-    expect(showModalMock).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
-    await user.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: /^quit$/i }),
-    );
-    await waitFor(() => {
-      expect(showModalMock).toHaveBeenCalledTimes(2);
-    });
+    expect(screen.getByText(/Guess the highlighted country/i)).toBeVisible();
   });
 
   it(

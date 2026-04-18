@@ -28,12 +28,6 @@ import {
 import { GuessAutocompleteInput } from './GuessAutocompleteInput';
 import type { GuessInputProps, HighlightPart } from './types';
 
-// function getGuessLabel(variant: 'country' | 'capital') {
-//   return variant === 'capital'
-//     ? m.game_guess_label_capital()
-//     : m.game_guess_label_country();
-// }
-
 function getGuessPlaceholder(variant: 'country' | 'capital') {
   return variant === 'capital'
     ? m.game_guess_placeholder_capital()
@@ -41,6 +35,7 @@ function getGuessPlaceholder(variant: 'country' | 'capital') {
 }
 
 export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
+  const inputId = useId();
   const { locale } = useI18n();
   const listboxId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -152,8 +147,6 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
     ],
   );
 
-  // const guessLabel = getGuessLabel(variant);
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       inputRef.current?.focus();
@@ -173,12 +166,6 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
       }}
     >
       <div className="grid gap-1">
-        {/* <label */}
-        {/*   className="mb-1 block text-sm font-semibold" */}
-        {/*   htmlFor="country-guess" */}
-        {/* > */}
-        {/*   {guessLabel} */}
-        {/* </label> */}
         <Popover
           open={open}
           onOpenChange={(nextOpen) => {
@@ -200,7 +187,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
             autoCorrect="off"
             completionValue={completionChoice?.label ?? ''}
             enterKeyHint="done"
-            id="country-guess"
+            id={inputId}
             inputMode="search"
             placeholder={getGuessPlaceholder(variant)}
             role="combobox"

@@ -52,7 +52,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          'fixed left-1/2 top-1/2 z-[1300] grid w-full max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-sm text-[var(--color-foreground)] shadow-2xl duration-100 outline-none data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 sm:max-w-xl',
+          'fixed left-1/2 top-1/2 z-[1300] grid w-full max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-sm text-[var(--color-foreground)] shadow-2xl duration-100 outline-hidden data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 sm:max-w-xl',
           className,
         )}
         {...props}
@@ -61,7 +61,7 @@ function DialogContent({
         {showCloseButton ? (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute right-2 top-2 inline-flex min-h-8 min-w-8 items-center justify-center rounded-sm text-[var(--color-muted)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-primary)_12%,transparent)] hover:text-[var(--color-foreground)]"
+            className="absolute right-2 top-2 inline-flex min-h-8 min-w-8 items-center justify-center rounded-xs text-[var(--color-muted)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-primary)_12%,transparent)] hover:text-[var(--color-foreground)]"
           >
             <X size={16} />
             <span className="sr-only">Close</span>

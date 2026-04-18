@@ -9,7 +9,7 @@ const Command = forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive
     className={cn(
-      'flex h-full w-full flex-col overflow-hidden rounded-sm bg-transparent text-[var(--color-foreground)]',
+      'flex h-full w-full flex-col overflow-hidden rounded-xs bg-transparent text-[var(--color-foreground)]',
       className,
     )}
     ref={ref}
@@ -24,7 +24,7 @@ const CommandInput = forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Input
     className={cn(
-      'flex h-11 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-base font-semibold text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]',
+      'flex h-11 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-base font-semibold text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]',
       className,
     )}
     ref={ref}
@@ -75,7 +75,7 @@ const CommandItem = forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Item
     className={cn(
-      'mb-1 last:mb-0 w-full cursor-pointer rounded-sm px-2 py-2 text-start text-sm data-[selected=true]:bg-[rgba(127,127,127,0.16)]',
+      'mb-1 last:mb-0 w-full cursor-pointer rounded-xs px-2 py-2 text-start text-sm data-[selected=true]:bg-[rgba(127,127,127,0.16)]',
       className,
     )}
     ref={ref}

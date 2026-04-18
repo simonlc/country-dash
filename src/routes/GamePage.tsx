@@ -149,7 +149,7 @@ export function GamePage() {
       <div className="mx-auto max-w-3xl px-4 py-16">
         <div
           role="alert"
-          className="rounded-sm border border-[rgba(213,75,65,0.45)] bg-[rgba(213,75,65,0.14)] px-4 py-3"
+          className="rounded-xs border border-[rgba(213,75,65,0.45)] bg-[rgba(213,75,65,0.14)] px-4 py-3"
         >
           {m.error_loading_country_data({ details: loadingError })}
         </div>

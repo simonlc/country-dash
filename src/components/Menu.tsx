@@ -41,13 +41,6 @@ import {
   XCircle,
 } from 'react-feather';
 
-interface ThemeMenuProps {
-  onAbout?: () => void;
-  onRefocus?: () => void;
-  onRestart?: () => void;
-  onQuit?: () => void;
-}
-
 interface MenuAction {
   color?: 'danger' | 'primary';
   id: 'about' | 'language' | 'quit' | 'refocus' | 'retry';
@@ -56,7 +49,7 @@ interface MenuAction {
   onSelect: () => void;
 }
 
-export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
+export function Menu() {
   const requestRefocus = useSetAtom(refocusAtom);
   const playAgain = useSetAtom(playAgainAtom);
   const [open, setOpen] = useState(false);
@@ -74,10 +67,6 @@ export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
       label: m.action_refocus(),
       onSelect: () => {
         setOpen(false);
-        if (onRefocus) {
-          onRefocus();
-          return;
-        }
         requestRefocus();
       },
     },
@@ -87,10 +76,6 @@ export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
       label: m.action_retry(),
       onSelect: () => {
         setOpen(false);
-        if (onRestart) {
-          onRestart();
-          return;
-        }
         playAgain();
       },
     },
@@ -101,7 +86,7 @@ export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
       color: 'danger',
       onSelect: () => {
         setOpen(false);
-        quitConfirm.show();
+        void quitConfirm.show();
       },
     },
     {
@@ -110,10 +95,6 @@ export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
       label: m.action_about(),
       onSelect: () => {
         setOpen(false);
-        if (onAbout) {
-          onAbout();
-          return;
-        }
         void NiceModal.show(AboutDialog);
       },
     },
@@ -123,7 +104,7 @@ export function Menu({ onAbout, onRefocus, onRestart }: ThemeMenuProps) {
       label: m.menu_language_selector_aria(),
       onSelect: () => {
         setOpen(false);
-        selectLanguage.show();
+        void selectLanguage.show();
       },
     },
   ];
@@ -223,7 +204,7 @@ const LanguageSelectorDialog = NiceModal.create(() => {
       open={modal.visible}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          modal.hide();
+          void modal.hide();
         }
       }}
     >
@@ -243,7 +224,7 @@ const LanguageSelectorDialog = NiceModal.create(() => {
                 variant={isActiveLocale ? 'contained' : 'outlined'}
                 onClick={() => {
                   void setLocale(language.locale);
-                  modal.hide();
+                  void modal.hide();
                 }}
               >
                 <span className="grid min-w-0 text-start">
@@ -251,7 +232,7 @@ const LanguageSelectorDialog = NiceModal.create(() => {
                     {language.nativeLabel}
                   </span>
                   {language.englishLabel !== language.nativeLabel ? (
-                    <span className="break-words text-xs text-[var(--color-muted)]">
+                    <span className="wrap-break-words text-xs text-[var(--color-muted)]">
                       {language.englishLabel}
                     </span>
                   ) : null}
@@ -262,46 +243,68 @@ const LanguageSelectorDialog = NiceModal.create(() => {
           })}
         </div>
         <DialogFooter className="-mb-0 -mx-0 border-none bg-transparent p-0">
-          <Button onClick={() => modal.hide()}>{m.action_close()}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-});
-
-const QuitConfirmDialog = NiceModal.create(() => {
-  const modal = useModal();
-  const returnToMenu = useSetAtom(returnToMenuAtom);
-  return (
-    <Dialog
-      open={modal.visible}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          modal.hide();
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>{m.menu_quit_current_run_title()}</DialogTitle>
-          <DialogDescription>
-            {m.menu_quit_current_run_body()}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="-mb-0 -mx-0 border-none bg-transparent p-0">
-          <Button onClick={() => modal.hide()}>{m.action_cancel()}</Button>
           <Button
-            tone="danger"
-            variant="contained"
             onClick={() => {
-              modal.hide();
-              returnToMenu();
+              void modal.hide();
             }}
           >
-            {m.action_quit()}
+            {m.action_close()}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 });
+
+interface QuitConfirmDialogProps {
+  onConfirm?: () => void;
+}
+
+const QuitConfirmDialog = NiceModal.create(
+  ({ onConfirm }: QuitConfirmDialogProps) => {
+    const modal = useModal();
+    const returnToMenu = useSetAtom(returnToMenuAtom);
+    return (
+      <Dialog
+        open={modal.visible}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            void modal.hide();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{m.menu_quit_current_run_title()}</DialogTitle>
+            <DialogDescription>
+              {m.menu_quit_current_run_body()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="-mb-0 -mx-0 border-none bg-transparent p-0">
+            <Button
+              onClick={() => {
+                void modal.hide();
+              }}
+            >
+              {m.action_cancel()}
+            </Button>
+            <Button
+              tone="danger"
+              variant="contained"
+              onClick={() => {
+                void modal.hide();
+                if (onConfirm) {
+                  onConfirm();
+                  return;
+                }
+                returnToMenu();
+              }}
+            >
+              {m.action_quit()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  },
+);

@@ -3,7 +3,7 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 const cardVariants = cva(
-  'relative overflow-hidden rounded-sm shadow-none',
+  'relative overflow-hidden rounded-xs shadow-none',
   {
     variants: {
       tone: {
