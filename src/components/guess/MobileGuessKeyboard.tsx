@@ -80,7 +80,7 @@ export function MobileGuessKeyboard({
   }, [value]);
 
   return (
-    <div data-testid="guess-mobile-keyboard">
+    <div className="guess-mobile-keyboard-bleed" data-testid="guess-mobile-keyboard">
       <Keyboard
         buttonAttributes={buttonAttributes}
         buttonTheme={buttonTheme}

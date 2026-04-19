@@ -704,34 +704,58 @@ body {
   }
 }
 
+.guess-mobile-keyboard-bleed {
+  --keyboard-inline-padding: 7px;
+  box-sizing: border-box;
+  inline-size: 100vw;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: var(--keyboard-inline-padding);
+}
+
 .country-dash-mobile-keyboard {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(244, 247, 252, 0.98)
+  --keyboard-horizontal-gap: clamp(0.2rem, 1vw, 0.35rem);
+  --keyboard-vertical-gap: clamp(0.2rem, 0.8vh, 0.35rem);
+  --keyboard-key-width: calc(
+    (
+        100vw - (2 * var(--keyboard-inline-padding)) -
+          (9 * var(--keyboard-horizontal-gap))
+      ) / 10
   );
-  border: 1px solid rgba(28, 44, 79, 0.14);
-  border-radius: 16px;
-  box-shadow:
-    0 16px 32px rgba(16, 24, 40, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  padding: 0.35rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+  width: 100%;
+}
+
+.country-dash-mobile-keyboard .hg-row {
+  gap: var(--keyboard-horizontal-gap);
+  justify-content: center;
 }
 
 .country-dash-mobile-keyboard .hg-row:not(:last-child) {
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--keyboard-vertical-gap);
+}
+
+.country-dash-mobile-keyboard .hg-row .hg-button-container,
+.country-dash-mobile-keyboard .hg-row .hg-button:not(:last-child) {
+  margin-right: 0;
 }
 
 .country-dash-mobile-keyboard .hg-button {
+  flex: 0 0 var(--keyboard-key-width);
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(28, 44, 79, 0.12);
   border-bottom-color: rgba(28, 44, 79, 0.2);
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
   color: var(--color-foreground);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  height: 3rem;
+  height: 2.7rem;
+  width: var(--keyboard-key-width);
 }
 
 .country-dash-mobile-keyboard .hg-button:active,
@@ -743,10 +767,22 @@ body {
 .country-dash-mobile-keyboard .hg-button-backspace {
   background: rgba(49, 103, 228, 0.12);
   color: var(--color-primary);
-  flex-grow: 1.3;
+  flex: 0 0 calc(
+    (2 * var(--keyboard-key-width)) + var(--keyboard-horizontal-gap)
+  );
+  width: calc((2 * var(--keyboard-key-width)) + var(--keyboard-horizontal-gap));
 }
 
 .country-dash-mobile-keyboard .hg-button-space {
-  flex-grow: 4;
+  flex: 0 0 calc(
+    (6 * var(--keyboard-key-width)) + (5 * var(--keyboard-horizontal-gap))
+  );
   font-weight: 600;
+  width: calc(
+    (6 * var(--keyboard-key-width)) + (5 * var(--keyboard-horizontal-gap))
+  );
+}
+
+.country-dash-mobile-keyboard .hg-row:last-child .hg-button {
+  height: 2.5rem;
 }

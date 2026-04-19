@@ -28,11 +28,13 @@ export function GuessPanel() {
 
   return (
     <Panel compact maxWidth={720} surface="elevated">
-      <p className="text-sm font-semibold">
-        {isCapitalModeValue
-          ? m.game_guess_capital_prompt()
-          : m.game_guess_country_prompt()}
-      </p>
+      {!useVirtualKeyboard ? (
+        <p className="text-sm font-semibold">
+          {isCapitalModeValue
+            ? m.game_guess_capital_prompt()
+            : m.game_guess_country_prompt()}
+        </p>
+      ) : null}
       <GuessInput
         options={countryOptionsValue}
         useVirtualKeyboard={useVirtualKeyboard}
