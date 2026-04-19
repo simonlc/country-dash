@@ -309,156 +309,154 @@ export const IntroDialog = NiceModal.create(
               </Card>
             </div>
 
-            <Card className="p-4" tone="elevated">
-              <div className="grid gap-4">
-                <div>
-                  <h2 className="m-0 text-xl font-semibold">
-                    {m.game_new_game()}
-                  </h2>
-                  <p className="m-0 text-sm text-[var(--color-muted)]">
-                    {m.game_new_game_subtitle()}
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                    {m.how_to_play_modes_title()}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {modeDetails.map((option) => {
-                      const ModeIcon = option.icon;
-
-                      return (
-                        <button
-                          aria-label={getModeLabel(option.value)}
-                          aria-pressed={mode === option.value}
-                          className={`grid min-h-[84px] gap-2 rounded-md border p-3 text-start ${
-                            mode === option.value
-                              ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
-                              : 'border-[var(--color-border)] bg-[var(--color-card)]'
-                          }`}
-                          key={option.value}
-                          type="button"
-                          onClick={() => setMode(option.value)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <ModeIcon aria-hidden size={15} strokeWidth={2} />
-                            <span className="text-sm font-medium">
-                              {getModeLabel(option.value)}
-                            </span>
-                          </div>
-                          <span className="text-xs text-[var(--color-muted)]">
-                            {option.value === 'classic'
-                              ? m.intro_mode_classic_description()
-                              : option.value === 'threeLives'
-                                ? m.intro_mode_three_lives_description()
-                                : option.value === 'capitals'
-                                  ? m.intro_mode_capitals_description()
-                                  : m.intro_mode_streak_description()}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
-                  {m.game_pool_country_pools()}
+            <div className="grid gap-4">
+              <div>
+                <h2 className="m-0 text-xl font-semibold">
+                  {m.game_new_game()}
+                </h2>
+                <p className="m-0 text-sm text-[var(--color-muted)]">
+                  {m.game_new_game_subtitle()}
                 </p>
-                <div className="grid gap-2 md:grid-cols-3">
-                  {sizeItems.map((item) => {
-                    const ItemIcon = item.icon;
+              </div>
+
+              <div className="grid gap-2">
+                <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                  {m.how_to_play_modes_title()}
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {modeDetails.map((option) => {
+                    const ModeIcon = option.icon;
 
                     return (
                       <button
-                        aria-label={m.intro_pool_option_aria({
-                          description: item.description,
-                          label: item.label,
-                          meta: item.meta,
-                        })}
-                        aria-pressed={item.selected}
-                        className={`grid min-h-[112px] content-start gap-2 rounded-md border p-4 text-start ${
-                          item.selected
+                        aria-label={getModeLabel(option.value)}
+                        aria-pressed={mode === option.value}
+                        className={`grid min-h-[84px] gap-2 rounded-md border p-3 text-start ${
+                          mode === option.value
                             ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
                             : 'border-[var(--color-border)] bg-[var(--color-card)]'
                         }`}
-                        key={`size-${item.value}`}
+                        key={option.value}
                         type="button"
-                        onClick={() => {
-                          setCountrySizeFilter(item.value);
-                          setRegionFilter(null);
-                        }}
+                        onClick={() => setMode(option.value)}
                       >
-                        <ItemIcon aria-hidden size={18} strokeWidth={2} />
-                        <span className="text-base font-semibold">
-                          {item.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <ModeIcon aria-hidden size={15} strokeWidth={2} />
+                          <span className="text-sm font-medium">
+                            {getModeLabel(option.value)}
+                          </span>
+                        </div>
                         <span className="text-xs text-[var(--color-muted)]">
-                          {item.meta}
-                        </span>
-                        <span className="text-xs text-[var(--color-muted)]">
-                          {item.detail}
+                          {option.value === 'classic'
+                            ? m.intro_mode_classic_description()
+                            : option.value === 'threeLives'
+                              ? m.intro_mode_three_lives_description()
+                              : option.value === 'capitals'
+                                ? m.intro_mode_capitals_description()
+                                : m.intro_mode_streak_description()}
                         </span>
                       </button>
                     );
                   })}
                 </div>
+              </div>
 
-                <div className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
-                  {categoryItems.map((item) => (
+              <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
+                {m.game_pool_country_pools()}
+              </p>
+              <div className="grid gap-2 md:grid-cols-3">
+                {sizeItems.map((item) => {
+                  const ItemIcon = item.icon;
+
+                  return (
                     <button
-                      aria-label={m.intro_region_option_aria({
+                      aria-label={m.intro_pool_option_aria({
                         description: item.description,
                         label: item.label,
                         meta: item.meta,
                       })}
                       aria-pressed={item.selected}
-                      className={`grid gap-0.5 px-0 py-2 text-start ${
+                      className={`grid min-h-[112px] content-start gap-2 rounded-md border p-4 text-start ${
                         item.selected
-                          ? 'text-[var(--color-primary)]'
-                          : 'text-[var(--color-muted)]'
+                          ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
+                          : 'border-[var(--color-border)] bg-[var(--color-card)]'
                       }`}
-                      key={`region-${item.value}`}
+                      key={`size-${item.value}`}
                       type="button"
                       onClick={() => {
-                        setRegionFilter(item.value);
-                        setCountrySizeFilter('mixed');
+                        setCountrySizeFilter(item.value);
+                        setRegionFilter(null);
                       }}
                     >
-                      <span
-                        className={`text-sm ${item.selected ? 'font-bold' : 'font-medium'}`}
-                      >
+                      <ItemIcon aria-hidden size={18} strokeWidth={2} />
+                      <span className="text-base font-semibold">
                         {item.label}
                       </span>
-                      <span
-                        className={`text-xs uppercase tracking-[0.04em] ${
-                          item.selected ? 'opacity-100' : 'opacity-60'
-                        }`}
-                      >
+                      <span className="text-xs text-[var(--color-muted)]">
                         {item.meta}
                       </span>
+                      <span className="text-xs text-[var(--color-muted)]">
+                        {item.detail}
+                      </span>
                     </button>
-                  ))}
-                </div>
-
-                <Button
-                  size="lg"
-                  variant="contained"
-                  onClick={() => {
-                    onStartRandom({
-                      mode,
-                      regionFilter,
-                      countrySizeFilter,
-                    });
-                    void modal.hide();
-                  }}
-                >
-                  {m.action_start_with_pool({
-                    pool: getSelectedPoolLabel(countrySizeFilter, regionFilter),
-                  })}
-                </Button>
+                  );
+                })}
               </div>
-            </Card>
+
+              <div className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
+                {categoryItems.map((item) => (
+                  <button
+                    aria-label={m.intro_region_option_aria({
+                      description: item.description,
+                      label: item.label,
+                      meta: item.meta,
+                    })}
+                    aria-pressed={item.selected}
+                    className={`grid gap-0.5 px-0 py-2 text-start ${
+                      item.selected
+                        ? 'text-[var(--color-primary)]'
+                        : 'text-[var(--color-muted)]'
+                    }`}
+                    key={`region-${item.value}`}
+                    type="button"
+                    onClick={() => {
+                      setRegionFilter(item.value);
+                      setCountrySizeFilter('mixed');
+                    }}
+                  >
+                    <span
+                      className={`text-sm ${item.selected ? 'font-bold' : 'font-medium'}`}
+                    >
+                      {item.label}
+                    </span>
+                    <span
+                      className={`text-xs uppercase tracking-[0.04em] ${
+                        item.selected ? 'opacity-100' : 'opacity-60'
+                      }`}
+                    >
+                      {item.meta}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                size="lg"
+                variant="contained"
+                onClick={() => {
+                  onStartRandom({
+                    mode,
+                    regionFilter,
+                    countrySizeFilter,
+                  });
+                  void modal.hide();
+                }}
+              >
+                {m.action_start_with_pool({
+                  pool: getSelectedPoolLabel(countrySizeFilter, regionFilter),
+                })}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
