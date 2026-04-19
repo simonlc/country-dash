@@ -26,7 +26,7 @@ import {
   labelStartsWithInput,
 } from './guessChoices';
 import { GuessAutocompleteInput } from './GuessAutocompleteInput';
-import type { GuessInputProps, HighlightPart } from './types';
+import type { GuessChoice, GuessInputProps, HighlightPart } from './types';
 import { MobileGuessKeyboard } from './MobileGuessKeyboard';
 
 function getGuessPlaceholder(variant: 'country' | 'capital') {
@@ -39,6 +39,49 @@ function getGuessAriaLabel(variant: 'country' | 'capital') {
   return variant === 'capital'
     ? m.game_guess_label_capital()
     : m.game_guess_label_country();
+}
+
+interface MobileGuessSuggestionsProps {
+  options: GuessChoice[];
+  onSelect: (label: string) => void;
+}
+
+function MobileGuessSuggestions({
+  onSelect,
+  options,
+}: MobileGuessSuggestionsProps) {
+  if (options.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="surface-display-neutral flex items-center overflow-x-auto rounded-full px-3 py-1 text-sm touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      data-testid="guess-mobile-suggestions"
+    >
+      {options.map((option, index) => (
+        <div className="flex shrink-0 items-center" key={option.id}>
+          <button
+            className="cursor-pointer px-0.5 py-1 font-semibold whitespace-nowrap text-[var(--color-foreground)]"
+            type="button"
+            onClick={() => {
+              onSelect(option.label);
+            }}
+          >
+            {option.label}
+          </button>
+          {index < options.length - 1 ? (
+            <span
+              aria-hidden
+              className="px-2 text-[var(--color-muted)]"
+            >
+              |
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function GuessInput({
@@ -208,6 +251,12 @@ export function GuessInput({
             event.preventDefault();
           }}
           onValueChange={() => undefined}
+        />
+        <MobileGuessSuggestions
+          options={filteredOptions}
+          onSelect={(label) => {
+            selectOption(label, false);
+          }}
         />
         <MobileGuessKeyboard
           value={inputValue}

@@ -48,7 +48,12 @@ interface MenuAction {
   onSelect: () => void;
 }
 
-export function Menu() {
+interface MenuProps {
+  iconSize?: number;
+  triggerClassName?: string;
+}
+
+export function Menu({ iconSize = 17, triggerClassName }: MenuProps = {}) {
   const requestRefocus = useSetAtom(refocusAtom);
   const playAgain = useSetAtom(playAgainAtom);
   const { activeTheme, setTheme, themes } = useAppearance();
@@ -105,12 +110,14 @@ export function Menu() {
     <div className="pointer-events-auto relative">
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger
+          aria-label={m.action_menu()}
           className={cn(
             buttonVariants({ size: 'sm', variant: 'text' }),
             'surface-elevated min-h-11 min-w-11 rounded-full border border-[var(--surface-panel-border)] p-0 text-primary',
+            triggerClassName,
           )}
         >
-          <MoreVertical size={17} />
+          <MoreVertical size={iconSize} />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align={isRtlDocument ? 'start' : 'end'}

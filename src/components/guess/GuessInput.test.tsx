@@ -292,4 +292,36 @@ describe('GuessInput', () => {
     expect(screen.getByRole('textbox')).toHaveValue('denmark');
     expect(onSubmit).toHaveBeenCalledWith('Denmark');
   });
+
+  it('shows swipeable mobile suggestions and autofills without submitting', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={onSubmit}
+        options={[
+          { isocode: 'KH', isocode3: 'KHM', nameEn: 'Cambodia' },
+          { isocode: 'CM', isocode3: 'CMR', nameEn: 'Cameroon' },
+          { isocode: 'CA', isocode3: 'CAN', nameEn: 'Canada' },
+          { isocode: 'CV', isocode3: 'CPV', nameEn: 'Cape Verde' },
+          { isocode: 'KY', isocode3: 'CYM', nameEn: 'Cayman Islands' },
+        ]}
+        useVirtualKeyboard
+        variant="country"
+      />,
+    );
+
+    await user.click(screen.getByText(/^c$/i));
+    await user.click(screen.getByText(/^a$/i));
+
+    const suggestions = screen.getByTestId('guess-mobile-suggestions');
+    expect(suggestions).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Cameroon' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Cameroon' }));
+
+    expect(screen.getByRole('textbox')).toHaveValue('Cameroon');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });
