@@ -82,7 +82,12 @@ function isDifficultyValue(value: JsonValue | undefined): value is Difficulty {
 function isCountrySizeFilterValue(
   value: JsonValue | undefined,
 ): value is CountrySizeFilter {
-  return value === 'large' || value === 'mixed' || value === 'small';
+  return (
+    value === 'large' ||
+    value === 'mixed' ||
+    value === 'small' ||
+    value === 'all'
+  );
 }
 
 function isGameModeValue(value: JsonValue | undefined): value is GameMode {

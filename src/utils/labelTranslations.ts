@@ -23,6 +23,7 @@ export const countrySizeFilters: CountrySizeFilter[] = [
   'large',
   'mixed',
   'small',
+  'all',
 ];
 
 export function getModeLabel(mode: GameMode) {
@@ -81,5 +82,7 @@ export function getCountrySizeLabel(size: CountrySizeFilter) {
       return `${m.pool_standard_run()}`;
     case 'small':
       return `${m.pool_quick_run()}`;
+    case 'all':
+      return `${m.pool_all_countries()}`;
   }
 }

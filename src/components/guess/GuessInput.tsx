@@ -318,12 +318,17 @@ export function GuessInput({
             anchor={inputRef}
             align="start"
             className="max-h-64 p-0"
+            collisionAvoidance={{
+              align: 'shift',
+              fallbackAxisSide: 'none',
+              side: 'none',
+            }}
             initialFocus={false}
             side="bottom"
             sideOffset={6}
           >
             <Command shouldFilter={false}>
-              <CommandList id={listboxId} role="listbox">
+              <CommandList className="md:p-1" id={listboxId} role="listbox">
                 <CommandEmpty>{m.game_no_matches()}</CommandEmpty>
                 <CommandGroup>
                   {filteredOptions.map((option, index) => {
@@ -339,8 +344,8 @@ export function GuessInput({
                         aria-selected={isHighlighted}
                         className={
                           isHighlighted
-                            ? 'bg-[rgba(127,127,127,0.16)]'
-                            : undefined
+                            ? 'bg-[rgba(127,127,127,0.16)] md:mb-0.5 md:px-1.5 md:py-1.5'
+                            : 'md:mb-0.5 md:px-1.5 md:py-1.5'
                         }
                         key={option.id}
                         role="option"

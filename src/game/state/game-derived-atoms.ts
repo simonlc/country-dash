@@ -75,6 +75,7 @@ export const roundIndexAtom = atom((get) => get(gameStateAtom).roundIndex);
 export const sizeCountsAtom = atom((get) => {
   const countryPool = get(countryPoolAtom);
   return {
+    all: getRandomRunCountryCount(countryPool.length, 'all'),
     large: getRandomRunCountryCount(countryPool.length, 'large'),
     mixed: getRandomRunCountryCount(countryPool.length, 'mixed'),
     small: getRandomRunCountryCount(countryPool.length, 'small'),

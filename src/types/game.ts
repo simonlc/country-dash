@@ -5,7 +5,7 @@ import type {
 } from 'topojson-specification';
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'veryHard';
-export type CountrySizeFilter = 'large' | 'mixed' | 'small';
+export type CountrySizeFilter = 'large' | 'mixed' | 'small' | 'all';
 export type GameMode = 'classic' | 'threeLives' | 'capitals' | 'streak';
 export type SessionKind = 'random' | 'daily';
 export type GameStatus = 'intro' | 'playing' | 'reviewing' | 'gameOver';

@@ -136,7 +136,7 @@ const mockedLoadWorldData = vi.mocked(loadWorldData);
 
 interface IntroDialogProps {
   dailyResult: DailyChallengeResult | null;
-  counts: Record<'large' | 'mixed' | 'small', number>;
+  counts: Record<'all' | 'large' | 'mixed' | 'small', number>;
   categoryCounts: Record<
     | 'africa'
     | 'asia'
@@ -207,7 +207,7 @@ describe('GamePage', () => {
           | 'caribbean'
           | 'middleEast'
           | null;
-        countrySizeFilter: 'large' | 'mixed' | 'small';
+        countrySizeFilter: 'all' | 'large' | 'mixed' | 'small';
       }) => void;
     };
 
@@ -220,7 +220,12 @@ describe('GamePage', () => {
     const firstIntroProps = showModalMock.mock.calls[0]?.[1] as IntroDialogProps | undefined;
 
     expect(firstIntroProps?.dailyResult).toBeNull();
-    expect(firstIntroProps?.counts).toEqual({ large: 5, mixed: 5, small: 5 });
+    expect(firstIntroProps?.counts).toEqual({
+      all: 5,
+      large: 5,
+      mixed: 5,
+      small: 5,
+    });
     expect(firstIntroProps?.categoryCounts).toEqual({
       africa: 0,
       asia: 2,

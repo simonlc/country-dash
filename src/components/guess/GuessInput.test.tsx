@@ -225,6 +225,24 @@ describe('GuessInput', () => {
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
+  it('uses tighter desktop spacing classes for dropdown items', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <GuessInput onSubmit={vi.fn()} options={options} variant="country" />,
+    );
+
+    const input = screen.getByRole('combobox');
+    await user.type(input, 'dom');
+
+    expect(screen.getByRole('listbox')).toHaveClass('md:p-1');
+    expect(screen.getAllByRole('option')[0]).toHaveClass(
+      'md:mb-0.5',
+      'md:px-1.5',
+      'md:py-1.5',
+    );
+  });
+
   it('limits autocomplete results to five options', async () => {
     const user = userEvent.setup();
 

@@ -43,18 +43,21 @@ export const regionLabels: Record<RegionFilter, string> = {
 };
 
 export const countrySizeLabels: Record<CountrySizeFilter, string> = {
+  all: 'All Countries',
   large: 'Long Run',
   mixed: 'Standard Run',
   small: 'Quick Run',
 };
 
 export const randomRunPresetCounts: Record<CountrySizeFilter, number> = {
+  all: Number.POSITIVE_INFINITY,
   small: 10,
   mixed: 20,
   large: 40,
 };
 
 export const randomRunPresetDifficulties: Record<CountrySizeFilter, Difficulty> = {
+  all: 'medium',
   small: 'easy',
   mixed: 'medium',
   large: 'hard',

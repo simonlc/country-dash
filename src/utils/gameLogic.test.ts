@@ -213,6 +213,19 @@ describe('gameLogic', () => {
     expect(plan.totalRounds).toBe(getRandomRunCountryCount(world.features.length, 'small'));
   });
 
+  it('uses the full world pool for the all countries preset', () => {
+    const config = createSessionConfig({
+      difficulty: 'medium',
+      kind: 'random',
+      mode: 'classic',
+      countrySizeFilter: 'all',
+      seed: 'all-countries-seed',
+    });
+    const plan = buildSessionPlan(world, config);
+
+    expect(plan.totalRounds).toBe(world.features.length);
+  });
+
   it('filters countries by region tags', () => {
     expect(buildRegionCountryPool(countries, 'microstates').map((country) => country.id)).toEqual(
       ['NR'],

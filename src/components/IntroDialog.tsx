@@ -162,19 +162,30 @@ export const IntroDialog = NiceModal.create(
 
     const sizeItems = countrySizeFilters.map((key) => ({
       description:
-        key === 'large'
-          ? m.intro_pool_size_large_description({
+        key === 'all'
+          ? m.intro_pool_size_all_description({
               countLabel: formatCountryCountLabel(counts[key]),
             })
-          : key === 'mixed'
-            ? m.intro_pool_size_mixed_description({
+          : key === 'large'
+            ? m.intro_pool_size_large_description({
                 countLabel: formatCountryCountLabel(counts[key]),
               })
-            : m.intro_pool_size_small_description({
-                countLabel: formatCountryCountLabel(counts[key]),
-              }),
+            : key === 'mixed'
+              ? m.intro_pool_size_mixed_description({
+                  countLabel: formatCountryCountLabel(counts[key]),
+                })
+              : m.intro_pool_size_small_description({
+                  countLabel: formatCountryCountLabel(counts[key]),
+                }),
       detail: getDifficultyLabel(randomRunPresetDifficulties[key]),
-      icon: key === 'large' ? Globe : key === 'mixed' ? Map : Clock,
+      icon:
+        key === 'all'
+          ? Globe
+          : key === 'large'
+            ? Globe
+            : key === 'mixed'
+              ? Map
+              : Clock,
       label: getCountrySizeLabel(key),
       meta: formatCountryCountLabel(counts[key]),
       selected: regionFilter === null && countrySizeFilter === key,
@@ -209,10 +220,7 @@ export const IntroDialog = NiceModal.create(
     }));
 
     return (
-      <Dialog
-        disablePointerDismissal
-        open={modal.visible}
-      >
+      <Dialog disablePointerDismissal open={modal.visible}>
         <DialogContent
           className="max-w-[calc(100vw-1rem)] p-3 sm:max-w-4xl sm:p-4 xl:max-w-5xl"
           showCloseButton={false}
@@ -365,7 +373,7 @@ export const IntroDialog = NiceModal.create(
               <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
                 {m.game_pool_country_pools()}
               </p>
-              <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-3">
+              <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-4">
                 {sizeItems.map((item) => {
                   const ItemIcon = item.icon;
 
@@ -377,11 +385,11 @@ export const IntroDialog = NiceModal.create(
                         meta: item.meta,
                       })}
                       aria-pressed={item.selected}
-                       className={`grid min-h-[104px] content-start gap-1.5 rounded-md border p-3 text-start sm:min-h-[112px] sm:p-4 ${
-                         item.selected
-                           ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
-                           : 'border-[var(--color-border)] bg-[var(--color-card)]'
-                       }`}
+                      className={`grid min-h-[104px] content-start gap-1.5 rounded-md border p-3 text-start sm:min-h-[112px] sm:p-4 ${
+                        item.selected
+                          ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
+                          : 'border-[var(--color-border)] bg-[var(--color-card)]'
+                      }`}
                       key={`size-${item.value}`}
                       type="button"
                       onClick={() => {
@@ -396,9 +404,9 @@ export const IntroDialog = NiceModal.create(
                       <span className="text-xs text-[var(--color-muted)]">
                         {item.meta}
                       </span>
-                      <span className="text-xs text-[var(--color-muted)]">
-                        {item.detail}
-                      </span>
+                      {/* <span className="text-xs text-[var(--color-muted)]"> */}
+                      {/*   {item.detail} */}
+                      {/* </span> */}
                     </button>
                   );
                 })}
@@ -413,10 +421,10 @@ export const IntroDialog = NiceModal.create(
                       meta: item.meta,
                     })}
                     aria-pressed={item.selected}
-                     className={`grid gap-0.5 px-0 py-2 text-start ${
-                       item.selected
-                         ? 'text-[var(--color-primary)]'
-                         : 'text-[var(--color-muted)]'
+                    className={`grid gap-0.5 px-0 py-2 text-start ${
+                      item.selected
+                        ? 'text-[var(--color-primary)]'
+                        : 'text-[var(--color-muted)]'
                     }`}
                     key={`region-${item.value}`}
                     type="button"

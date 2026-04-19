@@ -48,7 +48,7 @@ describe('IntroDialog', () => {
           southAmerica: 12,
         }}
         id="intro-dialog"
-        counts={{ large: 12, mixed: 60, small: 18 }}
+        counts={{ all: 196, large: 12, mixed: 60, small: 18 }}
         dailyResult={null}
         onStartDaily={vi.fn()}
         onStartRandom={vi.fn()}
@@ -76,7 +76,7 @@ describe('IntroDialog', () => {
           southAmerica: 12,
         }}
         id="intro-dialog"
-        counts={{ large: 1, mixed: 3, small: 1 }}
+        counts={{ all: 5, large: 1, mixed: 3, small: 1 }}
         dailyResult={{
           completedAt: '2026-03-31T12:00:00.000Z',
           correctCount: 4,
@@ -118,7 +118,7 @@ describe('IntroDialog', () => {
           southAmerica: 12,
         }}
         id="intro-dialog"
-        counts={{ large: 1, mixed: 3, small: 1 }}
+        counts={{ all: 5, large: 1, mixed: 3, small: 1 }}
         dailyResult={null}
         onStartDaily={vi.fn()}
         onStartRandom={vi.fn()}
@@ -150,7 +150,7 @@ describe('IntroDialog', () => {
           southAmerica: 12,
         }}
         id="intro-dialog"
-        counts={{ large: 12, mixed: 60, small: 18 }}
+        counts={{ all: 196, large: 12, mixed: 60, small: 18 }}
         dailyResult={null}
         onStartDaily={vi.fn()}
         onStartRandom={onStartRandom}
@@ -191,6 +191,21 @@ describe('IntroDialog', () => {
       mode: 'capitals',
       regionFilter: null,
       countrySizeFilter: 'small',
+    });
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /All Countries 196 countries Every available country in a single full pool\./i,
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /start all countries/i }),
+    );
+
+    expect(onStartRandom).toHaveBeenLastCalledWith({
+      mode: 'capitals',
+      regionFilter: null,
+      countrySizeFilter: 'all',
     });
   });
 });
