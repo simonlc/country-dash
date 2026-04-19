@@ -41,6 +41,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-feather": "^2.0.10",
+    "react-simple-keyboard": "^3.8.193",
     "shadcn": "^4.3.0",
     "solar-calculator": "^0.3.0",
     "tailwind-merge": "^3.5.0",

@@ -253,4 +253,43 @@ describe('GuessInput', () => {
     expect(screen.getAllByRole('option')).toHaveLength(5);
     expect(screen.getByRole('option', { name: 'Algeria' })).toBeVisible();
   });
+
+  it('uses a read-only textbox without autocomplete when the virtual keyboard is enabled', () => {
+    renderWithProviders(
+      <GuessInput
+        onSubmit={vi.fn()}
+        options={options}
+        useVirtualKeyboard
+        variant="country"
+      />,
+    );
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByTestId('guess-mobile-keyboard')).toBeVisible();
+  });
+
+  it('submits guesses from the in-app virtual keyboard', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    renderWithProviders(
+      <GuessInput
+        onSubmit={onSubmit}
+        options={options}
+        useVirtualKeyboard
+        variant="country"
+      />,
+    );
+
+    for (const letter of ['d', 'e', 'n', 'm', 'a', 'r', 'k']) {
+      await user.click(screen.getByText(new RegExp(`^${letter}$`, 'i')));
+    }
+
+    await user.click(screen.getByText(/^Enter$/i));
+
+    expect(screen.getByRole('textbox')).toHaveValue('denmark');
+    expect(onSubmit).toHaveBeenCalledWith('Denmark');
+  });
 });

@@ -5,6 +5,7 @@ import {
   isCapitalModeAtom,
 } from '@/game/state/game-derived-atoms';
 import { m } from '@/paraglide/messages.js';
+import { useMediaQuery } from '@/components/ui/theme-provider';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useCallback } from 'react';
 import { GuessInput } from './GuessInput';
@@ -14,6 +15,9 @@ export function GuessPanel() {
   const countryOptionsValue = useAtomValue(countryOptionsAtom);
   const isCapitalModeValue = useAtomValue(isCapitalModeAtom);
   const submitGuess = useSetAtom(submitGuessAtom);
+  const isMobileViewport = useMediaQuery((theme) => theme.breakpoints.down('md'));
+  const hasCoarsePointer = useMediaQuery('(pointer: coarse)');
+  const useVirtualKeyboard = isMobileViewport && hasCoarsePointer;
 
   const handleSubmit = useCallback(
     (term: string) => {
@@ -31,6 +35,7 @@ export function GuessPanel() {
       </p>
       <GuessInput
         options={countryOptionsValue}
+        useVirtualKeyboard={useVirtualKeyboard}
         variant={isCapitalModeValue ? 'capital' : 'country'}
         onSubmit={handleSubmit}
       />

@@ -27,6 +27,7 @@ import {
 } from './guessChoices';
 import { GuessAutocompleteInput } from './GuessAutocompleteInput';
 import type { GuessInputProps, HighlightPart } from './types';
+import { MobileGuessKeyboard } from './MobileGuessKeyboard';
 
 function getGuessPlaceholder(variant: 'country' | 'capital') {
   return variant === 'capital'
@@ -34,7 +35,18 @@ function getGuessPlaceholder(variant: 'country' | 'capital') {
     : m.game_guess_placeholder_country();
 }
 
-export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
+function getGuessAriaLabel(variant: 'country' | 'capital') {
+  return variant === 'capital'
+    ? m.game_guess_label_capital()
+    : m.game_guess_label_country();
+}
+
+export function GuessInput({
+  onSubmit,
+  options,
+  useVirtualKeyboard = false,
+  variant,
+}: GuessInputProps) {
   const inputId = useId();
   const { locale } = useI18n();
   const listboxId = useId();
@@ -57,6 +69,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
       ) ?? null,
     [filteredOptions, inputValue],
   );
+  const guessAriaLabel = getGuessAriaLabel(variant);
 
   const submitGuess = useCallback(
     (rawValue?: string) => {
@@ -148,6 +161,11 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
   );
 
   useEffect(() => {
+    if (useVirtualKeyboard) {
+      inputRef.current?.blur();
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
@@ -155,7 +173,52 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [useVirtualKeyboard]);
+
+  if (useVirtualKeyboard) {
+    return (
+      <form
+        className="grid w-full gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitGuess();
+        }}
+      >
+        <GuessAutocompleteInput
+          aria-label={guessAriaLabel}
+          autoCapitalize="none"
+          autoComplete="off"
+          autoCorrect="off"
+          completionValue=""
+          id={inputId}
+          inputMode="none"
+          placeholder={getGuessPlaceholder(variant)}
+          readOnly
+          ref={inputRef}
+          spellCheck={false}
+          tabIndex={-1}
+          value={inputValue}
+          onFocus={(event) => {
+            event.currentTarget.blur();
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
+          onTouchStart={(event) => {
+            event.preventDefault();
+          }}
+          onValueChange={() => undefined}
+        />
+        <MobileGuessKeyboard
+          value={inputValue}
+          onChange={setInputValue}
+          onSubmit={() => {
+            submitGuess();
+          }}
+        />
+      </form>
+    );
+  }
 
   return (
     <form
@@ -185,6 +248,7 @@ export function GuessInput({ onSubmit, options, variant }: GuessInputProps) {
             autoCapitalize="none"
             autoComplete="off"
             autoCorrect="off"
+            aria-label={guessAriaLabel}
             completionValue={completionChoice?.label ?? ''}
             enterKeyHint="done"
             id={inputId}

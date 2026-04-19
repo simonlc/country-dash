@@ -8,6 +8,7 @@ export interface HighlightPart {
 export interface GuessInputProps {
   onSubmit: (term: string) => void;
   options: CountryProperties[];
+  useVirtualKeyboard?: boolean;
   variant: 'country' | 'capital';
 }
 
