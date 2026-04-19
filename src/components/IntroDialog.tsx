@@ -210,22 +210,23 @@ export const IntroDialog = NiceModal.create(
 
     return (
       <Dialog
+        disablePointerDismissal
         open={modal.visible}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            void modal.hide();
-          }
-        }}
       >
-        <DialogContent showCloseButton={false}>
+        <DialogContent
+          className="max-w-[calc(100vw-1rem)] p-3 sm:max-w-4xl sm:p-4 xl:max-w-5xl"
+          showCloseButton={false}
+        >
           <DialogTitle className="sr-only">{m.app_name()}</DialogTitle>
-          <div className="grid gap-4 p-3">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
-              <div className="grid gap-2">
-                <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
-                <p className="m-0 text-sm text-[var(--color-muted)]">
-                  {m.app_subtitle()}
-                </p>
+          <div className="grid gap-4 sm:gap-5">
+            <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] lg:gap-5">
+              <div className="grid min-w-0 gap-3">
+                <div className="grid min-w-0 gap-2">
+                  <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
+                  <p className="m-0 text-sm text-[var(--color-muted)]">
+                    {m.app_subtitle()}
+                  </p>
+                </div>
                 <div>
                   <Button
                     size="sm"
@@ -239,7 +240,7 @@ export const IntroDialog = NiceModal.create(
                 </div>
               </div>
 
-              <Card className="p-4" tone="elevated">
+              <Card className="p-3 sm:p-4" tone="elevated">
                 <div className="grid gap-3">
                   <p className="m-0 inline-flex w-fit rounded-full border border-[color:color-mix(in_srgb,var(--color-primary)_36%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#d7902d]">
                     {m.game_daily_complete_short_label()}
@@ -364,7 +365,7 @@ export const IntroDialog = NiceModal.create(
               <p className="m-0 text-xs uppercase tracking-[0.1em] text-[var(--color-muted)]">
                 {m.game_pool_country_pools()}
               </p>
-              <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] md:grid-cols-3">
                 {sizeItems.map((item) => {
                   const ItemIcon = item.icon;
 
@@ -376,11 +377,11 @@ export const IntroDialog = NiceModal.create(
                         meta: item.meta,
                       })}
                       aria-pressed={item.selected}
-                      className={`grid min-h-[112px] content-start gap-2 rounded-md border p-4 text-start ${
-                        item.selected
-                          ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
-                          : 'border-[var(--color-border)] bg-[var(--color-card)]'
-                      }`}
+                       className={`grid min-h-[104px] content-start gap-1.5 rounded-md border p-3 text-start sm:min-h-[112px] sm:p-4 ${
+                         item.selected
+                           ? 'border-[color:color-mix(in_srgb,var(--color-primary)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-card))]'
+                           : 'border-[var(--color-border)] bg-[var(--color-card)]'
+                       }`}
                       key={`size-${item.value}`}
                       type="button"
                       onClick={() => {
@@ -403,7 +404,7 @@ export const IntroDialog = NiceModal.create(
                 })}
               </div>
 
-              <div className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid gap-x-3 gap-y-2 [grid-template-columns:repeat(auto-fit,minmax(132px,1fr))] md:grid-cols-3">
                 {categoryItems.map((item) => (
                   <button
                     aria-label={m.intro_region_option_aria({
@@ -412,10 +413,10 @@ export const IntroDialog = NiceModal.create(
                       meta: item.meta,
                     })}
                     aria-pressed={item.selected}
-                    className={`grid gap-0.5 px-0 py-2 text-start ${
-                      item.selected
-                        ? 'text-[var(--color-primary)]'
-                        : 'text-[var(--color-muted)]'
+                     className={`grid gap-0.5 px-0 py-2 text-start ${
+                       item.selected
+                         ? 'text-[var(--color-primary)]'
+                         : 'text-[var(--color-muted)]'
                     }`}
                     key={`region-${item.value}`}
                     type="button"
