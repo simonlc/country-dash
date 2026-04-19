@@ -3,7 +3,6 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useAppearance } from '@/app/appearance';
 import { Globe } from '@/components/Globe';
 import { GlobeAdminPanel } from '@/components/GlobeAdminPanel';
-import { GameBackground } from '@/components/GameBackground';
 import type { CipherTrafficState } from '@/hooks/useCipherTraffic';
 import { useGlobeAdminTuning } from '@/hooks/useGlobeAdminTuning';
 import {
@@ -52,7 +51,6 @@ export function GlobeVertical() {
     defaults: defaultThemeSettings,
     themeId: activeTheme.id,
   });
-  const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
   const rotation = useMemo<[number, number]>(() => {
     if (!currentCountry) {
       return [0, 0];
@@ -85,7 +83,6 @@ export function GlobeVertical() {
 
   return (
     <>
-      <GameBackground atlasStyleEnabled={atlasStyleEnabled} />
       <div
         className="w-full overflow-hidden"
         style={{

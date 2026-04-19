@@ -20,6 +20,22 @@ const hydroFeatureCollectionCache = new Map<
 >();
 const criticalSitesCache = new Map<string, Promise<CipherCriticalSite[]>>();
 const cityLightsMapsCache = new Map<string, PreparedCityLightsMaps>();
+const maxCityLightsMapsCacheEntries = 4;
+
+function setCachedCityLightsMaps(
+  key: string,
+  value: PreparedCityLightsMaps,
+) {
+  if (!cityLightsMapsCache.has(key) &&
+      cityLightsMapsCache.size >= maxCityLightsMapsCacheEntries) {
+    const oldestKey = cityLightsMapsCache.keys().next().value;
+    if (typeof oldestKey === 'string') {
+      cityLightsMapsCache.delete(oldestKey);
+    }
+  }
+
+  cityLightsMapsCache.set(key, value);
+}
 
 function loadImageAsset(path: string) {
   const cachedImage = imageAssetCache.get(path);
@@ -143,7 +159,7 @@ export function useGlobeAssets({ quality, render }: UseGlobeAssetsArgs) {
           cityLightsGlow: quality.cityLightsGlow,
           lightPollutionSpread: quality.lightPollutionSpread,
         });
-        cityLightsMapsCache.set(cacheKey, preparedMaps);
+        setCachedCityLightsMaps(cacheKey, preparedMaps);
         setPreparedCityLightsMaps(preparedMaps);
       } catch {
         setPreparedCityLightsMaps(null);

@@ -55,10 +55,6 @@ vi.mock('@/app/appearance', async () => {
   };
 });
 
-vi.mock('@/components/GameBackground', () => ({
-  GameBackground: () => <div data-testid="game-background" />,
-}));
-
 vi.mock('@/components/Globe', () => ({
   Globe: globeMock,
 }));

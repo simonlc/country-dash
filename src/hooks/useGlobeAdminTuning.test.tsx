@@ -65,15 +65,15 @@ describe('useGlobeAdminTuning', () => {
       getStorageKey('atlas'),
       JSON.stringify({
         globe: {
-          atmosphereOpacity: 0.4,
+          noiseStrength: 0.18,
         },
         quality: {
           dayImageryEnabled: true,
           reliefHeight: 1.75,
         },
         render: {
-          atlasStyleEnabled: true,
           reliefStrengthMultiplier: 16,
+          slowScanlineStrength: 0.3,
         },
       }),
     );
@@ -88,14 +88,12 @@ describe('useGlobeAdminTuning', () => {
       },
     );
 
-    expect(result.current.effectiveSettings.globe.atmosphereOpacity).toBe(0.4);
+    expect(result.current.effectiveSettings.globe.noiseStrength).toBe(0.18);
     expect(result.current.effectiveSettings.quality.dayImageryEnabled).toBe(
       true,
     );
     expect(result.current.effectiveSettings.quality.reliefHeight).toBe(1.75);
-    expect(result.current.effectiveSettings.render.atlasStyleEnabled).toBe(
-      true,
-    );
+    expect(result.current.effectiveSettings.render.slowScanlineStrength).toBe(0.3);
   });
 
   it('applies nested patches and persists them per theme', () => {
@@ -181,7 +179,7 @@ describe('useGlobeAdminTuning', () => {
     act(() => {
       result.current.setAdminOverridePatch({
         globe: {
-          atmosphereOpacity: 0.3,
+          noiseStrength: 0.3,
         },
         quality: {
           waterMaskEnabled: true,

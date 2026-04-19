@@ -248,8 +248,7 @@ describe('GamePage', () => {
     });
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByText(/^Region$/i)).toBeVisible();
-    expect(screen.getByText(/^Asia$/i)).toBeVisible();
+    expect(screen.getByText(/^Pool: Asia$/i)).toBeVisible();
     expect(screen.getByText(/^1 \/ 2$/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /refocus country/i }));
@@ -325,8 +324,7 @@ describe('GamePage', () => {
     await user.click(screen.getByRole('menuitem', { name: /^retry$/i }));
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
-    expect(screen.getByText(/^Region$/i)).toBeVisible();
-    expect(screen.getByText(/^Asia$/i)).toBeVisible();
+    expect(screen.getByText(/^Pool: Asia$/i)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
     await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));

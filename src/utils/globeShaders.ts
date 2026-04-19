@@ -28,14 +28,9 @@ export const vertexShaderSource = `
 export const fragmentShaderSource = `
   precision mediump float;
 
-  uniform vec3 u_atmosphereTint;
   uniform vec3 u_cityLightsColor;
   uniform vec3 u_gridColor;
   uniform vec3 u_lightPollutionColor;
-  uniform vec3 u_rimLightColor;
-  uniform vec3 u_specularColor;
-  uniform float u_atmosphereOpacity;
-  uniform float u_auroraStrength;
   uniform float u_cityLightsGlow;
   uniform float u_cityLightsIntensity;
   uniform float u_cityLightsThreshold;
@@ -53,7 +48,6 @@ export const fragmentShaderSource = `
   uniform sampler2D u_texture;
   uniform sampler2D u_waterMaskTexture;
   uniform float u_penumbra;
-  uniform float u_rimLightStrength;
   uniform float u_scanlineDensity;
   uniform float u_slowScanlineStrength;
   uniform float u_scanlineStrength;
@@ -63,8 +57,6 @@ export const fragmentShaderSource = `
   uniform float u_umbraDarkness;
   uniform sampler2D u_reliefTexture;
   uniform vec2 u_reliefTexelSize;
-  uniform float u_specularPower;
-  uniform float u_specularStrength;
   uniform float u_twilightPenumbra;
   uniform float u_useCityLights;
   uniform float u_useDayImagery;
@@ -195,15 +187,6 @@ export const fragmentShaderSource = `
     float sunVisibility = rawSunVisibility * lightingPresence;
 
     float facing = clamp(normal.z, 0.0, 1.0);
-    float rim =
-      pow(1.0 - facing, 2.5) *
-      u_rimLightStrength *
-      (0.22 + daylight * 0.48) *
-      sunVisibility;
-    float specular = pow(
-      max(dot(reflect(-sunDirection, normal), viewDirection), 0.0),
-      u_specularPower
-    ) * u_specularStrength * directLight * sunVisibility;
     vec3 halfVector = normalize(sunDirection + viewDirection);
     float vellumSheen = pow(max(dot(normal, halfVector), 0.0), 26.0);
     float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.2);
@@ -255,13 +238,6 @@ export const fragmentShaderSource = `
       (0.74 + facing * 0.18) *
       (1.0 - umbraShade * 0.68);
 
-    float auroraWave = sin(v_uv.y * 18.0 - u_time * 0.9 + normal.x * 3.5);
-    float aurora =
-      smoothstep(0.15, 1.0, auroraWave) *
-      u_auroraStrength *
-      rim *
-      daylight;
-
     float grain =
       (hash(v_uv * vec2(1024.0, 512.0) + u_time) - 0.5) *
       u_noiseStrength *
@@ -275,10 +251,6 @@ export const fragmentShaderSource = `
       reliefMask;
     float reliefHighlight = max(reliefLight, 0.0);
     float reliefShadow = min(reliefLight, 0.0);
-    float atmosphere =
-      u_atmosphereOpacity *
-      (0.03 + directLight * 0.2 + rim * 0.18) *
-      sunVisibility;
     float cityNightMask = clamp(
       nightBlend * (1.0 - rawSunVisibility * 0.97),
       0.0,
@@ -340,18 +312,15 @@ export const fragmentShaderSource = `
     vec3 desaturatedUmbra = mix(vec3(colorLuma), u_nightColor, 0.2);
     color = mix(color, desaturatedUmbra, umbraShade * 0.75);
     color *= 1.0 - umbraShade * 0.12;
-    color += u_atmosphereTint * atmosphere;
     color += u_gridColor * (grid + scanline * 0.12 + slowScanline * 0.58);
     color +=
-      u_atmosphereTint *
+      u_gridColor *
       (slowScanlineGlow * 0.56 + slowScanlineCore * 0.14) *
       u_slowScanlineStrength *
       0.085 *
       (0.28 + daylight * 0.34);
-    color += u_rimLightColor * (rim + aurora);
-    color += u_specularColor * specular;
-    color += u_atmosphereTint * vellumSheen * (0.13 + fresnel * 0.22) * sunVisibility;
     color += vec3(0.08, 0.06, 0.03) * fresnel * (0.08 + daylight * 0.12) * sunVisibility;
+    color += vec3(0.06, 0.05, 0.03) * vellumSheen * 0.14 * sunVisibility;
     color += vec3(reliefHighlight) * (0.34 * sunVisibility);
     color += vec3(reliefShadow) * 0.24;
     color += parchmentSpeckle * (1.0 - umbraShade * 0.55);

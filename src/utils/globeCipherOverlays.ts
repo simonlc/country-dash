@@ -33,6 +33,10 @@ export interface CipherCriticalSite {
 export interface CipherCountryTransition {
   fromCountry: CountryFeature;
   key: string;
+  routeVariants: Array<{
+    coordinates: Array<[number, number]>;
+    width: number;
+  }>;
   startedAtMs: number;
   toCountry: CountryFeature;
 }
@@ -153,6 +157,44 @@ function buildCipherRouteCoordinates(args: {
   });
 }
 
+export function buildCipherRouteVariants(
+  fromCountry: CountryFeature,
+  toCountry: CountryFeature,
+) {
+  const from = getCountryCenter(fromCountry);
+  const to = getCountryCenter(toCountry);
+
+  return [
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from,
+        latitudeSkew: 0,
+        longitudeSkew: 0,
+        to,
+      }),
+      width: 1.9,
+    },
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from,
+        latitudeSkew: 2.8,
+        longitudeSkew: 4.4,
+        to,
+      }),
+      width: 1.15,
+    },
+    {
+      coordinates: buildCipherRouteCoordinates({
+        from,
+        latitudeSkew: -2.4,
+        longitudeSkew: -3.8,
+        to,
+      }),
+      width: 1.05,
+    },
+  ];
+}
+
 function interpolateRouteCoordinate(
   from: [number, number],
   to: [number, number],
@@ -224,16 +266,30 @@ function buildVisibleTrackList(args: {
   const isVisible = createGlobeVisibilityTester(currentRotation);
 
   return tracks
-    .filter((track) => {
+    .map((track) => {
       const latestSample = getAnimatedCipherSample(track, nowMs);
-      return (
-        latestSample !== null &&
-        isVisible(latestSample.longitude, latestSample.latitude)
-      );
+      return latestSample
+        ? {
+            latestSample,
+            priority: getTrackDisplayPriority(track),
+            track,
+          }
+        : null;
     })
+    .filter(
+      (
+        entry,
+      ): entry is {
+        latestSample: CipherTrafficSample;
+        priority: number;
+        track: CipherTrafficTrack;
+      } =>
+        entry !== null &&
+        isVisible(entry.latestSample.longitude, entry.latestSample.latitude),
+    )
     .sort(
       (left, right) =>
-        getTrackDisplayPriority(right) - getTrackDisplayPriority(left),
+        right.priority - left.priority,
     );
 }
 
@@ -556,35 +612,7 @@ export function drawCipherCountryTransitionOverlay(args: {
   const alpha = envelope * Math.min(intro + 0.1, 1) * Math.min(outro + 0.12, 1);
   const fromCenter = getCountryCenter(transition.fromCountry);
   const toCenter = getCountryCenter(transition.toCountry);
-  const routeVariants = [
-    {
-      coordinates: buildCipherRouteCoordinates({
-        from: fromCenter,
-        latitudeSkew: 0,
-        longitudeSkew: 0,
-        to: toCenter,
-      }),
-      width: 1.9,
-    },
-    {
-      coordinates: buildCipherRouteCoordinates({
-        from: fromCenter,
-        latitudeSkew: 2.8,
-        longitudeSkew: 4.4,
-        to: toCenter,
-      }),
-      width: 1.15,
-    },
-    {
-      coordinates: buildCipherRouteCoordinates({
-        from: fromCenter,
-        latitudeSkew: -2.4,
-        longitudeSkew: -3.8,
-        to: toCenter,
-      }),
-      width: 1.05,
-    },
-  ] as const;
+  const routeVariants = transition.routeVariants;
   const routePulse = 0.35 + 0.65 * envelope;
   const [globeCenterX, globeCenterY] = projection.translate();
   const globeRadius = projection.scale();
@@ -662,7 +690,13 @@ export function drawCipherCountryTransitionOverlay(args: {
     context.restore();
   }
 
-  const primaryRouteCoordinates = routeVariants[0].coordinates;
+  const primaryRoute = routeVariants[0];
+  if (!primaryRoute) {
+    context.restore();
+    return;
+  }
+
+  const primaryRouteCoordinates = primaryRoute.coordinates;
   const packetOffsets = [progress * 1.08, progress * 1.08 - 0.18, progress * 1.08 - 0.36];
   for (const [index, offset] of packetOffsets.entries()) {
     if (offset <= 0 || offset >= 1) {
@@ -848,9 +882,9 @@ export function drawCipherTrafficOverlay(args: {
     sites: criticalSites,
   });
 
-  for (const [index, track] of visibleTracks.entries()) {
+  for (const [index, visibleTrack] of visibleTracks.entries()) {
+    const { latestSample, track } = visibleTrack;
     const sourceSample = getLatestSample(track);
-    const latestSample = getAnimatedCipherSample(track, wallClockMs);
     const latestPoint =
       latestSample && isVisible(latestSample.longitude, latestSample.latitude)
         ? projection([latestSample.longitude, latestSample.latitude])
@@ -901,16 +935,7 @@ export function drawCipherTrafficOverlay(args: {
 
   context.shadowBlur = 0;
   context.setLineDash([]);
-  for (const track of labelTracks) {
-    const latestSample = getAnimatedCipherSample(track, wallClockMs);
-    if (!latestSample) {
-      continue;
-    }
-
-    if (!isVisible(latestSample.longitude, latestSample.latitude)) {
-      continue;
-    }
-
+  for (const { latestSample, track } of labelTracks) {
     const point = projection([latestSample.longitude, latestSample.latitude]);
     if (!point) {
       continue;

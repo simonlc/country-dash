@@ -14,6 +14,7 @@ import { useGlobeAssets } from '@/hooks/useGlobeAssets';
 import { useGlobeRenderLoop } from '@/hooks/useGlobeRenderLoop';
 import type { CountryFeature } from '@/types/game';
 import {
+  buildCipherRouteVariants,
   cipherCountryTransitionDurationMs,
   type CipherCountryTransition,
   type CipherCriticalSite,
@@ -52,7 +53,7 @@ interface CachedTextureSet {
   countryTextureCanvas: HTMLCanvasElement | null;
 }
 
-const textureCacheVersion = 3;
+const textureCacheVersion = 4;
 
 function getTextureCacheKey(args: {
   hasLakes: boolean;
@@ -76,7 +77,7 @@ function setCachedTextures(
   key: string,
   value: CachedTextureSet,
 ) {
-  if (!cache.has(key) && cache.size >= 12) {
+  if (!cache.has(key) && cache.size >= 4) {
     const oldestKey = cache.keys().next().value;
     if (typeof oldestKey === 'string') {
       cache.delete(oldestKey);
@@ -137,41 +138,11 @@ export function WebGlGlobe({
   const slowScanlineStrength = render.slowScanlineStrength;
   const textureRenderConfig = useMemo<GlobeTextureRenderConfig>(
     () => ({
-      atlasBiomeWatercolorOpacity: render.atlasBiomeWatercolorOpacity,
-      atlasCoastalWashOpacity: render.atlasCoastalWashOpacity,
-      atlasCountryStrokeWidth: render.atlasCountryStrokeWidth,
-      atlasExpeditionDetailsOpacity: render.atlasExpeditionDetailsOpacity,
-      atlasGraticuleDashLength: render.atlasGraticuleDashLength,
-      atlasGraticuleGapLength: render.atlasGraticuleGapLength,
-      atlasGraticuleLineWidth: render.atlasGraticuleLineWidth,
-      atlasGraticuleOpacity: render.atlasGraticuleOpacity,
-      atlasInkBleedOpacity: render.atlasInkBleedOpacity,
-      atlasInkCoastlineOpacity: render.atlasInkCoastlineOpacity,
-      atlasOceanCurrentHatchingOpacity: render.atlasOceanCurrentHatchingOpacity,
-      atlasParchmentAgingOpacity: render.atlasParchmentAgingOpacity,
-      atlasStyleEnabled: render.atlasStyleEnabled,
-      atlasWatercolorLandOpacity: render.atlasWatercolorLandOpacity,
-      atlasWatercolorOceanOpacity: render.atlasWatercolorOceanOpacity,
       cipherHydroTextureEffectOpacity: render.cipherHydroTextureEffectOpacity,
       standardCountryStrokeWidth: render.standardCountryStrokeWidth,
       standardGraticuleLineWidth: render.standardGraticuleLineWidth,
     }),
     [
-      render.atlasBiomeWatercolorOpacity,
-      render.atlasCoastalWashOpacity,
-      render.atlasCountryStrokeWidth,
-      render.atlasExpeditionDetailsOpacity,
-      render.atlasGraticuleDashLength,
-      render.atlasGraticuleGapLength,
-      render.atlasGraticuleLineWidth,
-      render.atlasGraticuleOpacity,
-      render.atlasInkBleedOpacity,
-      render.atlasInkCoastlineOpacity,
-      render.atlasOceanCurrentHatchingOpacity,
-      render.atlasParchmentAgingOpacity,
-      render.atlasStyleEnabled,
-      render.atlasWatercolorLandOpacity,
-      render.atlasWatercolorOceanOpacity,
       render.cipherHydroTextureEffectOpacity,
       render.standardCountryStrokeWidth,
       render.standardGraticuleLineWidth,
@@ -189,6 +160,17 @@ export function WebGlGlobe({
   const lakesDataRef = useRef<HydroFeatureCollection | null>(null);
   const riversDataRef = useRef<HydroFeatureCollection | null>(null);
   const textureCacheRef = useRef(new Map<string, CachedTextureSet>());
+  const textureUploadStateRef = useRef({
+    base: '',
+    cityLights: '',
+    cityLightsGlow: '',
+    cityLightsPollution: '',
+    country: '',
+    day: '',
+    night: '',
+    relief: '',
+    waterMask: '',
+  });
   const frameStateRef = useRef({
     currentRotation: rotation,
     height,
@@ -335,6 +317,7 @@ export function WebGlGlobe({
     const nextTransition = {
       fromCountry: previousCountry,
       key: `${previousCountry.id}:${targetFeature.id}:${startedAtMs}`,
+      routeVariants: buildCipherRouteVariants(previousCountry, targetFeature),
       startedAtMs,
       toCountry: targetFeature,
     } satisfies CipherCountryTransition;
@@ -532,6 +515,7 @@ export function WebGlGlobe({
       worldFeatureCount: world.features.length,
     });
     const cachedTextures = textureCacheRef.current.get(textureCacheKey);
+    const uploadState = textureUploadStateRef.current;
     const { baseTextureCanvas, countryTextureCanvas } =
       cachedTextures ??
       (() => {
@@ -540,7 +524,6 @@ export function WebGlGlobe({
               world,
               palette,
               textureResolution,
-              textureRenderConfig,
             )
           : buildCombinedTextureCanvas(
               world,
@@ -576,80 +559,121 @@ export function WebGlGlobe({
         return nextTextures;
       })();
 
-    updateTextureFromCanvas(
-      gl,
-      resources.texture,
-      gl.TEXTURE0,
-      baseTextureCanvas,
-    );
-
-    if (countryTextureCanvas) {
+    const baseTextureUploadKey = `${textureCacheKey}:base`;
+    if (uploadState.base !== baseTextureUploadKey) {
       updateTextureFromCanvas(
         gl,
-        resources.overlayTexture,
+        resources.texture,
         gl.TEXTURE0,
-        countryTextureCanvas,
+        baseTextureCanvas,
       );
+      uploadState.base = baseTextureUploadKey;
+    }
+
+    if (countryTextureCanvas) {
+      const countryTextureUploadKey = `${textureCacheKey}:country`;
+      if (uploadState.country !== countryTextureUploadKey) {
+        updateTextureFromCanvas(
+          gl,
+          resources.overlayTexture,
+          gl.TEXTURE0,
+          countryTextureCanvas,
+        );
+        uploadState.country = countryTextureUploadKey;
+      }
+    } else if (uploadState.country !== '') {
+      uploadState.country = '';
     }
 
     if (reliefImage) {
-      updateTextureFromImage(
-        gl,
-        resources.reliefTexture,
-        gl.TEXTURE1,
-        reliefImage,
-      );
+      const reliefUploadKey = reliefImage.currentSrc || reliefImage.src;
+      if (uploadState.relief !== reliefUploadKey) {
+        updateTextureFromImage(
+          gl,
+          resources.reliefTexture,
+          gl.TEXTURE1,
+          reliefImage,
+        );
+        uploadState.relief = reliefUploadKey;
+      }
     }
 
     if (cityLightsImage) {
-      updateTextureFromImage(
-        gl,
-        resources.cityLightsTexture,
-        gl.TEXTURE2,
-        cityLightsImage,
-      );
+      const cityLightsUploadKey = cityLightsImage.currentSrc || cityLightsImage.src;
+      if (uploadState.cityLights !== cityLightsUploadKey) {
+        updateTextureFromImage(
+          gl,
+          resources.cityLightsTexture,
+          gl.TEXTURE2,
+          cityLightsImage,
+        );
+        uploadState.cityLights = cityLightsUploadKey;
+      }
     }
 
     if (preparedCityLightsMaps) {
-      updateTextureFromCanvas(
-        gl,
-        resources.cityLightsGlowTexture,
-        gl.TEXTURE3,
-        preparedCityLightsMaps.glow,
-      );
-      updateTextureFromCanvas(
-        gl,
-        resources.cityLightsPollutionTexture,
-        gl.TEXTURE4,
-        preparedCityLightsMaps.pollution,
-      );
+      const cityLightsMapsUploadKey = [
+        cityLightsImage?.currentSrc || cityLightsImage?.src || '',
+        quality.cityLightsGlow,
+        quality.lightPollutionSpread,
+      ].join(':');
+      if (uploadState.cityLightsGlow !== cityLightsMapsUploadKey) {
+        updateTextureFromCanvas(
+          gl,
+          resources.cityLightsGlowTexture,
+          gl.TEXTURE3,
+          preparedCityLightsMaps.glow,
+        );
+        uploadState.cityLightsGlow = cityLightsMapsUploadKey;
+      }
+      if (uploadState.cityLightsPollution !== cityLightsMapsUploadKey) {
+        updateTextureFromCanvas(
+          gl,
+          resources.cityLightsPollutionTexture,
+          gl.TEXTURE4,
+          preparedCityLightsMaps.pollution,
+        );
+        uploadState.cityLightsPollution = cityLightsMapsUploadKey;
+      }
     }
 
     if (dayImageryImage) {
-      updateTextureFromImage(
-        gl,
-        resources.dayTexture,
-        gl.TEXTURE5,
-        dayImageryImage,
-      );
+      const dayUploadKey = dayImageryImage.currentSrc || dayImageryImage.src;
+      if (uploadState.day !== dayUploadKey) {
+        updateTextureFromImage(
+          gl,
+          resources.dayTexture,
+          gl.TEXTURE5,
+          dayImageryImage,
+        );
+        uploadState.day = dayUploadKey;
+      }
     }
 
     if (nightImageryImage) {
-      updateTextureFromImage(
-        gl,
-        resources.nightTexture,
-        gl.TEXTURE6,
-        nightImageryImage,
-      );
+      const nightUploadKey = nightImageryImage.currentSrc || nightImageryImage.src;
+      if (uploadState.night !== nightUploadKey) {
+        updateTextureFromImage(
+          gl,
+          resources.nightTexture,
+          gl.TEXTURE6,
+          nightImageryImage,
+        );
+        uploadState.night = nightUploadKey;
+      }
     }
 
     if (waterMaskImage) {
-      updateTextureFromImage(
-        gl,
-        resources.waterMaskTexture,
-        gl.TEXTURE7,
-        waterMaskImage,
-      );
+      const waterMaskUploadKey = waterMaskImage.currentSrc || waterMaskImage.src;
+      if (uploadState.waterMask !== waterMaskUploadKey) {
+        updateTextureFromImage(
+          gl,
+          resources.waterMaskTexture,
+          gl.TEXTURE7,
+          waterMaskImage,
+        );
+        uploadState.waterMask = waterMaskUploadKey;
+      }
     }
 
     drawCurrentFrameRef.current();
@@ -698,10 +722,6 @@ export function WebGlGlobe({
       {...interactionHandlers}
     >
       <div className="relative" style={{ height: `${height}px`, width: `${width}px` }}>
-        <div
-          className="globe-atmosphere pointer-events-none absolute inset-0 mix-blend-screen"
-          data-theme-id={themeId}
-        />
         <canvas className="relative block h-full w-full" ref={canvasRef} />
         <canvas
           className="pointer-events-none absolute inset-0 block h-full w-full"

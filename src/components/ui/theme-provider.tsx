@@ -41,10 +41,10 @@ export function ThemeProvider({
   useEffect(() => {
     const root = document.documentElement;
     const isGlacier = activeTheme.id === 'glacier';
-    const atlasStyleEnabled = activeTheme.render.atlasStyleEnabled;
+    const isAtlas = activeTheme.id === 'atlas';
     const surfacePanelImage = isGlacier
       ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
-      : atlasStyleEnabled
+      : isAtlas
         ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
         : 'none';
     const surfaceElevatedImage = `linear-gradient(180deg, rgba(255,255,255,${
@@ -57,7 +57,7 @@ export function ThemeProvider({
     }, ${activeTheme.background.panelShadow}`;
     const surfacePanelBackdropFilter = isGlacier
       ? 'blur(22px) saturate(1.45)'
-      : atlasStyleEnabled
+      : isAtlas
         ? 'blur(8px) saturate(0.9)'
         : 'blur(18px)';
 

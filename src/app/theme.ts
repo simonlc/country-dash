@@ -31,19 +31,11 @@ export interface GlobePalette {
   hazeInner: string;
   nightShade: string;
   smallCountryCircle: string;
-  atmosphereTint: string;
   gridColor: string;
-  rimLightColor: string;
-  specularColor: string;
-  atmosphereOpacity: number;
-  auroraStrength: number;
   gridStrength: number;
   noiseStrength: number;
-  rimLightStrength: number;
   scanlineDensity: number;
   scanlineStrength: number;
-  specularPower: number;
-  specularStrength: number;
   surfaceDistortionStrength: number;
   surfaceTextureStrength: number;
 }
@@ -74,22 +66,6 @@ export interface GlobeQualityConfig {
 }
 
 export interface GlobeRenderConfig {
-  atlasBiomeWatercolorOpacity: number;
-  atlasCoastalWashOpacity: number;
-  atlasCountryStrokeWidth: number;
-  atlasExpeditionDetailsOpacity: number;
-  atlasGraticuleDashLength: number;
-  atlasGraticuleGapLength: number;
-  atlasGraticuleLineWidth: number;
-  atlasGraticuleOpacity: number;
-  atlasInkBleedOpacity: number;
-  atlasInkCoastlineOpacity: number;
-  atlasOceanCurrentHatchingOpacity: number;
-  atlasParchmentAgingOpacity: number;
-  atlasSelectedCountryStrokeWidth: number;
-  atlasStyleEnabled: boolean;
-  atlasWatercolorLandOpacity: number;
-  atlasWatercolorOceanOpacity: number;
   cipherCountryTransitionOpacity: number;
   cipherFocusDelayMs: number;
   cipherHydroOverlayOpacity: number;
@@ -152,22 +128,6 @@ const atlasHeadingFont =
   '"Cinzel", "Alegreya Sans SC", "Nunito Sans", system-ui, sans-serif';
 
 const defaultGlobeRenderConfig: GlobeRenderConfig = {
-  atlasBiomeWatercolorOpacity: 0,
-  atlasCoastalWashOpacity: 0,
-  atlasCountryStrokeWidth: 1.4,
-  atlasExpeditionDetailsOpacity: 0,
-  atlasGraticuleDashLength: 3,
-  atlasGraticuleGapLength: 8,
-  atlasGraticuleLineWidth: 1.4,
-  atlasGraticuleOpacity: 1,
-  atlasInkBleedOpacity: 0,
-  atlasInkCoastlineOpacity: 0,
-  atlasOceanCurrentHatchingOpacity: 0,
-  atlasParchmentAgingOpacity: 0,
-  atlasSelectedCountryStrokeWidth: 2,
-  atlasStyleEnabled: false,
-  atlasWatercolorLandOpacity: 0,
-  atlasWatercolorOceanOpacity: 0,
   cipherCountryTransitionOpacity: 0,
   cipherFocusDelayMs: 0,
   cipherHydroOverlayOpacity: 0,
@@ -181,21 +141,6 @@ const defaultGlobeRenderConfig: GlobeRenderConfig = {
   standardCountryStrokeWidth: 1.2,
   standardGraticuleLineWidth: 1.2,
   standardSelectedCountryStrokeWidth: 1.6,
-};
-
-const atlasGlobeRenderConfig: GlobeRenderConfig = {
-  ...defaultGlobeRenderConfig,
-  atlasBiomeWatercolorOpacity: 1,
-  atlasCoastalWashOpacity: 1,
-  atlasExpeditionDetailsOpacity: 1,
-  atlasInkBleedOpacity: 1,
-  atlasInkCoastlineOpacity: 1,
-  atlasOceanCurrentHatchingOpacity: 1,
-  atlasParchmentAgingOpacity: 1,
-  atlasStyleEnabled: true,
-  atlasWatercolorLandOpacity: 1,
-  atlasWatercolorOceanOpacity: 1,
-  reliefStrengthMultiplier: 16,
 };
 
 const cipherGlobeRenderConfig: GlobeRenderConfig = {
@@ -255,19 +200,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#9ed8ff',
       nightShade: 'rgba(0, 0, 0, 0.28)',
       smallCountryCircle: 'rgba(217, 74, 51, 0.95)',
-      atmosphereTint: '#f5fbff',
       gridColor: '#7bc5ff',
-      rimLightColor: '#f9fdff',
-      specularColor: '#ffffff',
-      atmosphereOpacity: 0.02,
-      auroraStrength: 0.0,
       gridStrength: 0.0,
       noiseStrength: 0.01,
-      rimLightStrength: 0.015,
       scanlineDensity: 180,
       scanlineStrength: 0.0,
-      specularPower: 20,
-      specularStrength: 0.0,
       surfaceDistortionStrength: 0.45,
       surfaceTextureStrength: 0.55,
     },
@@ -347,19 +284,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#245784',
       nightShade: 'rgba(0, 0, 0, 0.24)',
       smallCountryCircle: 'rgba(255, 127, 89, 0.96)',
-      atmosphereTint: '#5da9ff',
       gridColor: '#7cd1ff',
-      rimLightColor: '#8ad7ff',
-      specularColor: '#cfe9ff',
-      atmosphereOpacity: 0.16,
-      auroraStrength: 0.04,
       gridStrength: 0.04,
       noiseStrength: 0.05,
-      rimLightStrength: 0.16,
       scanlineDensity: 220,
-      scanlineStrength: 0.015,
-      specularPower: 28,
-      specularStrength: 0.1,
+      scanlineStrength: 0.0,
       surfaceDistortionStrength: 0.6,
       surfaceTextureStrength: 0.7,
     },
@@ -439,19 +368,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#d27d5a',
       nightShade: 'rgba(0, 0, 0, 0.2)',
       smallCountryCircle: 'rgba(255, 244, 160, 0.95)',
-      atmosphereTint: '#ffb07b',
       gridColor: '#ffd1a3',
-      rimLightColor: '#ffe6d6',
-      specularColor: '#fff0d7',
-      atmosphereOpacity: 0.1,
-      auroraStrength: 0.04,
       gridStrength: 0.02,
       noiseStrength: 0.05,
-      rimLightStrength: 0.08,
       scanlineDensity: 170,
       scanlineStrength: 0.0,
-      specularPower: 18,
-      specularStrength: 0.04,
       surfaceDistortionStrength: 0.68,
       surfaceTextureStrength: 0.78,
     },
@@ -532,19 +453,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#cdb899',
       nightShade: 'rgba(54, 58, 67, 0.24)',
       smallCountryCircle: 'rgba(116, 47, 28, 0.94)',
-      atmosphereTint: '#ece2cf',
       gridColor: '#8a7356',
-      rimLightColor: '#f6eedf',
-      specularColor: '#f1ecdf',
-      atmosphereOpacity: 0.01,
-      auroraStrength: 0.0,
       gridStrength: 0.0,
       noiseStrength: 0.008,
-      rimLightStrength: 0.01,
       scanlineDensity: 140,
       scanlineStrength: 0.0,
-      specularPower: 16,
-      specularStrength: 0.004,
       surfaceDistortionStrength: 0.28,
       surfaceTextureStrength: 0.3,
     },
@@ -572,7 +485,10 @@ export const appThemes: AppThemeDefinition[] = [
       lakesColor: '#b9a889',
       riversColor: '#a79272',
     },
-    render: atlasGlobeRenderConfig,
+    render: {
+      ...defaultGlobeRenderConfig,
+      reliefStrengthMultiplier: 16,
+    },
     preview: {
       sky: 'linear-gradient(145deg, #f3ead8, #ceb996)',
       glow: '#e4d8be',
@@ -625,19 +541,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#0e5f49',
       nightShade: 'rgba(0, 9, 7, 0.42)',
       smallCountryCircle: 'rgba(89, 255, 177, 0.96)',
-      atmosphereTint: '#4dffc5',
       gridColor: '#64ffd7',
-      rimLightColor: '#8cf8ff',
-      specularColor: '#cbfff2',
-      atmosphereOpacity: 0.34,
-      auroraStrength: 0.32,
       gridStrength: 0.38,
       noiseStrength: 0.14,
-      rimLightStrength: 0.31,
       scanlineDensity: 360,
       scanlineStrength: 0.28,
-      specularPower: 38,
-      specularStrength: 0.24,
       surfaceDistortionStrength: 0.08,
       surfaceTextureStrength: 0.1,
     },
@@ -717,19 +625,11 @@ export const appThemes: AppThemeDefinition[] = [
       hazeInner: '#9fdbff',
       nightShade: 'rgba(34, 68, 104, 0.12)',
       smallCountryCircle: 'rgba(68, 148, 214, 0.74)',
-      atmosphereTint: '#f3fbff',
       gridColor: '#ddf6ff',
-      rimLightColor: '#f7fdff',
-      specularColor: '#ffffff',
-      atmosphereOpacity: 0.04,
-      auroraStrength: 0.0,
       gridStrength: 0.0,
       noiseStrength: 0.01,
-      rimLightStrength: 0.028,
       scanlineDensity: 190,
       scanlineStrength: 0.0,
-      specularPower: 52,
-      specularStrength: 0.012,
       surfaceDistortionStrength: 0.12,
       surfaceTextureStrength: 0.18,
     },
@@ -778,7 +678,7 @@ export function getThemeSurfaceStyles(
   definition: AppThemeDefinition,
   tone: ThemeSurfaceTone = 'panel',
 ) {
-  const atlasStyleEnabled = definition.render.atlasStyleEnabled;
+  const isAtlas = definition.id === 'atlas';
   const isGlacier = definition.id === 'glacier';
   const backgroundColor =
     tone === 'muted'
@@ -788,7 +688,7 @@ export function getThemeSurfaceStyles(
   return {
     backdropFilter: isGlacier
       ? 'blur(22px) saturate(1.45)'
-      : atlasStyleEnabled
+      : isAtlas
         ? 'blur(8px) saturate(0.9)'
         : 'blur(18px)',
     backgroundColor,
@@ -799,7 +699,7 @@ export function getThemeSurfaceStyles(
           }), rgba(255,255,255,0))`
         : isGlacier
           ? 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,247,255,0.34))'
-          : atlasStyleEnabled
+          : isAtlas
             ? 'linear-gradient(180deg, rgba(255,248,230,0.58), rgba(230,208,169,0.16))'
             : 'none',
     border: `1px solid ${definition.background.panelBorder}`,
@@ -811,7 +711,7 @@ export function getThemeSurfaceStyles(
               : 'rgba(0, 0, 0, 0.32)'
           }, ${definition.background.panelShadow}`
         : definition.background.panelShadow,
-    overflow: atlasStyleEnabled ? 'hidden' : undefined,
+    overflow: isAtlas ? 'hidden' : undefined,
     position: 'relative' as const,
   };
 }
@@ -1057,7 +957,7 @@ export interface AppUiTheme {
 
 export function createAppTheme(themeId: AppThemeId): AppUiTheme {
   const definition = getAppThemeDefinition(themeId);
-  const atlasStyleEnabled = definition.render.atlasStyleEnabled;
+  const isAtlas = definition.id === 'atlas';
   const divider = hexToRgba(
     definition.palette.textPrimary,
     definition.mode === 'light' ? 0.18 : 0.26,
@@ -1146,10 +1046,10 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
         lineHeight: designTokens.lineHeight.base,
       },
       button: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : undefined,
+        fontFamily: isAtlas ? atlasHeadingFont : undefined,
         fontSize: designTokens.fontSize.sm,
         fontWeight: designTokens.fontWeight.semibold,
-        letterSpacing: atlasStyleEnabled ? '0.08em' : '0.03em',
+        letterSpacing: isAtlas ? '0.08em' : '0.03em',
       },
       caption: {
         fontSize: designTokens.fontSize.xs,
@@ -1158,41 +1058,41 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
         lineHeight: designTokens.lineHeight.base,
       },
       h1: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxxl,
         fontWeight: designTokens.fontWeight.bold,
-        letterSpacing: atlasStyleEnabled ? '0.06em' : '0.02em',
+        letterSpacing: isAtlas ? '0.06em' : '0.02em',
         lineHeight: designTokens.lineHeight.tight,
       },
       h2: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xxl,
         fontWeight: designTokens.fontWeight.bold,
-        letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
+        letterSpacing: isAtlas ? '0.05em' : '0.02em',
         lineHeight: designTokens.lineHeight.tight,
       },
       h3: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.xl,
         fontWeight: designTokens.fontWeight.bold,
-        letterSpacing: atlasStyleEnabled ? '0.07em' : '0.03em',
+        letterSpacing: isAtlas ? '0.07em' : '0.03em',
         lineHeight: designTokens.lineHeight.tight,
       },
       h4: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.lg,
         fontWeight: designTokens.fontWeight.semibold,
-        letterSpacing: atlasStyleEnabled ? '0.05em' : '0.02em',
+        letterSpacing: isAtlas ? '0.05em' : '0.02em',
         lineHeight: designTokens.lineHeight.tight,
       },
       h5: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.lg,
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,
       },
       h6: {
-        fontFamily: atlasStyleEnabled ? atlasHeadingFont : headingFont,
+        fontFamily: isAtlas ? atlasHeadingFont : headingFont,
         fontSize: designTokens.fontSize.md,
         fontWeight: designTokens.fontWeight.semibold,
         lineHeight: designTokens.lineHeight.tight,

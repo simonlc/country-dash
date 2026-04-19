@@ -33,9 +33,6 @@ export interface WebGlResources {
   texture: WebGLTexture;
   waterMaskTexture: WebGLTexture;
   uniforms: {
-    atmosphereOpacity: WebGLUniformLocation;
-    atmosphereTint: WebGLUniformLocation;
-    auroraStrength: WebGLUniformLocation;
     cityLightsColor: WebGLUniformLocation;
     cityLightsGlow: WebGLUniformLocation;
     cityLightsIntensity: WebGLUniformLocation;
@@ -57,16 +54,11 @@ export interface WebGlResources {
     reliefStrength: WebGLUniformLocation;
     reliefTexture: WebGLUniformLocation;
     reliefTexelSize: WebGLUniformLocation;
-    rimLightColor: WebGLUniformLocation;
-    rimLightStrength: WebGLUniformLocation;
     rotationMatrix: WebGLUniformLocation;
     scale: WebGLUniformLocation;
     scanlineDensity: WebGLUniformLocation;
     slowScanlineStrength: WebGLUniformLocation;
     scanlineStrength: WebGLUniformLocation;
-    specularColor: WebGLUniformLocation;
-    specularPower: WebGLUniformLocation;
-    specularStrength: WebGLUniformLocation;
     sunDirection: WebGLUniformLocation;
     surfaceDistortionStrength: WebGLUniformLocation;
     surfaceScale: WebGLUniformLocation;
@@ -85,12 +77,9 @@ export interface WebGlResources {
 }
 
 interface ResolvedPaletteUniforms {
-  atmosphereTint: [number, number, number];
   gridColor: [number, number, number];
   nightAlpha: number;
   nightColor: [number, number, number];
-  rimLightColor: [number, number, number];
-  specularColor: [number, number, number];
 }
 
 interface ResolvedQualityUniforms {
@@ -265,7 +254,6 @@ function getResolvedPaletteUniforms(palette: GlobePalette) {
     palette.nightShade,
   );
   const resolvedPalette = {
-    atmosphereTint: cssColorToVec3(palette.atmosphereTint),
     gridColor: cssColorToVec3(palette.gridColor),
     nightAlpha,
     nightColor: [nightRgb[0] / 255, nightRgb[1] / 255, nightRgb[2] / 255] as [
@@ -273,8 +261,6 @@ function getResolvedPaletteUniforms(palette: GlobePalette) {
       number,
       number,
     ],
-    rimLightColor: cssColorToVec3(palette.rimLightColor),
-    specularColor: cssColorToVec3(palette.specularColor),
   } satisfies ResolvedPaletteUniforms;
 
   paletteUniformCache.set(palette, resolvedPalette);
@@ -363,12 +349,7 @@ export function configureTexture(
 }
 
 export function hasAmbientAnimation(palette: GlobePalette) {
-  return (
-    palette.auroraStrength > 0 ||
-    palette.gridStrength > 0 ||
-    palette.noiseStrength > 0 ||
-    palette.scanlineStrength > 0
-  );
+  return palette.scanlineStrength > 0;
 }
 
 export function getTextureResolution(
@@ -423,7 +404,7 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       alpha: true,
       antialias: true,
       desynchronized: true,
-      powerPreference: 'high-performance',
+      powerPreference: 'low-power',
     }) ?? canvas.getContext('experimental-webgl');
 
   if (!gl || !(gl instanceof WebGLRenderingContext)) {
@@ -506,9 +487,6 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
   gl.clearColor(0, 0, 0, 0);
 
   const uniforms = {
-    atmosphereOpacity: getUniformLocation(gl, program, 'u_atmosphereOpacity'),
-    atmosphereTint: getUniformLocation(gl, program, 'u_atmosphereTint'),
-    auroraStrength: getUniformLocation(gl, program, 'u_auroraStrength'),
     cityLightsColor: getUniformLocation(gl, program, 'u_cityLightsColor'),
     cityLightsGlow: getUniformLocation(gl, program, 'u_cityLightsGlow'),
     cityLightsGlowTexture: getUniformLocation(
@@ -558,8 +536,6 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
     reliefStrength: getUniformLocation(gl, program, 'u_reliefStrength'),
     reliefTexture: getUniformLocation(gl, program, 'u_reliefTexture'),
     reliefTexelSize: getUniformLocation(gl, program, 'u_reliefTexelSize'),
-    rimLightColor: getUniformLocation(gl, program, 'u_rimLightColor'),
-    rimLightStrength: getUniformLocation(gl, program, 'u_rimLightStrength'),
     rotationMatrix: getUniformLocation(gl, program, 'u_rotationMatrix'),
     scale: getUniformLocation(gl, program, 'u_scale'),
     scanlineDensity: getUniformLocation(gl, program, 'u_scanlineDensity'),
@@ -569,9 +545,6 @@ export function initializeWebGl(canvas: HTMLCanvasElement): WebGlResources {
       'u_slowScanlineStrength',
     ),
     scanlineStrength: getUniformLocation(gl, program, 'u_scanlineStrength'),
-    specularColor: getUniformLocation(gl, program, 'u_specularColor'),
-    specularPower: getUniformLocation(gl, program, 'u_specularPower'),
-    specularStrength: getUniformLocation(gl, program, 'u_specularStrength'),
     sunDirection: getUniformLocation(gl, program, 'u_sunDirection'),
     surfaceDistortionStrength: getUniformLocation(
       gl,
@@ -736,14 +709,6 @@ export function drawGlobe(
   );
   gl.uniform1f(uniforms.useNightImagery, quality.nightImageryEnabled ? 1 : 0);
   gl.uniform1f(uniforms.useWaterMask, quality.waterMaskEnabled ? 1 : 0);
-  gl.uniform1f(uniforms.atmosphereOpacity, palette.atmosphereOpacity);
-  gl.uniform3f(
-    uniforms.atmosphereTint,
-    resolvedPalette.atmosphereTint[0],
-    resolvedPalette.atmosphereTint[1],
-    resolvedPalette.atmosphereTint[2],
-  );
-  gl.uniform1f(uniforms.auroraStrength, palette.auroraStrength);
   gl.uniform3f(
     uniforms.gridColor,
     resolvedPalette.gridColor[0],
@@ -763,13 +728,6 @@ export function drawGlobe(
   gl.uniform2f(uniforms.scale, scaleX, scaleY);
   gl.uniform1f(uniforms.penumbra, getTerminatorHalfAngleRadians());
   gl.uniform1f(uniforms.twilightPenumbra, getTwilightHalfAngleRadians());
-  gl.uniform3f(
-    uniforms.rimLightColor,
-    resolvedPalette.rimLightColor[0],
-    resolvedPalette.rimLightColor[1],
-    resolvedPalette.rimLightColor[2],
-  );
-  gl.uniform1f(uniforms.rimLightStrength, palette.rimLightStrength);
   gl.uniform1f(uniforms.scanlineDensity, palette.scanlineDensity);
   gl.uniform1f(uniforms.scanlineStrength, palette.scanlineStrength);
   gl.uniform1f(uniforms.slowScanlineStrength, slowScanlineStrength);
@@ -778,14 +736,6 @@ export function drawGlobe(
     palette.surfaceDistortionStrength,
   );
   gl.uniform1f(uniforms.surfaceTextureStrength, palette.surfaceTextureStrength);
-  gl.uniform3f(
-    uniforms.specularColor,
-    resolvedPalette.specularColor[0],
-    resolvedPalette.specularColor[1],
-    resolvedPalette.specularColor[2],
-  );
-  gl.uniform1f(uniforms.specularPower, palette.specularPower);
-  gl.uniform1f(uniforms.specularStrength, palette.specularStrength);
   gl.uniform3f(
     uniforms.sunDirection,
     sunDirection.x,
@@ -819,14 +769,10 @@ export function drawGlobe(
     gl.uniform1f(uniforms.useLightPollution, 0);
     gl.uniform1f(uniforms.useNightImagery, 0);
     gl.uniform1f(uniforms.useWaterMask, 0);
-    gl.uniform1f(uniforms.atmosphereOpacity, 0);
-    gl.uniform1f(uniforms.auroraStrength, 0);
     gl.uniform1f(uniforms.gridStrength, 0);
     gl.uniform1f(uniforms.noiseStrength, 0);
-    gl.uniform1f(uniforms.rimLightStrength, 0);
     gl.uniform1f(uniforms.scanlineStrength, 0);
     gl.uniform1f(uniforms.slowScanlineStrength, 0);
-    gl.uniform1f(uniforms.specularStrength, 0);
     gl.uniform1f(uniforms.surfaceScale, 1 + palette.countryElevation);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, resources.overlayTexture);
