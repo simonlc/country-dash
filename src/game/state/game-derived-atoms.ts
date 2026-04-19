@@ -8,9 +8,10 @@ import {
 import {
   gameStateAtom,
   viewportStateAtom,
-  virtualKeyboardInsetAtom,
   worldDataAtom,
 } from './game-atoms';
+
+const MOBILE_VIRTUAL_KEYBOARD_INSET = 320;
 
 export const countryPoolAtom = atom(
   (get) => get(worldDataAtom)?.world.features ?? [],
@@ -108,12 +109,18 @@ export const isReviewCompleteAtom = atom((get) => {
   );
 });
 
-export const effectiveKeyboardInsetAtom = atom((get) =>
-  Math.max(
-    get(viewportStateAtom).keyboardInset,
-    get(virtualKeyboardInsetAtom),
-  ),
-);
+export const effectiveKeyboardInsetAtom = atom((get) => {
+  const viewportState = get(viewportStateAtom);
+  const gameState = get(gameStateAtom);
+  const usesVirtualKeyboard =
+    viewportState.width <= 899 &&
+    gameState.status === 'playing';
+
+  return Math.max(
+    viewportState.keyboardInset,
+    usesVirtualKeyboard ? MOBILE_VIRTUAL_KEYBOARD_INSET : 0,
+  );
+});
 
 export const isKeyboardOpenAtom = atom(
   (get) => get(effectiveKeyboardInsetAtom) > 0,

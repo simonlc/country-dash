@@ -142,7 +142,6 @@ export const cipherTrafficStateAtom = atom<CipherTrafficState>(
   emptyCipherTrafficState,
 );
 export const viewportStateAtom = atom<GameViewportState>(getInitialViewportState());
-export const virtualKeyboardInsetAtom = atom(0);
 
 export const dailyResultAtomFamily = atomFamily((dateKey: string) =>
   atomWithStorage<DailyChallengeResult | null>(

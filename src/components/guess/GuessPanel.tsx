@@ -1,6 +1,5 @@
 import { Panel } from '@/components/ui/Panel';
 import { submitGuessAtom } from '@/game/state/game-actions';
-import { virtualKeyboardInsetAtom } from '@/game/state/game-atoms';
 import {
   countryOptionsAtom,
   isCapitalModeAtom,
@@ -8,17 +7,14 @@ import {
 import { m } from '@/paraglide/messages.js';
 import { useMediaQuery } from '@/components/ui/theme-provider';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { GuessInput } from './GuessInput';
-
-const MOBILE_VIRTUAL_KEYBOARD_INSET = 320;
 
 // TODO: This component feels pretty thin, maybe inline
 export function GuessPanel() {
   const countryOptionsValue = useAtomValue(countryOptionsAtom);
   const isCapitalModeValue = useAtomValue(isCapitalModeAtom);
   const submitGuess = useSetAtom(submitGuessAtom);
-  const setVirtualKeyboardInset = useSetAtom(virtualKeyboardInsetAtom);
   const isMobileViewport = useMediaQuery((theme) => theme.breakpoints.down('md'));
   const hasCoarsePointer = useMediaQuery('(pointer: coarse)');
   const useVirtualKeyboard = isMobileViewport && hasCoarsePointer;
@@ -29,16 +25,6 @@ export function GuessPanel() {
     },
     [submitGuess],
   );
-
-  useEffect(() => {
-    setVirtualKeyboardInset(
-      useVirtualKeyboard ? MOBILE_VIRTUAL_KEYBOARD_INSET : 0,
-    );
-
-    return () => {
-      setVirtualKeyboardInset(0);
-    };
-  }, [setVirtualKeyboardInset, useVirtualKeyboard]);
 
   return (
     <Panel compact maxWidth={720} surface="elevated">

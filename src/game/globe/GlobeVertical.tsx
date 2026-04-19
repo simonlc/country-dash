@@ -84,7 +84,10 @@ export function GlobeVertical() {
   return (
     <>
       <GameBackground atlasStyleEnabled={atlasStyleEnabled} />
-      <div className="h-full">
+      <div
+        className="w-full overflow-hidden"
+        style={{ height: `${viewportVisualHeight}px` }}
+      >
         <Globe
           country={currentCountry}
           focusRequest={focusRequest}
