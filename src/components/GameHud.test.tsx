@@ -53,7 +53,7 @@ describe('GameHud', () => {
 
     expect(screen.queryByText('0:00:00')).not.toBeInTheDocument();
     expect(screen.getByText('1/0')).toBeVisible();
-    expect(screen.getByText(/miss/i)).toBeVisible();
+    expect(screen.getByLabelText(/^miss:/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /^menu$/i })).toBeVisible();
   });
 });

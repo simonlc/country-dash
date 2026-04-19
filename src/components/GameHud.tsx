@@ -4,7 +4,6 @@ import { GameTimer } from '@/components/GameTimer';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import { Menu } from '@/components/Menu';
 import { Button } from '@/components/ui/button';
-import { HudInfo } from '@/components/ui/hud-info';
 import { useMediaQuery } from '@/components/ui/theme-provider';
 import { gameStateAtom } from '@/game/state/game-atoms';
 import { totalRoundsAtom } from '@/game/state/game-derived-atoms';
@@ -12,6 +11,7 @@ import { m } from '@/paraglide/messages.js';
 import type { GameState } from '@/types/game';
 import { getCountrySizeLabel, getRegionLabel } from '@/utils/labelTranslations';
 import { useAtomValue } from 'jotai';
+import { cn } from '@/lib/utils';
 
 function getSessionSummaryLabel(gameState: GameState) {
   if (!gameState.sessionConfig) {
@@ -66,11 +66,16 @@ export function GameHud() {
   const livesRemaining = gameState.livesRemaining;
   const score = gameState.score;
   const streak = gameState.streak;
-  const statItems = [
-    { label: m.game_stat_score(), value: score },
+  const scoreLabel = m.game_stat_score();
+  const sessionDetailLabel = sessionSummaryLabel
+    ? m.session_label_pool({ value: sessionSummaryLabel })
+    : null;
+  const desktopMetricItems = [
+    { label: roundLabel, value: rounds },
+    { label: scoreLabel, value: score },
     { label: m.game_stat_streak(), value: streak },
     { label: m.game_stat_hit(), value: correct },
-    // { label: m.game_stat_miss(), value: incorrect },
+    { label: m.game_stat_miss(), value: incorrect },
     ...(livesRemaining !== null
       ? [{ label: m.game_stat_lives(), value: livesRemaining }]
       : []),
@@ -126,37 +131,42 @@ export function GameHud() {
   }
 
   return (
-    <section className="surface-elevated w-full rounded-full grid gap-2 py-2 px-3 md:px-12">
-      <div className="grid grid-cols-3 grid-flow-col justify-between items-center gap-2">
-        <div className="font-bold text-lg">Country Dash</div>
-        <GameTimer />
-        <div className="justify-self-end">
-          <Menu />
+    <section className="surface-elevated w-full rounded-[24px] px-4 py-4 md:px-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="truncate text-[1.375rem] font-semibold tracking-[-0.03em] text-[var(--color-foreground)]">
+            Country Dash
+          </div>
+          {sessionDetailLabel ? (
+            <p className="mt-1 truncate text-sm text-[var(--color-muted)]">
+              {sessionDetailLabel}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          <GameTimer valueClassName="text-[1.85rem] font-semibold leading-none tracking-[-0.05em]" />
+          <Menu triggerClassName="min-h-11 min-w-11 rounded-full" />
         </div>
       </div>
-      <div className="flex justify-between gap-2">
-        <div className="flex gap-4 items-center">
-          {/* TODO: Translate */}
-          {sessionSummaryLabel ? (
-            <HudInfo title="Region" value={sessionSummaryLabel} />
-          ) : null}
-          {/* <div className="font-semibold">{sessionModeLabel}</div> */}
-          <HudInfo title={roundLabel} value={rounds} />
-        </div>
 
-        {/* <div className="flex flex-wrap gap-2"> */}
-        {/*   {sessionLabels.map((label) => ( */}
-        {/*     <span className="text-xs text-muted" key={label}> */}
-        {/*       {label} */}
-        {/*     </span> */}
-        {/*   ))} */}
-        {/* </div> */}
-
-        <div className="flex gap-4">
-          {statItems.map((item) => (
-            <HudInfo key={item.label} title={item.label} value={item.value} />
-          ))}
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-[color:color-mix(in_srgb,var(--color-foreground)_12%,transparent)] pt-3">
+        {desktopMetricItems.map((item) => (
+          <div className="flex items-baseline gap-2 whitespace-nowrap" key={item.label}>
+            <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
+              {item.label}
+            </span>
+            <span
+              className={cn(
+                'text-sm font-semibold text-[var(--color-foreground)]',
+                'tabular-nums',
+                item.label === scoreLabel ? 'text-[var(--color-primary)]' : null,
+              )}
+            >
+              {item.value}
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   );

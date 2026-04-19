@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { HudInfo } from '@/components/ui/hud-info';
 import {
   displayElapsedMsAtom,
@@ -7,7 +8,12 @@ import { formatElapsed } from '@/utils/gameLogic';
 import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 
-export function GameTimer() {
+interface GameTimerProps {
+  className?: string | undefined;
+  valueClassName?: string | undefined;
+}
+
+export function GameTimer({ className, valueClassName }: GameTimerProps = {}) {
   const [tickNow, setTickNow] = useState(() => Date.now());
   const elapsedMs = useAtomValue(displayElapsedMsAtom);
   const runningSince = useAtomValue(runningSinceAtom);
@@ -32,6 +38,10 @@ export function GameTimer() {
       : elapsedMs + Math.max(0, Math.floor(tickNow - runningSince));
 
   return (
-    <HudInfo className="items-center" value={formatElapsed(liveElapsedMs)} />
+    <HudInfo
+      className={cn('items-center', className)}
+      value={formatElapsed(liveElapsedMs)}
+      valueClassName={cn('tabular-nums', valueClassName)}
+    />
   );
 }
