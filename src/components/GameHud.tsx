@@ -78,7 +78,7 @@ export function GameHud() {
 
   if (isMobileViewport) {
     return (
-      <section className="surface-elevated flex w-full items-center justify-between rounded-b-xl px-3 py-2">
+      <section className="surface-elevated flex w-full items-center justify-between px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <div
             aria-label={`${roundLabel}: ${compactRounds}`}
@@ -107,7 +107,7 @@ export function GameHud() {
             </span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="pointer-events-auto relative flex shrink-0 items-center gap-2">
           <Button
             aria-label={m.action_how_to_play()}
             className="surface-elevated min-h-9 min-w-9 rounded-full border border-[var(--surface-panel-border)] p-0 text-primary"
@@ -117,16 +117,16 @@ export function GameHud() {
               void NiceModal.show(HowToPlayDialog);
             }}
           >
-            <Info aria-hidden size={15} />
+            <Info aria-hidden size={16} />
           </Button>
-          <Menu iconSize={15} triggerClassName="min-h-9 min-w-9" />
+          <Menu iconSize={16} triggerClassName="min-h-9 min-w-9" />
         </div>
       </section>
     );
   }
 
   return (
-    <section className="surface-elevated w-full rounded-b-xl md:rounded-full grid gap-2 py-2 px-3 md:px-12">
+    <section className="surface-elevated w-full rounded-full grid gap-2 py-2 px-3 md:px-12">
       <div className="grid grid-cols-3 grid-flow-col justify-between items-center gap-2">
         <div className="font-bold text-lg">Country Dash</div>
         <GameTimer />
