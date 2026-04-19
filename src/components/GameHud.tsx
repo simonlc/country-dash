@@ -40,7 +40,9 @@ function getSessionSummaryLabel(gameState: GameState) {
 export function GameHud() {
   const gameState = useAtomValue(gameStateAtom);
   const totalRounds = useAtomValue(totalRoundsAtom);
-  const isMobileViewport = useMediaQuery((theme) => theme.breakpoints.down('md'));
+  const isMobileViewport = useMediaQuery((theme) =>
+    theme.breakpoints.down('md'),
+  );
   // const sessionModeLabel = getSessionModeLabel(gameState);
   const sessionSummaryLabel = getSessionSummaryLabel(gameState);
   const roundLabel =
@@ -87,14 +89,22 @@ export function GameHud() {
               className="shrink-0 text-[var(--color-primary)]"
               size={14}
             />
-            <span className="text-sm font-semibold tabular-nums">{compactRounds}</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {compactRounds}
+            </span>
           </div>
           <div
             aria-label={`${m.game_stat_miss()}: ${incorrect}`}
             className="surface-display-neutral flex items-center gap-1.5 rounded-full px-2.5 py-1"
           >
-            <XCircle aria-hidden className="shrink-0 text-[#d54b41]" size={14} />
-            <span className="text-sm font-semibold tabular-nums">{incorrect}</span>
+            <XCircle
+              aria-hidden
+              className="shrink-0 text-neutral-500"
+              size={14}
+            />
+            <span className="text-sm font-semibold tabular-nums">
+              {incorrect}
+            </span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">

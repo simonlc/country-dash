@@ -24,6 +24,7 @@ interface BrowserStorage {
 
 export interface GameViewportState {
   height: number;
+  keyboardInset: number;
   isKeyboardOpen: boolean;
   visualHeight: number;
   width: number;
@@ -33,6 +34,7 @@ function getInitialViewportState(): GameViewportState {
   if (typeof window === 'undefined') {
     return {
       height: 0,
+      keyboardInset: 0,
       isKeyboardOpen: false,
       visualHeight: 0,
       width: 0,
@@ -44,6 +46,7 @@ function getInitialViewportState(): GameViewportState {
 
   return {
     height,
+    keyboardInset: 0,
     isKeyboardOpen: false,
     visualHeight: height,
     width,
@@ -139,6 +142,7 @@ export const cipherTrafficStateAtom = atom<CipherTrafficState>(
   emptyCipherTrafficState,
 );
 export const viewportStateAtom = atom<GameViewportState>(getInitialViewportState());
+export const virtualKeyboardInsetAtom = atom(0);
 
 export const dailyResultAtomFamily = atomFamily((dateKey: string) =>
   atomWithStorage<DailyChallengeResult | null>(

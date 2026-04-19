@@ -25,7 +25,6 @@ import {
 import {
   categoryCountsAtom,
   currentCountryAtom,
-  isKeyboardOpenAtom,
   sizeCountsAtom,
 } from '@/game/state/game-derived-atoms';
 import { m } from '@/paraglide/messages.js';
@@ -39,7 +38,6 @@ export function GamePage() {
   const startDailyGame = useSetAtom(startDailyGameAtom);
   const startRandomGame = useSetAtom(startRandomGameAtom);
   const gameState = useAtomValue(gameStateAtom);
-  const isKeyboardOpen = useAtomValue(isKeyboardOpenAtom);
   const loadingError = useAtomValue(loadingErrorAtom);
   const worldData = useAtomValue(worldDataAtom);
   const currentCountry = useAtomValue(currentCountryAtom);
@@ -51,6 +49,7 @@ export function GamePage() {
   useEffect(() => {
     setViewportState({
       height: size.height,
+      keyboardInset: size.keyboardInset,
       isKeyboardOpen: size.isKeyboardOpen,
       visualHeight: size.visualHeight,
       width: size.width,
@@ -58,6 +57,7 @@ export function GamePage() {
   }, [
     setViewportState,
     size.height,
+    size.keyboardInset,
     size.isKeyboardOpen,
     size.visualHeight,
     size.width,
@@ -113,7 +113,7 @@ export function GamePage() {
   const bottomPanelLayer = (
     <FloatingOverlayLayer
       align="end"
-      keyboardInset={isKeyboardOpen}
+      keyboardInset={size.isKeyboardOpen}
       maxWidth="status"
     >
       {isPlaying ? (

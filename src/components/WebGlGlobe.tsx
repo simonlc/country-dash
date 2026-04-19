@@ -692,20 +692,22 @@ export function WebGlGlobe({
 
   return (
     <div
-      className="globe-shell relative h-full w-full overflow-hidden touch-none"
+      className="globe-shell relative grid h-full w-full place-items-center overflow-hidden touch-none"
       data-theme-id={themeId}
       ref={containerRef}
       {...interactionHandlers}
     >
-      <div
-        className="globe-atmosphere pointer-events-none absolute inset-0 mix-blend-screen"
-        data-theme-id={themeId}
-      />
-      <canvas className="relative block h-full w-full" ref={canvasRef} />
-      <canvas
-        className="pointer-events-none absolute inset-0 block h-full w-full"
-        ref={overlayCanvasRef}
-      />
+      <div className="relative" style={{ height: `${height}px`, width: `${width}px` }}>
+        <div
+          className="globe-atmosphere pointer-events-none absolute inset-0 mix-blend-screen"
+          data-theme-id={themeId}
+        />
+        <canvas className="relative block h-full w-full" ref={canvasRef} />
+        <canvas
+          className="pointer-events-none absolute inset-0 block h-full w-full"
+          ref={overlayCanvasRef}
+        />
+      </div>
       {render.cipherScreenTransitionOverlayOpacity > 0 ? (
         <CipherTransitionOverlay
           opacity={render.cipherScreenTransitionOverlayOpacity}

@@ -56,7 +56,7 @@ function MobileGuessSuggestions({
 
   return (
     <div
-      className="surface-display-neutral flex items-center overflow-x-auto rounded-full px-3 py-1 text-sm touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex items-center overflow-x-auto rounded-full py-1 text-sm touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-testid="guess-mobile-suggestions"
     >
       {options.map((option, index) => (
@@ -71,10 +71,7 @@ function MobileGuessSuggestions({
             {option.label}
           </button>
           {index < options.length - 1 ? (
-            <span
-              aria-hidden
-              className="px-2 text-[var(--color-muted)]"
-            >
+            <span aria-hidden className="px-2 text-[var(--color-muted)]">
               |
             </span>
           ) : null}

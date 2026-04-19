@@ -5,7 +5,12 @@ import {
   buildRegionCountryPool,
   getRandomRunCountryCount,
 } from '@/utils/gameLogic';
-import { gameStateAtom, viewportStateAtom, worldDataAtom } from './game-atoms';
+import {
+  gameStateAtom,
+  viewportStateAtom,
+  virtualKeyboardInsetAtom,
+  worldDataAtom,
+} from './game-atoms';
 
 export const countryPoolAtom = atom(
   (get) => get(worldDataAtom)?.world.features ?? [],
@@ -103,12 +108,29 @@ export const isReviewCompleteAtom = atom((get) => {
   );
 });
 
+export const effectiveKeyboardInsetAtom = atom((get) =>
+  Math.max(
+    get(viewportStateAtom).keyboardInset,
+    get(virtualKeyboardInsetAtom),
+  ),
+);
+
 export const isKeyboardOpenAtom = atom(
-  (get) => get(viewportStateAtom).isKeyboardOpen,
+  (get) => get(effectiveKeyboardInsetAtom) > 0,
 );
 
 export const viewportVisualHeightAtom = atom(
-  (get) => get(viewportStateAtom).visualHeight,
+  (get) => {
+    const viewportState = get(viewportStateAtom);
+    const effectiveKeyboardInset = get(effectiveKeyboardInsetAtom);
+    return Math.max(
+      0,
+      Math.min(
+        viewportState.visualHeight,
+        viewportState.height - effectiveKeyboardInset,
+      ),
+    );
+  },
 );
 
 export const viewportWidthAtom = atom((get) => get(viewportStateAtom).width);
