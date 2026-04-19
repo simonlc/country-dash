@@ -11,6 +11,7 @@ import {
   gameModeAtom,
   isCapitalModeAtom,
   roundIndexAtom,
+  viewportTopInsetAtom,
   viewportVisualHeightAtom,
   viewportWidthAtom,
 } from '@/game/state/game-derived-atoms';
@@ -130,6 +131,10 @@ describe('GlobeVertical', () => {
         return 480;
       }
 
+      if (atom === viewportTopInsetAtom) {
+        return 64;
+      }
+
       if (atom === worldDataAtom) {
         return worldData;
       }
@@ -168,6 +173,9 @@ describe('GlobeVertical', () => {
     const globe = screen.getByTestId('globe');
     expect(globe).toHaveAttribute('data-height', '480');
     expect(globe).toHaveAttribute('data-width', '390');
-    expect(globe.parentElement).toHaveStyle({ height: '480px' });
+    expect(globe.parentElement).toHaveStyle({
+      height: '480px',
+      marginTop: '64px',
+    });
   });
 });

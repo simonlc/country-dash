@@ -1,9 +1,14 @@
 import { createStore } from 'jotai';
 import { describe, expect, it } from 'vitest';
-import { bottomOverlayHeightAtom, viewportStateAtom } from './game-atoms';
+import {
+  bottomOverlayHeightAtom,
+  topOverlayHeightAtom,
+  viewportStateAtom,
+} from './game-atoms';
 import {
   effectiveKeyboardInsetAtom,
   isKeyboardOpenAtom,
+  viewportTopInsetAtom,
   viewportVisualHeightAtom,
 } from './game-derived-atoms';
 
@@ -18,10 +23,12 @@ describe('game-derived viewport atoms', () => {
       visualHeight: 844,
       width: 390,
     });
+    store.set(topOverlayHeightAtom, 64);
     store.set(bottomOverlayHeightAtom, 280);
 
     expect(store.get(effectiveKeyboardInsetAtom)).toBe(280);
-    expect(store.get(viewportVisualHeightAtom)).toBe(564);
+    expect(store.get(viewportTopInsetAtom)).toBe(64);
+    expect(store.get(viewportVisualHeightAtom)).toBe(500);
     expect(store.get(isKeyboardOpenAtom)).toBe(false);
   });
 
@@ -35,9 +42,11 @@ describe('game-derived viewport atoms', () => {
       visualHeight: 720,
       width: 1280,
     });
+    store.set(topOverlayHeightAtom, 72);
     store.set(bottomOverlayHeightAtom, 320);
 
     expect(store.get(effectiveKeyboardInsetAtom)).toBe(180);
+    expect(store.get(viewportTopInsetAtom)).toBe(0);
     expect(store.get(viewportVisualHeightAtom)).toBe(720);
     expect(store.get(isKeyboardOpenAtom)).toBe(true);
   });

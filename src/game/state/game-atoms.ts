@@ -141,6 +141,7 @@ export const copyStateAtom = atom<'copied' | 'failed' | 'idle'>('idle');
 export const cipherTrafficStateAtom = atom<CipherTrafficState>(
   emptyCipherTrafficState,
 );
+export const topOverlayHeightAtom = atom(0);
 export const bottomOverlayHeightAtom = atom(0);
 export const viewportStateAtom = atom<GameViewportState>(getInitialViewportState());
 

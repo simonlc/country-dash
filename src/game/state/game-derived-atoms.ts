@@ -8,6 +8,7 @@ import {
 import {
   bottomOverlayHeightAtom,
   gameStateAtom,
+  topOverlayHeightAtom,
   viewportStateAtom,
   worldDataAtom,
 } from './game-atoms';
@@ -123,16 +124,22 @@ export const isKeyboardOpenAtom = atom(
   (get) => get(viewportStateAtom).isKeyboardOpen,
 );
 
+export const viewportTopInsetAtom = atom((get) => {
+  const viewportState = get(viewportStateAtom);
+  return viewportState.width <= 899 ? get(topOverlayHeightAtom) : 0;
+});
+
 export const viewportVisualHeightAtom = atom(
   (get) => {
     const viewportState = get(viewportStateAtom);
     const effectiveKeyboardInset = get(effectiveKeyboardInsetAtom);
+    const viewportTopInset = get(viewportTopInsetAtom);
     return Math.max(
       0,
       Math.min(
         viewportState.visualHeight,
         viewportState.height - effectiveKeyboardInset,
-      ),
+      ) - viewportTopInset,
     );
   },
 );

@@ -1,5 +1,5 @@
 import NiceModal from '@ebay/nice-modal-react';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { FloatingOverlayLayer } from '@/components/FloatingOverlayLayer';
 import { GameHud } from '@/components/GameHud';
@@ -20,6 +20,7 @@ import {
   gameStateAtom,
   loadingErrorAtom,
   storedDailyResultAtom,
+  topOverlayHeightAtom,
   viewportStateAtom,
   worldDataAtom,
 } from '@/game/state/game-atoms';
@@ -31,10 +32,55 @@ import {
 import { m } from '@/paraglide/messages.js';
 import type { CountrySizeFilter, GameMode, RegionFilter } from '@/types/game';
 
+function useOverlayHeightSync({
+  enabled,
+  elementRef,
+  setHeight,
+}: {
+  enabled: boolean;
+  elementRef: RefObject<HTMLDivElement | null>;
+  setHeight: (update: number | ((currentHeight: number) => number)) => void;
+}) {
+  useLayoutEffect(() => {
+    const element = elementRef.current;
+
+    if (!enabled || !element) {
+      setHeight(0);
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateHeight = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const nextHeight = Math.round(element.getBoundingClientRect().height);
+        setHeight((currentHeight) =>
+          currentHeight === nextHeight ? currentHeight : nextHeight,
+        );
+      });
+    };
+
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(element);
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+      setHeight(0);
+    };
+  }, [elementRef, enabled, setHeight]);
+}
+
 export function GamePage() {
   const size = useWindowSize();
+  const topHudRef = useRef<HTMLDivElement | null>(null);
   const bottomPanelRef = useRef<HTMLDivElement | null>(null);
   const setViewportState = useSetAtom(viewportStateAtom);
+  const setTopOverlayHeight = useSetAtom(topOverlayHeightAtom);
   const setBottomOverlayHeight = useSetAtom(bottomOverlayHeightAtom);
   const loadWorldData = useSetAtom(loadWorldDataAtom);
   const syncStoredDailyResult = useSetAtom(syncStoredDailyResultAtom);
@@ -71,38 +117,17 @@ export function GamePage() {
     void loadWorldData();
   }, [loadWorldData]);
 
-  useLayoutEffect(() => {
-    const element = bottomPanelRef.current;
+  useOverlayHeightSync({
+    elementRef: topHudRef,
+    enabled: hasGlobeViewport,
+    setHeight: setTopOverlayHeight,
+  });
 
-    if (!element) {
-      setBottomOverlayHeight(0);
-      return;
-    }
-
-    let frameId = 0;
-
-    const updateHeight = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const nextHeight = Math.round(element.getBoundingClientRect().height);
-        setBottomOverlayHeight((currentHeight) =>
-          currentHeight === nextHeight ? currentHeight : nextHeight,
-        );
-      });
-    };
-
-    updateHeight();
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(element);
-    window.addEventListener('resize', updateHeight);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateHeight);
-      setBottomOverlayHeight(0);
-    };
-  }, [hasGlobeViewport, setBottomOverlayHeight]);
+  useOverlayHeightSync({
+    elementRef: bottomPanelRef,
+    enabled: hasGlobeViewport,
+    setHeight: setBottomOverlayHeight,
+  });
 
   useEffect(() => {
     if (!gameState.dailyResult) {
@@ -144,7 +169,9 @@ export function GamePage() {
 
   const topHudLayer = (
     <FloatingOverlayLayer align="start" maxWidth="hud">
-      <GameHud />
+      <div ref={topHudRef}>
+        <GameHud />
+      </div>
     </FloatingOverlayLayer>
   );
   const bottomPanelLayer = (

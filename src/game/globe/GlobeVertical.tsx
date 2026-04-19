@@ -16,6 +16,7 @@ import {
   gameModeAtom,
   isCapitalModeAtom,
   roundIndexAtom,
+  viewportTopInsetAtom,
   viewportVisualHeightAtom,
   viewportWidthAtom,
 } from '@/game/state/game-derived-atoms';
@@ -25,6 +26,7 @@ import { getThemeLabel } from '@/utils/themeTranslations';
 export function GlobeVertical() {
   const { activeTheme } = useAppearance();
   const viewportWidth = useAtomValue(viewportWidthAtom);
+  const viewportTopInset = useAtomValue(viewportTopInsetAtom);
   const viewportVisualHeight = useAtomValue(viewportVisualHeightAtom);
   const worldData = useAtomValue(worldDataAtom);
   const focusRequest = useAtomValue(focusRequestAtom);
@@ -86,7 +88,10 @@ export function GlobeVertical() {
       <GameBackground atlasStyleEnabled={atlasStyleEnabled} />
       <div
         className="w-full overflow-hidden"
-        style={{ height: `${viewportVisualHeight}px` }}
+        style={{
+          height: `${viewportVisualHeight}px`,
+          marginTop: `${viewportTopInset}px`,
+        }}
       >
         <Globe
           country={currentCountry}
