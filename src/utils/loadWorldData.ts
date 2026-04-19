@@ -4,6 +4,7 @@ import { countryCapitals } from 'country-capitals';
 import { City } from 'country-state-city';
 import worldSource from '../../world.json';
 import type {
+  CountryFeature,
   CountryProperties,
   CountryTag,
   FeatureCollectionLike,
@@ -181,6 +182,37 @@ async function loadJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+function normalizeCountryKeyPart(value: string | null | undefined) {
+  return (value ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function normalizeCountryLookupCode(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim().toUpperCase();
+  if (!trimmed || trimmed === '-99') {
+    return null;
+  }
+
+  if (/^[A-Z]{2,3}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const suffix = trimmed.split('-').at(-1);
+  if (suffix && /^[A-Z]{2,3}$/.test(suffix)) {
+    return suffix;
+  }
+
+  return null;
+}
+
 function getFirstObject(
   topology: WorldTopologyObject,
 ): WorldTopologyGeometryCollection {
@@ -195,8 +227,77 @@ function getFirstObject(
   return object;
 }
 
+export function getCountryLookupKey(args: {
+  isocode?: string | null | undefined;
+  isocode3?: string | null | undefined;
+  nameEn?: string | null | undefined;
+}) {
+  const normalizedIso2 = normalizeCountryLookupCode(args.isocode);
+  if (normalizedIso2) {
+    return `iso2:${normalizedIso2}`;
+  }
+
+  const normalizedIso3 = normalizeCountryLookupCode(args.isocode3);
+  if (normalizedIso3) {
+    return `iso3:${normalizedIso3}`;
+  }
+
+  const normalizedName = normalizeCountryKeyPart(args.nameEn);
+  return normalizedName ? `name:${normalizedName}` : null;
+}
+
+function createFallbackCountryFeatureId(feature: CountryFeature, index: number) {
+  const normalizedName = normalizeCountryKeyPart(feature.properties.nameEn);
+  if (normalizedName) {
+    return `country-${normalizedName}`;
+  }
+
+  const lookupKey = getCountryLookupKey({
+    isocode: feature.properties.isocode,
+    isocode3: feature.properties.isocode3,
+    nameEn: feature.properties.nameEn,
+  });
+  if (lookupKey) {
+    return lookupKey.replace(':', '-');
+  }
+
+  return `country-${index + 1}`;
+}
+
+export function assignUniqueCountryFeatureIds(
+  world: FeatureCollectionLike,
+): FeatureCollectionLike {
+  const seenIds = new Map<string, number>();
+
+  return {
+    ...world,
+    features: world.features.map((feature, index) => {
+      const rawId = feature.id.trim();
+      const candidateId =
+        rawId && rawId !== '-99' && !seenIds.has(rawId)
+          ? rawId
+          : createFallbackCountryFeatureId(feature, index);
+      const duplicateCount = seenIds.get(candidateId) ?? 0;
+      const uniqueId =
+        duplicateCount === 0 ? candidateId : `${candidateId}-${duplicateCount + 1}`;
+
+      seenIds.set(candidateId, duplicateCount + 1);
+
+      return {
+        ...feature,
+        id: uniqueId,
+      };
+    }),
+  };
+}
+
 function toFeatureCollection(topology: WorldTopologyObject): FeatureCollectionLike {
-  return topojson.feature(topology, getFirstObject(topology)) as FeatureCollectionLike;
+  const featureCollection = topojson.feature(
+    topology,
+    getFirstObject(topology),
+  ) as FeatureCollectionLike;
+
+  return assignUniqueCountryFeatureIds(featureCollection);
 }
 
 const languageByWorldNameKey: Record<string, string> = {
@@ -272,12 +373,14 @@ function buildCountrySourceMap() {
     .features;
   const countryNameLanguages = new Set<string>();
 
-  const detailsByCode = new Map(
+  const detailsByKey = new Map(
     sourceFeatures.flatMap((feature) => {
-      const isocode = feature.properties.ISO_A2;
-      const isocode3 = feature.properties.ISO_A3;
-
-      if (!isocode && !isocode3) {
+      const lookupKey = getCountryLookupKey({
+        isocode: feature.properties.ISO_A2,
+        isocode3: feature.properties.ISO_A3,
+        nameEn: feature.properties.NAME_EN,
+      });
+      if (!lookupKey) {
         return [];
       }
 
@@ -291,10 +394,7 @@ function buildCountrySourceMap() {
         countryNameLanguages.add(language);
       });
 
-      return [
-        ...(isocode ? [[isocode, metadata] as const] : []),
-        ...(isocode3 ? [[isocode3, metadata] as const] : []),
-      ];
+      return [[lookupKey, metadata] as const];
     }),
   );
 
@@ -302,7 +402,7 @@ function buildCountrySourceMap() {
     countryNameLanguages: Array.from(countryNameLanguages).sort((left, right) =>
       left.localeCompare(right),
     ),
-    detailsByCode,
+    detailsByKey,
   };
 }
 
@@ -414,14 +514,17 @@ function getCapitalMetadata(country: { isocode: string; isocode3: string }) {
 
 function enrichFeatureCollection(
   world: FeatureCollectionLike,
-  detailsByCode: ReturnType<typeof buildCountrySourceMap>['detailsByCode'],
+  detailsByKey: ReturnType<typeof buildCountrySourceMap>['detailsByKey'],
 ): FeatureCollectionLike {
   return {
     ...world,
     features: world.features.map((feature) => {
-      const metadata =
-        detailsByCode.get(feature.properties.isocode) ??
-        detailsByCode.get(feature.properties.isocode3);
+      const lookupKey = getCountryLookupKey({
+        isocode: feature.properties.isocode,
+        isocode3: feature.properties.isocode3,
+        nameEn: feature.properties.nameEn,
+      });
+      const metadata = lookupKey ? detailsByKey.get(lookupKey) : undefined;
       const capitalMetadata = getCapitalMetadata(feature.properties);
       const capitalCoordinates = getCapitalCoordinates(
         feature.properties.isocode,
@@ -455,6 +558,6 @@ export async function loadWorldData(): Promise<WorldData> {
 
   return {
     countryNameLanguages: sourceMap.countryNameLanguages,
-    world: enrichFeatureCollection(toFeatureCollection(worldTopology), sourceMap.detailsByCode),
+    world: enrichFeatureCollection(toFeatureCollection(worldTopology), sourceMap.detailsByKey),
   };
 }
