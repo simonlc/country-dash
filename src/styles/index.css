@@ -712,7 +712,7 @@ body {
   padding-inline: var(--keyboard-inline-padding);
 }
 
-.country-dash-mobile-keyboard {
+.hg-theme-default.country-dash-mobile-keyboard {
   --keyboard-horizontal-gap: clamp(0.2rem, 1vw, 0.35rem);
   --keyboard-vertical-gap: clamp(0.2rem, 0.8vh, 0.35rem);
   --keyboard-key-width: calc(
@@ -721,6 +721,14 @@ body {
           (9 * var(--keyboard-horizontal-gap))
       ) / 10
   );
+  --keyboard-key-background: var(--color-card);
+  --keyboard-key-border: var(--color-border);
+  --keyboard-key-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+  --keyboard-key-active-background: var(--surface-display-accent-bg);
+  --keyboard-key-active-border: var(--surface-display-accent-border);
+  --keyboard-key-accent-background: var(--surface-display-accent-bg);
+  --keyboard-key-accent-border: var(--surface-display-accent-border);
+  --keyboard-key-accent-color: var(--color-primary);
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -730,27 +738,29 @@ body {
   width: 100%;
 }
 
-.country-dash-mobile-keyboard .hg-row {
+.hg-theme-default.country-dash-mobile-keyboard .hg-row {
   gap: var(--keyboard-horizontal-gap);
   justify-content: center;
 }
 
-.country-dash-mobile-keyboard .hg-row:not(:last-child) {
+.hg-theme-default.country-dash-mobile-keyboard .hg-row:not(:last-child) {
   margin-bottom: var(--keyboard-vertical-gap);
 }
 
-.country-dash-mobile-keyboard .hg-row .hg-button-container,
-.country-dash-mobile-keyboard .hg-row .hg-button:not(:last-child) {
+.hg-theme-default.country-dash-mobile-keyboard .hg-row .hg-button-container,
+.hg-theme-default.country-dash-mobile-keyboard
+  .hg-row
+  .hg-button:not(:last-child) {
   margin-right: 0;
 }
 
-.country-dash-mobile-keyboard .hg-button {
+.hg-theme-default.country-dash-mobile-keyboard .hg-button {
   flex: 0 0 var(--keyboard-key-width);
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(28, 44, 79, 0.12);
-  border-bottom-color: rgba(28, 44, 79, 0.2);
+  background: var(--keyboard-key-background);
+  border: 1px solid var(--keyboard-key-border);
+  border-bottom-color: var(--keyboard-key-border);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+  box-shadow: var(--keyboard-key-shadow);
   color: var(--color-foreground);
   font-size: 0.95rem;
   font-weight: 700;
@@ -758,22 +768,43 @@ body {
   width: var(--keyboard-key-width);
 }
 
-.country-dash-mobile-keyboard .hg-button:active,
-.country-dash-mobile-keyboard .hg-button.hg-activeButton {
-  background: rgba(49, 103, 228, 0.12);
+.hg-theme-default.country-dash-mobile-keyboard .hg-button:active,
+.hg-theme-default.country-dash-mobile-keyboard .hg-button.hg-activeButton {
+  background: var(--keyboard-key-active-background);
+  border-color: var(--keyboard-key-active-border);
 }
 
-.country-dash-mobile-keyboard .hg-button-submit,
-.country-dash-mobile-keyboard .hg-button-backspace {
-  background: rgba(49, 103, 228, 0.12);
-  color: var(--color-primary);
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-submit,
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-backspace {
+  background: var(--keyboard-key-accent-background);
+  border-color: var(--keyboard-key-accent-border);
+  color: var(--keyboard-key-accent-color);
   flex: 0 0 calc(
     (2 * var(--keyboard-key-width)) + var(--keyboard-horizontal-gap)
   );
   width: calc((2 * var(--keyboard-key-width)) + var(--keyboard-horizontal-gap));
 }
 
-.country-dash-mobile-keyboard .hg-button-space {
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-backspace {
+  position: relative;
+}
+
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-backspace span {
+  font-size: 0;
+}
+
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-backspace::before {
+  content: '';
+  width: 1.35rem;
+  height: 1.35rem;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z'/%3E%3Cpath d='m18 9-6 6'/%3E%3Cpath d='m12 9 6 6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z'/%3E%3Cpath d='m18 9-6 6'/%3E%3Cpath d='m12 9 6 6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.hg-theme-default.country-dash-mobile-keyboard .hg-button-space {
   flex: 0 0 calc(
     (6 * var(--keyboard-key-width)) + (5 * var(--keyboard-horizontal-gap))
   );
@@ -783,6 +814,6 @@ body {
   );
 }
 
-.country-dash-mobile-keyboard .hg-row:last-child .hg-button {
+.hg-theme-default.country-dash-mobile-keyboard .hg-row:last-child .hg-button {
   height: 2.5rem;
 }

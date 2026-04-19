@@ -219,7 +219,7 @@ export const IntroDialog = NiceModal.create(
       >
         <DialogContent showCloseButton={false}>
           <DialogTitle className="sr-only">{m.app_name()}</DialogTitle>
-          <div className="grid gap-4 px-5 pt-[max(env(safe-area-inset-top),8px)] pb-[max(env(safe-area-inset-bottom),10px)]">
+          <div className="grid gap-4 p-3">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
               <div className="grid gap-2">
                 <h1 className="m-0 text-3xl font-bold">{m.app_name()}</h1>
