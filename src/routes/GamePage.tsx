@@ -1,5 +1,5 @@
 import NiceModal from '@ebay/nice-modal-react';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { FloatingOverlayLayer } from '@/components/FloatingOverlayLayer';
 import { GameHud } from '@/components/GameHud';
@@ -16,6 +16,7 @@ import {
   syncStoredDailyResultAtom,
 } from '@/game/state/game-actions';
 import {
+  bottomOverlayHeightAtom,
   gameStateAtom,
   loadingErrorAtom,
   storedDailyResultAtom,
@@ -32,7 +33,9 @@ import type { CountrySizeFilter, GameMode, RegionFilter } from '@/types/game';
 
 export function GamePage() {
   const size = useWindowSize();
+  const bottomPanelRef = useRef<HTMLDivElement | null>(null);
   const setViewportState = useSetAtom(viewportStateAtom);
+  const setBottomOverlayHeight = useSetAtom(bottomOverlayHeightAtom);
   const loadWorldData = useSetAtom(loadWorldDataAtom);
   const syncStoredDailyResult = useSetAtom(syncStoredDailyResultAtom);
   const startDailyGame = useSetAtom(startDailyGameAtom);
@@ -45,6 +48,7 @@ export function GamePage() {
   const categoryCounts = useAtomValue(categoryCountsAtom);
   const storedDailyResult = useAtomValue(storedDailyResultAtom);
   const isPlaying = gameState.status === 'playing';
+  const hasGlobeViewport = Boolean(worldData && currentCountry);
 
   useEffect(() => {
     setViewportState({
@@ -66,6 +70,39 @@ export function GamePage() {
   useEffect(() => {
     void loadWorldData();
   }, [loadWorldData]);
+
+  useLayoutEffect(() => {
+    const element = bottomPanelRef.current;
+
+    if (!element) {
+      setBottomOverlayHeight(0);
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateHeight = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const nextHeight = Math.round(element.getBoundingClientRect().height);
+        setBottomOverlayHeight((currentHeight) =>
+          currentHeight === nextHeight ? currentHeight : nextHeight,
+        );
+      });
+    };
+
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(element);
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+      setBottomOverlayHeight(0);
+    };
+  }, [hasGlobeViewport, setBottomOverlayHeight]);
 
   useEffect(() => {
     if (!gameState.dailyResult) {
@@ -117,11 +154,13 @@ export function GamePage() {
       maxWidth="status"
     >
       {isPlaying ? (
-        <div className="md:mb-42">
+        <div className="md:mb-42" ref={bottomPanelRef}>
           <GuessPanel />
         </div>
       ) : (
-        <RoundStatusScreen />
+        <div ref={bottomPanelRef}>
+          <RoundStatusScreen />
+        </div>
       )}
     </FloatingOverlayLayer>
   );

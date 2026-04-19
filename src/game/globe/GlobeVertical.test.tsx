@@ -35,7 +35,7 @@ const {
 }));
 
 vi.mock('jotai', async () => {
-  const actual = await vi.importActual<typeof import('jotai')>('jotai');
+  const actual = await vi.importActual('jotai');
   return {
     ...actual,
     useAtomValue: useAtomValueMock,
@@ -44,9 +44,7 @@ vi.mock('jotai', async () => {
 });
 
 vi.mock('@/app/appearance', async () => {
-  const actual = await vi.importActual<typeof import('@/app/appearance')>(
-    '@/app/appearance'
-  );
+  const actual = await vi.importActual('@/app/appearance');
   return {
     ...actual,
     useAppearance: () => ({
