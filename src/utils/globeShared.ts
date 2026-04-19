@@ -641,7 +641,6 @@ export function useGlobeInteraction({
     interactionHandlers: {
       onPointerDown,
       onPointerCancel: onPointerUp,
-      onPointerLeave: onPointerUp,
       onPointerMove,
       onPointerUp,
       onWheel,

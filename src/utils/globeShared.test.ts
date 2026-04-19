@@ -1,3 +1,5 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { describe, expect, it } from 'vitest';
 import {
   getCountryHighlightRings,
@@ -6,6 +8,7 @@ import {
   getTerminatorHalfWidthKilometers,
   getTwilightHalfAngleRadians,
   getTwilightHalfWidthKilometers,
+  useGlobeInteraction,
 } from '@/utils/globeShared';
 import type { CountryFeature } from '@/types/game';
 
@@ -27,6 +30,34 @@ function createCountryFeature(
     },
     geometry,
   };
+}
+
+function createPointerTarget() {
+  const capturedPointers = new Set<number>();
+
+  return {
+    hasPointerCapture(pointerId: number) {
+      return capturedPointers.has(pointerId);
+    },
+    releasePointerCapture(pointerId: number) {
+      capturedPointers.delete(pointerId);
+    },
+    setPointerCapture(pointerId: number) {
+      capturedPointers.add(pointerId);
+    },
+  };
+}
+
+function createPointerEvent(args: {
+  clientX: number;
+  clientY: number;
+  currentTarget: ReturnType<typeof createPointerTarget>;
+  pointerId: number;
+  timeStamp: number;
+}) {
+  return {
+    ...args,
+  } as unknown as ReactPointerEvent<Element>;
 }
 
 describe('getCountryHighlightRings', () => {
@@ -99,5 +130,74 @@ describe('terminator helpers', () => {
       6371 * ((6 * Math.PI) / 180),
       6,
     );
+  });
+});
+
+describe('useGlobeInteraction', () => {
+  it('keeps a drag active after pointer leave events', async () => {
+    const { result } = renderHook(() =>
+      useGlobeInteraction({
+        baseScale: 200,
+        focusRequest: 0,
+        rotation: [0, 0],
+      }),
+    );
+    const target = createPointerTarget();
+
+    act(() => {
+      result.current.interactionHandlers.onPointerDown(
+        createPointerEvent({
+          clientX: 100,
+          clientY: 100,
+          currentTarget: target,
+          pointerId: 1,
+          timeStamp: 1,
+        }),
+      );
+      result.current.interactionHandlers.onPointerMove(
+        createPointerEvent({
+          clientX: 140,
+          clientY: 100,
+          currentTarget: target,
+          pointerId: 1,
+          timeStamp: 17,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentRotation[0]).not.toBe(0);
+    });
+    const rotationAfterFirstMove = result.current.currentRotation[0];
+    const interactionHandlersWithLeave = result.current.interactionHandlers as {
+      onPointerLeave?: (event: ReactPointerEvent<Element>) => void;
+    };
+
+    act(() => {
+      interactionHandlersWithLeave.onPointerLeave?.(
+        createPointerEvent({
+          clientX: 140,
+          clientY: 100,
+          currentTarget: target,
+          pointerId: 1,
+          timeStamp: 18,
+        }),
+      );
+      result.current.interactionHandlers.onPointerMove(
+        createPointerEvent({
+          clientX: 180,
+          clientY: 100,
+          currentTarget: target,
+          pointerId: 1,
+          timeStamp: 34,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentRotation[0]).toBeGreaterThan(
+        rotationAfterFirstMove,
+      );
+    });
   });
 });

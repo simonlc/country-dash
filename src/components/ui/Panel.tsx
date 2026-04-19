@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const panelVariants = cva(
-  'rounded-t-xl md:rounded-xl mx-auto md:mb-6 pointer-events-auto inline-size-full text-center',
+  'md:rounded-xl mx-auto md:mb-6 pointer-events-auto inline-size-full text-center',
   {
     variants: {
       compact: {
