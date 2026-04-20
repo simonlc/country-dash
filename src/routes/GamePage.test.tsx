@@ -317,6 +317,7 @@ describe('GamePage', () => {
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
+    expect(await screen.findByRole('menuitem', { name: /^retry$/i })).toBeVisible();
     await user.click(screen.getByTestId('globe'));
     await waitFor(() => {
       expect(screen.queryByRole('menuitem', { name: /^retry$/i })).not.toBeInTheDocument();
