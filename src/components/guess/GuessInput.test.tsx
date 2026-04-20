@@ -285,6 +285,7 @@ describe('GuessInput', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByTestId('guess-fake-caret')).toBeVisible();
     expect(screen.getByTestId('guess-mobile-keyboard')).toBeVisible();
   });
 

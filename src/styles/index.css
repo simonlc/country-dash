@@ -494,6 +494,26 @@ body {
   padding-inline: var(--keyboard-inline-padding);
 }
 
+@keyframes guess-input-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.guess-input-fake-caret {
+  animation: guess-input-caret-blink 1s step-end infinite;
+  background: currentColor;
+  border-radius: 999px;
+  flex: 0 0 2px;
+  height: 1.2em;
+}
+
 .hg-theme-default.country-dash-mobile-keyboard {
   --keyboard-horizontal-gap: clamp(0.2rem, 1vw, 0.35rem);
   --keyboard-vertical-gap: clamp(0.2rem, 0.8vh, 0.35rem);

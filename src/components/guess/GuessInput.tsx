@@ -230,11 +230,13 @@ export function GuessInput({
           autoComplete="off"
           autoCorrect="off"
           completionValue=""
+          fakeCaretPlaceholder={getGuessPlaceholder(variant)}
           id={inputId}
           inputMode="none"
-          placeholder={getGuessPlaceholder(variant)}
+          placeholder=""
           readOnly
           ref={inputRef}
+          showFakeCaret
           spellCheck={false}
           tabIndex={-1}
           value={inputValue}
