@@ -1,4 +1,5 @@
 import { atom } from 'jotai';
+import { isMobileLayoutWidth } from '@/app/layoutBreakpoints';
 import type { CountryProperties, RegionFilter } from '@/types/game';
 import { regionFilters } from '@/utils/labelTranslations';
 import {
@@ -113,7 +114,7 @@ export const isReviewCompleteAtom = atom((get) => {
 export const effectiveKeyboardInsetAtom = atom((get) => {
   const viewportState = get(viewportStateAtom);
   const bottomOverlayHeight = get(bottomOverlayHeightAtom);
-  const usesBottomOverlayInset = viewportState.width <= 899;
+  const usesBottomOverlayInset = isMobileLayoutWidth(viewportState.width);
 
   return Math.max(
     viewportState.keyboardInset,
@@ -127,7 +128,7 @@ export const isKeyboardOpenAtom = atom(
 
 export const viewportTopInsetAtom = atom((get) => {
   const viewportState = get(viewportStateAtom);
-  return viewportState.width <= 899 ? get(topOverlayHeightAtom) : 0;
+  return isMobileLayoutWidth(viewportState.width) ? get(topOverlayHeightAtom) : 0;
 });
 
 export const viewportVisualHeightAtom = atom(

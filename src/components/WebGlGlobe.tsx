@@ -5,6 +5,7 @@ import type {
   GlobeQualityConfig,
   GlobeRenderConfig,
 } from '@/app/theme';
+import { isMobileLayoutWidth } from '@/app/layoutBreakpoints';
 import { CipherTransitionOverlay } from '@/components/CipherTransitionOverlay';
 import {
   useCipherTraffic,
@@ -226,7 +227,7 @@ export function WebGlGlobe({
         (cipherTrafficState.status === 'live' ||
           cipherTrafficState.status === 'loading' ||
           cipherTrafficState.tracks.length > 0)));
-  const initialZoomScale = width <= 900 ? 1.2 : 1;
+  const initialZoomScale = isMobileLayoutWidth(width) ? 1.2 : 1;
   const { interactionHandlers, isAnimating } = useGlobeInteraction({
     baseScale,
     focusDelayKey: render.cipherFocusDelayMs > 0 ? roundIndex : null,

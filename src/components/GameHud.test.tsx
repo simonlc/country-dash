@@ -37,7 +37,7 @@ describe('GameHud', () => {
         addEventListener: vi.fn(),
         addListener: vi.fn(),
         dispatchEvent: vi.fn(),
-        matches: query.includes('max-width: 899.95px'),
+        matches: query.includes('max-width: 767.95px'),
         media: query,
         onchange: null,
         removeEventListener: vi.fn(),

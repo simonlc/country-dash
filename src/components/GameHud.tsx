@@ -1,5 +1,6 @@
 import NiceModal from '@ebay/nice-modal-react';
 import { Info, MapPin, XCircle } from 'react-feather';
+import { mobileLayoutMediaQuery } from '@/app/layoutBreakpoints';
 import { GameTimer } from '@/components/GameTimer';
 import { HowToPlayDialog } from '@/components/HowToPlayDialog';
 import { Menu } from '@/components/Menu';
@@ -40,9 +41,7 @@ function getSessionSummaryLabel(gameState: GameState) {
 export function GameHud() {
   const gameState = useAtomValue(gameStateAtom);
   const totalRounds = useAtomValue(totalRoundsAtom);
-  const isMobileViewport = useMediaQuery((theme) =>
-    theme.breakpoints.down('md'),
-  );
+  const isMobileViewport = useMediaQuery(mobileLayoutMediaQuery);
   // const sessionModeLabel = getSessionModeLabel(gameState);
   const sessionSummaryLabel = getSessionSummaryLabel(gameState);
   const roundLabel =

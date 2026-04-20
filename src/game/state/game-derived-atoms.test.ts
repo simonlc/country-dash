@@ -50,4 +50,22 @@ describe('game-derived viewport atoms', () => {
     expect(store.get(viewportVisualHeightAtom)).toBe(720);
     expect(store.get(isKeyboardOpenAtom)).toBe(true);
   });
+
+  it('treats 768px wide viewports as desktop layout', () => {
+    const store = createStore();
+
+    store.set(viewportStateAtom, {
+      height: 900,
+      keyboardInset: 0,
+      isKeyboardOpen: false,
+      visualHeight: 900,
+      width: 768,
+    });
+    store.set(topOverlayHeightAtom, 72);
+    store.set(bottomOverlayHeightAtom, 320);
+
+    expect(store.get(effectiveKeyboardInsetAtom)).toBe(0);
+    expect(store.get(viewportTopInsetAtom)).toBe(0);
+    expect(store.get(viewportVisualHeightAtom)).toBe(900);
+  });
 });

@@ -10,4 +10,11 @@ describe('GuessPanel', () => {
     expect(screen.getByText(/guess the highlighted country/i)).toBeVisible();
     expect(screen.getByRole('combobox')).toBeVisible();
   });
+
+  it('keeps the native input path on mobile layouts', () => {
+    renderWithProviders(<GuessPanel />);
+
+    expect(screen.queryByTestId('guess-mobile-keyboard')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).not.toHaveLength(0);
+  });
 });
