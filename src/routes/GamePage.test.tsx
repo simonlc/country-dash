@@ -251,7 +251,9 @@ describe('GamePage', () => {
     expect(screen.getByText(/^Pool: Asia$/i)).toBeVisible();
     expect(screen.getByText(/^1 \/ 2$/i)).toBeVisible();
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('menuitem', { name: /refocus country/i }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: /refocus country/i }),
+    );
   });
 
   it('accepts a typed wrong answer and shows the review screen', async () => {
@@ -321,13 +323,13 @@ describe('GamePage', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('menuitem', { name: /^retry$/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /^retry$/i }));
 
     expect(await screen.findByText(/Guess the highlighted country/i)).toBeVisible();
     expect(screen.getByText(/^Pool: Asia$/i)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /^menu$/i }));
-    await user.click(screen.getByRole('menuitem', { name: /^quit$/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /^quit$/i }));
     expect(showModalMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/Guess the highlighted country/i)).toBeVisible();
   });
