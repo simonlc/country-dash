@@ -2,7 +2,7 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 interface IconBadgeProps extends HTMLAttributes<HTMLDivElement> {
-  tone?: 'danger' | 'primary';
+  tone?: 'danger' | 'primary' | 'success';
 }
 
 export function IconBadge({
@@ -14,10 +14,12 @@ export function IconBadge({
     <div
       {...props}
       className={cn(
-        'grid min-h-11 min-w-11 place-items-center rounded-xs p-2',
+        'grid min-h-11 min-w-11 place-items-center rounded-full p-2',
         tone === 'primary'
           ? 'bg-[var(--color-primary)] text-[var(--color-primary-contrast)]'
-          : 'bg-[#d54b41] text-white',
+          : tone === 'success'
+            ? 'bg-[var(--color-secondary)] text-[var(--color-secondary-contrast)]'
+            : 'bg-[#d54b41] text-white',
         className,
       )}
     />

@@ -96,7 +96,7 @@ export function GameStatusPanel({
         score: gameState.score,
       });
   const isCorrect = gameState.lastRound?.answerResult === 'correct';
-  const statusColor = isCorrect ? 'primary.main' : 'error.main';
+  const statusColor = isCorrect ? 'secondary.main' : 'error.main';
   const isDensePanel = isKeyboardOpen;
   const panelSpacing = isResultView ? 'compact' : isDensePanel ? 'compact' : 'roomy';
 

@@ -412,7 +412,7 @@ export const IntroDialog = NiceModal.create(
                 })}
               </div>
 
-              <div className="grid gap-x-3 gap-y-2 [grid-template-columns:repeat(auto-fit,minmax(132px,1fr))] md:grid-cols-3">
+              <div className="grid gap-x-3 gap-y-2 [grid-template-columns:repeat(auto-fit,minmax(132px,1fr))] md:grid-cols-5">
                 {categoryItems.map((item) => (
                   <button
                     aria-label={m.intro_region_option_aria({

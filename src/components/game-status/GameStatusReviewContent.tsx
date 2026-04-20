@@ -18,7 +18,7 @@ interface GameStatusReviewContentProps {
   reviewMetadata: string;
   reviewStats: ReviewStat[];
   showPlayerGuess: boolean;
-  statusColor: 'error.main' | 'primary.main';
+  statusColor: 'error.main' | 'secondary.main';
 }
 
 export function GameStatusReviewContent({
@@ -35,12 +35,14 @@ export function GameStatusReviewContent({
   return (
     <>
       <div aria-live="polite" className="grid justify-items-center gap-1" role="status">
-        <IconBadge tone={isCorrect ? 'primary' : 'danger'}>
+        <IconBadge tone={isCorrect ? 'success' : 'danger'}>
           {isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
         </IconBadge>
         <p
           className={`m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] ${
-            statusColor === 'primary.main' ? 'text-[var(--color-primary)]' : 'text-[#d54b41]'
+            statusColor === 'secondary.main'
+              ? 'text-[var(--color-secondary)]'
+              : 'text-[#d54b41]'
           }`}
         >
           {isCorrect ? m.game_correct_label() : m.game_missed()}

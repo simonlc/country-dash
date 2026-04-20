@@ -71,6 +71,10 @@ export function ThemeProvider({
       theme.palette.primary.contrastText,
     );
     root.style.setProperty('--color-secondary', theme.palette.secondary.main);
+    root.style.setProperty(
+      '--color-secondary-contrast',
+      theme.palette.secondary.contrastText,
+    );
     root.style.setProperty('--color-border', theme.palette.divider);
     root.style.setProperty('--app-background', activeTheme.background.app);
     root.style.setProperty('--radius-sm', `${designTokens.radius.sm}px`);

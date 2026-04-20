@@ -857,6 +857,7 @@ export interface AppUiTheme {
       main: string;
     };
     secondary: {
+      contrastText: string;
       main: string;
     };
     text: {
@@ -981,6 +982,11 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
     definition.palette.backgroundDefault,
     definition.palette.textPrimary,
   ]);
+  const secondaryContrastText = pickBestTextColor(definition.palette.secondary, [
+    '#fffdf7',
+    definition.palette.backgroundDefault,
+    definition.palette.textPrimary,
+  ]);
 
   return {
     breakpoints: {
@@ -1026,6 +1032,7 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
         main: definition.palette.primary,
       },
       secondary: {
+        contrastText: secondaryContrastText,
         main: definition.palette.secondary,
       },
       text: {

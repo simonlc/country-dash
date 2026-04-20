@@ -32,10 +32,10 @@ export function GameStatusGameOverContent({
   return (
     <>
       <div className="grid justify-items-center gap-1">
-        <IconBadge>
+        <IconBadge tone="success">
           <Award size={16} />
         </IconBadge>
-        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--color-primary)]">
+        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
           {isDailyRun ? m.game_daily_complete() : m.game_run_complete()}
         </p>
         <p className="m-0 text-[clamp(1.9rem,5vw,2.5rem)] font-bold leading-none tracking-[-0.03em]">
