@@ -18,7 +18,7 @@ export function IconBadge({
         tone === 'primary'
           ? 'bg-[var(--color-primary)] text-[var(--color-primary-contrast)]'
           : tone === 'success'
-            ? 'bg-[var(--color-secondary)] text-[var(--color-secondary-contrast)]'
+            ? 'bg-[var(--color-success)] text-[var(--color-success-contrast)]'
             : 'bg-[#d54b41] text-white',
         className,
       )}

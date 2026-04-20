@@ -110,6 +110,7 @@ export interface AppThemeDefinition {
   palette: {
     primary: string;
     secondary: string;
+    success: string;
     backgroundDefault: string;
     backgroundPaper: string;
     textPrimary: string;
@@ -172,6 +173,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#0b6bcb',
       secondary: '#ff8a00',
+      success: '#2f9d5f',
       backgroundDefault: '#eef6ff',
       backgroundPaper: '#ffffff',
       textPrimary: '#133049',
@@ -256,6 +258,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#7bc4ff',
       secondary: '#ffb84d',
+      success: '#4ecb81',
       backgroundDefault: '#08131f',
       backgroundPaper: '#102234',
       textPrimary: '#edf6ff',
@@ -340,6 +343,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#ffb66e',
       secondary: '#89d8ff',
+      success: '#63c17f',
       backgroundDefault: '#241311',
       backgroundPaper: '#4e2a25',
       textPrimary: '#fff1e8',
@@ -425,6 +429,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#5c4833',
       secondary: '#8a6745',
+      success: '#6d8b45',
       backgroundDefault: '#dfcfb1',
       backgroundPaper: '#f2e8d3',
       textPrimary: '#3d2d1d',
@@ -513,6 +518,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#59ffb1',
       secondary: '#7af5ff',
+      success: '#2de39a',
       backgroundDefault: '#030b09',
       backgroundPaper: '#071813',
       textPrimary: '#e6fff4',
@@ -597,6 +603,7 @@ export const appThemes: AppThemeDefinition[] = [
     palette: {
       primary: '#2a7fd8',
       secondary: '#7ad9ff',
+      success: '#3fa98b',
       backgroundDefault: '#f2f9ff',
       backgroundPaper: '#fbfdff',
       textPrimary: '#17324a',
@@ -860,6 +867,10 @@ export interface AppUiTheme {
       contrastText: string;
       main: string;
     };
+    success: {
+      contrastText: string;
+      main: string;
+    };
     text: {
       disabled: string;
       primary: string;
@@ -987,6 +998,11 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
     definition.palette.backgroundDefault,
     definition.palette.textPrimary,
   ]);
+  const successContrastText = pickBestTextColor(definition.palette.success, [
+    '#fffdf7',
+    definition.palette.backgroundDefault,
+    definition.palette.textPrimary,
+  ]);
 
   return {
     breakpoints: {
@@ -1034,6 +1050,10 @@ export function createAppTheme(themeId: AppThemeId): AppUiTheme {
       secondary: {
         contrastText: secondaryContrastText,
         main: definition.palette.secondary,
+      },
+      success: {
+        contrastText: successContrastText,
+        main: definition.palette.success,
       },
       text: {
         disabled: disabledText,

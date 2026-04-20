@@ -18,7 +18,7 @@ interface GameStatusReviewContentProps {
   reviewMetadata: string;
   reviewStats: ReviewStat[];
   showPlayerGuess: boolean;
-  statusColor: 'error.main' | 'secondary.main';
+  statusColor: 'error.main' | 'success.main';
 }
 
 export function GameStatusReviewContent({
@@ -40,8 +40,8 @@ export function GameStatusReviewContent({
         </IconBadge>
         <p
           className={`m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] ${
-            statusColor === 'secondary.main'
-              ? 'text-[var(--color-secondary)]'
+            statusColor === 'success.main'
+              ? 'text-[var(--color-success)]'
               : 'text-[#d54b41]'
           }`}
         >

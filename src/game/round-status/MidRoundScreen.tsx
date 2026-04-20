@@ -56,7 +56,7 @@ export function MidRoundScreen({
       ]
     : [];
   const isCorrect = gameState.lastRound?.answerResult === 'correct';
-  const statusColor = isCorrect ? 'secondary.main' : 'error.main';
+  const statusColor = isCorrect ? 'success.main' : 'error.main';
 
   return (
     <GameStatusReviewContent
