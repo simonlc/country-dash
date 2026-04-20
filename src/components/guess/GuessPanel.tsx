@@ -1,4 +1,6 @@
+import { mobileLayoutMediaQuery } from '@/app/layoutBreakpoints';
 import { Panel } from '@/components/ui/Panel';
+import { useMediaQuery } from '@/components/ui/theme-provider';
 import { submitGuessAtom } from '@/game/state/game-actions';
 import {
   countryOptionsAtom,
@@ -14,6 +16,9 @@ export function GuessPanel() {
   const countryOptionsValue = useAtomValue(countryOptionsAtom);
   const isCapitalModeValue = useAtomValue(isCapitalModeAtom);
   const submitGuess = useSetAtom(submitGuessAtom);
+  const isMobileViewport = useMediaQuery(mobileLayoutMediaQuery);
+  const hasCoarsePointer = useMediaQuery('(pointer: coarse)');
+  const useVirtualKeyboard = isMobileViewport && hasCoarsePointer;
 
   const handleSubmit = useCallback(
     (term: string) => {
@@ -24,14 +29,16 @@ export function GuessPanel() {
 
   return (
     <Panel compact maxWidth={720} surface="elevated">
-      <p className="text-sm font-semibold">
-        {isCapitalModeValue
-          ? m.game_guess_capital_prompt()
-          : m.game_guess_country_prompt()}
-      </p>
+      {!useVirtualKeyboard ? (
+        <p className="text-sm font-semibold">
+          {isCapitalModeValue
+            ? m.game_guess_capital_prompt()
+            : m.game_guess_country_prompt()}
+        </p>
+      ) : null}
       <GuessInput
         options={countryOptionsValue}
-        useVirtualKeyboard={false}
+        useVirtualKeyboard={useVirtualKeyboard}
         variant={isCapitalModeValue ? 'capital' : 'country'}
         onSubmit={handleSubmit}
       />
