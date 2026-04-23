@@ -9,6 +9,7 @@ import type {
 import {
   createInitialGameState,
   formatDailyStorageKey,
+  getNextUtcMidnightTimestamp,
   getTodayDateKey,
 } from '@/utils/gameLogic';
 import {
@@ -124,6 +125,42 @@ export const emptyCipherTrafficState: CipherTrafficState = {
 };
 
 export const todayDateKeyAtom = atom(getTodayDateKey());
+todayDateKeyAtom.onMount = (set) => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  let timerId = 0;
+
+  const scheduleRefresh = () => {
+    window.clearTimeout(timerId);
+    const delayMs = Math.max(1000, getNextUtcMidnightTimestamp() - Date.now() + 1000);
+    timerId = window.setTimeout(() => {
+      refreshDateKey();
+    }, delayMs);
+  };
+
+  const refreshDateKey = () => {
+    set(getTodayDateKey());
+    scheduleRefresh();
+  };
+
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      refreshDateKey();
+    }
+  };
+
+  refreshDateKey();
+  window.addEventListener('focus', refreshDateKey);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  return () => {
+    window.clearTimeout(timerId);
+    window.removeEventListener('focus', refreshDateKey);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+};
 
 export const gameStateAtom = atomWithStorage<GameState>(
   gameSessionStorageKey,

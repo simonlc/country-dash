@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PropsWithChildren } from 'react';
 import { loadWorldData } from '@/utils/loadWorldData';
 import { renderWithProviders } from '@/test/render';
@@ -17,7 +17,15 @@ import type {
   FeatureCollectionLike,
   WorldData,
 } from '@/types/game';
-import { formatDailyStorageKey, getTodayDateKey } from '@/utils/gameLogic';
+import { gameSessionStorageKey } from '@/game/state/game-persistence';
+import {
+  buildSessionPlan,
+  createInitialGameState,
+  createSessionConfig,
+  formatDailyStorageKey,
+  gameReducer,
+  getTodayDateKey,
+} from '@/utils/gameLogic';
 
 const { showModalMock } = vi.hoisted(() => ({
   showModalMock: vi.fn(),
@@ -131,6 +139,12 @@ const world: FeatureCollectionLike = {
     }),
   ],
 };
+
+const fallbackCountry = world.features[0];
+
+if (!fallbackCountry) {
+  throw new Error('Expected at least one country in the test world');
+}
 
 const mockedLoadWorldData = vi.mocked(loadWorldData);
 
@@ -392,4 +406,67 @@ describe('GamePage', () => {
     },
     15_000,
   );
+
+  it('does not copy a stale daily result into the current day storage', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-04-01T01:00:00.000Z'));
+
+      const previousDailyConfig = createSessionConfig({
+        dateKey: '2026-03-31',
+        difficulty: 'medium',
+        kind: 'daily',
+        mode: 'classic',
+        seed: '2026-03-31',
+      });
+      const previousDailyPlan = buildSessionPlan(world, previousDailyConfig);
+      let previousDailyState = gameReducer(createInitialGameState(), {
+        type: 'START_SESSION',
+        config: previousDailyConfig,
+        plan: previousDailyPlan,
+        startedAt: 0,
+      });
+
+      for (let round = 0; round < previousDailyPlan.totalRounds; round += 1) {
+        const currentCountry = world.features.find(
+          (country) => country.id === previousDailyState.currentCountryId,
+        );
+
+        previousDailyState = gameReducer(previousDailyState, {
+          type: 'SUBMIT_GUESS',
+          country: currentCountry ?? fallbackCountry,
+          guess: 'wrong answer',
+          submittedAt: round * 1000 + 500,
+        });
+        previousDailyState = gameReducer(previousDailyState, {
+          type: 'ADVANCE_ROUND',
+          startedAt: round * 1000 + 750,
+        });
+      }
+
+      window.localStorage.setItem(
+        gameSessionStorageKey,
+        JSON.stringify({
+          schemaVersion: 1,
+          state: previousDailyState,
+        }),
+      );
+
+      renderWithProviders(<GamePage />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+
+      expect(mockedLoadWorldData).toHaveBeenCalled();
+      expect(
+        window.localStorage.getItem(formatDailyStorageKey(getTodayDateKey())),
+      ).toBeNull();
+      expect(
+        window.localStorage.getItem(formatDailyStorageKey('2026-03-31')),
+      ).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

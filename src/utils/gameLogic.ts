@@ -80,7 +80,7 @@ export function getTodayDateKey(now = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function getNextUtcMidnightTimestamp(now = new Date()) {
+export function getNextUtcMidnightTimestamp(now = new Date()) {
   return Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),

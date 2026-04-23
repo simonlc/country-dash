@@ -15,6 +15,7 @@ import {
 } from '@/utils/gameLogic';
 import { currentCountryAtom } from './game-derived-atoms';
 import {
+  dailyResultAtomFamily,
   focusRequestAtom,
   gameStateAtom,
   loadingErrorAtom,
@@ -185,6 +186,6 @@ export const syncStoredDailyResultAtom = atom(
       return;
     }
 
-    set(storedDailyResultAtom, dailyResult);
+    set(dailyResultAtomFamily(dailyResult.date), dailyResult);
   },
 );
