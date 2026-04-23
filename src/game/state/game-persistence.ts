@@ -10,6 +10,7 @@ import type {
 } from '@/types/game';
 
 export const gameSessionStorageKey = 'country-dash:game-session:v1';
+export const gameSessionExpiryMs = 6 * 60 * 60 * 1000;
 
 type JsonPrimitive = boolean | null | number | string;
 type JsonValue = JsonObject | JsonPrimitive | JsonValue[];
@@ -19,6 +20,7 @@ interface JsonObject {
 }
 
 export interface PersistedGameSessionV1 {
+  persistedAt?: number;
   schemaVersion: 1;
   state: GameState;
 }
@@ -278,7 +280,10 @@ function migratePersistedSession(
   }
 
   if (value.schemaVersion === 1 && isGameStateValue(value.state)) {
+    const persistedAt = isNumber(value.persistedAt) ? value.persistedAt : null;
+
     return {
+      ...(persistedAt === null ? {} : { persistedAt }),
       schemaVersion: 1,
       state: value.state,
     };
@@ -292,6 +297,20 @@ function migratePersistedSession(
   }
 
   return null;
+}
+
+function isPersistedGameSessionExpired(
+  persisted: PersistedGameSessionV1,
+  now = Date.now(),
+) {
+  if (persisted.state.status === 'intro') {
+    return false;
+  }
+
+  return (
+    !isNumber(persisted.persistedAt) ||
+    now - persisted.persistedAt > gameSessionExpiryMs
+  );
 }
 
 function readPersistedSession(raw: string | null) {
@@ -315,7 +334,7 @@ export const gameSessionStorage = {
     }
 
     const persisted = readPersistedSession(storage.getItem(key));
-    if (!persisted) {
+    if (!persisted || isPersistedGameSessionExpired(persisted)) {
       storage.removeItem(key);
       return initialValue;
     }
@@ -337,6 +356,7 @@ export const gameSessionStorage = {
     }
 
     const payload: PersistedGameSessionV1 = {
+      persistedAt: Date.now(),
       schemaVersion: 1,
       state: value,
     };

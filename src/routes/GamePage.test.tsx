@@ -447,6 +447,7 @@ describe('GamePage', () => {
       window.localStorage.setItem(
         gameSessionStorageKey,
         JSON.stringify({
+          persistedAt: Date.now(),
           schemaVersion: 1,
           state: previousDailyState,
         }),
