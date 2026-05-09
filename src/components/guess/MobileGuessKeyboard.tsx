@@ -1,6 +1,6 @@
 import Keyboard from 'react-simple-keyboard/build/index.modern.esm.js';
 import 'react-simple-keyboard/build/css/index.css';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type {
   KeyboardButtonAttributes,
   KeyboardButtonTheme,
@@ -37,6 +37,10 @@ export function MobileGuessKeyboard({
   value,
 }: MobileGuessKeyboardProps) {
   const keyboardRef = useRef<KeyboardReactInterface | null>(null);
+  const isPointerActiveRef = useRef(false);
+  const pendingSubmitRef = useRef(false);
+  const submitTimeoutRef = useRef<number | null>(null);
+  const onSubmitRef = useRef(onSubmit);
   const buttonTheme = useMemo<KeyboardButtonTheme[]>(
     () => [
       {
@@ -79,8 +83,56 @@ export function MobileGuessKeyboard({
     keyboardRef.current?.setInput(value);
   }, [value]);
 
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
+  useEffect(
+    () => () => {
+      if (submitTimeoutRef.current !== null) {
+        window.clearTimeout(submitTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const scheduleSubmitAfterActivation = useCallback(() => {
+    if (submitTimeoutRef.current !== null) {
+      window.clearTimeout(submitTimeoutRef.current);
+    }
+
+    submitTimeoutRef.current = window.setTimeout(() => {
+      submitTimeoutRef.current = null;
+      onSubmitRef.current();
+    }, 0);
+  }, []);
+
+  const completePointerActivation = useCallback(() => {
+    const shouldSubmit = pendingSubmitRef.current;
+    isPointerActiveRef.current = false;
+    pendingSubmitRef.current = false;
+
+    if (shouldSubmit) {
+      scheduleSubmitAfterActivation();
+    }
+  }, [scheduleSubmitAfterActivation]);
+
+  const cancelPointerActivation = useCallback(() => {
+    isPointerActiveRef.current = false;
+    pendingSubmitRef.current = false;
+  }, []);
+
   return (
-    <div className="guess-mobile-keyboard-bleed" data-testid="guess-mobile-keyboard">
+    <div
+      className="guess-mobile-keyboard-bleed"
+      data-testid="guess-mobile-keyboard"
+      onPointerCancelCapture={cancelPointerActivation}
+      onPointerDownCapture={(event) => {
+        isPointerActiveRef.current = true;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }}
+      onPointerUpCapture={completePointerActivation}
+    >
       <Keyboard
         buttonAttributes={buttonAttributes}
         buttonTheme={buttonTheme}
@@ -98,7 +150,12 @@ export function MobileGuessKeyboard({
         onChange={onChange}
         onKeyPress={(button) => {
           if (button === '{submit}') {
-            onSubmit();
+            if (isPointerActiveRef.current) {
+              pendingSubmitRef.current = true;
+              return;
+            }
+
+            scheduleSubmitAfterActivation();
           }
         }}
       />

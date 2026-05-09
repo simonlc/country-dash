@@ -34,7 +34,11 @@ export function GameStatusReviewContent({
 }: GameStatusReviewContentProps) {
   return (
     <>
-      <div aria-live="polite" className="grid justify-items-center gap-1" role="status">
+      <div
+        aria-live="polite"
+        className="grid justify-items-center gap-1"
+        role="status"
+      >
         <IconBadge tone={isCorrect ? 'success' : 'danger'}>
           {isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
         </IconBadge>
@@ -51,12 +55,16 @@ export function GameStatusReviewContent({
           {reviewAnswer}
         </p>
         {reviewMetadata ? (
-          <p className="m-0 text-sm text-[var(--color-muted)]">{reviewMetadata}</p>
+          <p className="m-0 text-sm text-[var(--color-muted)]">
+            {reviewMetadata}
+          </p>
         ) : null}
       </div>
       {showPlayerGuess ? (
         <Card className="w-full px-4 py-2 text-center" tone="outlined">
-          <p className="m-0 text-xs text-[var(--color-muted)]">{m.game_your_guess()}</p>
+          <p className="m-0 text-xs text-[var(--color-muted)]">
+            {m.game_your_guess()}
+          </p>
           <p className="m-0 text-base">{playerGuess}</p>
         </Card>
       ) : null}
@@ -73,9 +81,13 @@ export function GameStatusReviewContent({
                 ) : (
                   <TrendingUp size={14} />
                 )}
-                <span className="text-xs text-[var(--color-muted)]">{item.label}</span>
+                <span className="text-xs text-[var(--color-muted)]">
+                  {item.label}
+                </span>
               </div>
-              <p className="m-0 text-base font-semibold tabular-nums">{item.value}</p>
+              <p className="m-0 text-base font-semibold tabular-nums">
+                {item.value}
+              </p>
             </div>
           </div>
         ))}
